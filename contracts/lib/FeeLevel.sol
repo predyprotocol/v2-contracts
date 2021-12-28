@@ -39,66 +39,6 @@ library FeeLevel {
         }
     }
 
-    function getFeeLevelMultipliedByLiquidity(
-        mapping(int24 => IFeeLevel.Info) storage self,
-        int24 _lower,
-        int24 _upper,
-        int24 _currentFeeLevelIndex,
-        uint128 _liquidityGlobal,
-        uint128 _feeLevelMultipliedLiquidityGlobal
-    ) external view returns (uint128, uint128) {
-        uint128 liquidityUpper = _liquidityGlobal;
-        uint128 feeLevelMultipliedLiquidityUpper = _feeLevelMultipliedLiquidityGlobal;
-
-        if (_lower > _currentFeeLevelIndex) {
-            return (0, 0);
-        } else if (_upper < _currentFeeLevelIndex) {
-            while (_upper <= _currentFeeLevelIndex) {
-                IFeeLevel.Info memory currentFeeLevel = self[
-                    _currentFeeLevelIndex
-                ];
-
-                liquidityUpper = LiqMath.addDelta(
-                    liquidityUpper,
-                    -currentFeeLevel.liquidityNet
-                );
-
-                feeLevelMultipliedLiquidityUpper = LiqMath.addDelta(
-                    feeLevelMultipliedLiquidityUpper,
-                    -(currentFeeLevel.liquidityNet *
-                        (1e10 + int128(_currentFeeLevelIndex) / 2)) / 1e10
-                );
-
-                _currentFeeLevelIndex -= 1;
-            }
-        }
-
-        uint128 liquidityLower = liquidityUpper;
-        uint128 feeLevelMultipliedLiquidityLower = feeLevelMultipliedLiquidityUpper;
-
-        while (_lower <= _currentFeeLevelIndex) {
-            IFeeLevel.Info memory currentFeeLevel = self[_currentFeeLevelIndex];
-
-            liquidityLower = LiqMath.addDelta(
-                liquidityLower,
-                -currentFeeLevel.liquidityNet
-            );
-
-            feeLevelMultipliedLiquidityLower = LiqMath.addDelta(
-                feeLevelMultipliedLiquidityLower,
-                -((currentFeeLevel.liquidityNet *
-                    (1e10 + int128(_currentFeeLevelIndex) / 2)) / 1e10)
-            );
-
-            _currentFeeLevelIndex -= 1;
-        }
-
-        return (
-            liquidityUpper - liquidityLower,
-            feeLevelMultipliedLiquidityUpper - feeLevelMultipliedLiquidityLower
-        );
-    }
-
     /**
      * @notice Update a fee level
      * @param _levels The mapping of fee levels

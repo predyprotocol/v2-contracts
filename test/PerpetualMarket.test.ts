@@ -71,7 +71,7 @@ describe("PerpetualMarket", function () {
       await testContractHelper.openLong(wallet, vaultId, scaledBN(18, 5), scaledBN(100, 6))
 
       const pool = await testContractSet.perpetualMarket.pools(poolId)
-      expect(pool.tradeState.currentFeeLevel).to.be.gt(scaledBN(50, 6))
+      expect(pool.tradeState.currentFeeLevelIndex).to.be.gt(50)
 
       await testContractSet.perpetualMarket.deposit(poolId, scaledBN(1, 6), 10, 12)
     })
@@ -93,12 +93,12 @@ describe("PerpetualMarket", function () {
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
         const pool1 = await testContractSet.perpetualMarket.pools(poolId)
-        console.log('fee level', pool1.tradeState.currentFeeLevel.toString())
+        console.log('fee level', pool1.tradeState.currentFeeLevelIndex.toString())
 
         await testContractHelper.openShort(wallet, vaultId, 10000, 0)
 
         const pool2 = await testContractSet.perpetualMarket.pools(poolId)
-        console.log('fee level', pool2.tradeState.currentFeeLevel.toString())
+        console.log('fee level', pool2.tradeState.currentFeeLevelIndex.toString())
 
         const beforeUnrealizedPnL = await testContractSet.perpetualMarket.getUnrealizedPnLPerLiquidity(poolId)
         const poolBefore = await testContractSet.perpetualMarket.pools(poolId)

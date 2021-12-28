@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "../interfaces/IFeeLevel.sol";
 import "./LiqMath.sol";
-import "hardhat/console.sol";
 
 /**
  * @title TradeStateLib
@@ -13,12 +13,14 @@ library TradeStateLib {
         uint128 liquidityDelta;
         // The amount of liquidity in fee levels below current
         uint128 liquidityBefore;
-        // locked liquidity in the current fee level
-        uint128 lockedInLevel;
-        // current fee level scaled by 1e6. e.g) 1 bps is 1e6.
-        int128 currentFeeLevel;
+        // locked liquidity in current tick
+        uint128 lockedLiquidity;
         // Global feeLevel multiplied by liquidity
         uint128 feeLevelMultipliedLiquidityGlobal;
+        // current fee level scaled by 1e6. e.g) 1 bps is 1e6.
+        int24 currentFeeLevelIndex;
+        // Global realized profit and loss
+        int128 realizedPnLGlobal;
     }
 
     function update(
@@ -33,6 +35,77 @@ library TradeStateLib {
         _tradeState.liquidityDelta = LiqMath.addDelta(
             _tradeState.liquidityDelta,
             _amountPerLevel
+        );
+    }
+
+    function getFeeLevelMultipliedByLiquidity(
+        TradeState storage _tradeState,
+        mapping(int24 => IFeeLevel.Info) storage self,
+        int24 _lower,
+        int24 _upper,
+        int24 _currentFeeLevelIndex
+    ) external view returns (uint128, uint128) {
+        uint128 liquidityUpper = _tradeState.liquidityBefore;
+        uint128 feeLevelMultipliedLiquidityUpper = _tradeState
+            .feeLevelMultipliedLiquidityGlobal;
+        uint128 liquidityDelta = _tradeState.liquidityDelta;
+
+        if (_lower > _currentFeeLevelIndex) {
+            return (0, 0);
+        } else if (_upper < _currentFeeLevelIndex) {
+            while (_upper <= _currentFeeLevelIndex) {
+                IFeeLevel.Info memory currentFeeLevel = self[
+                    _currentFeeLevelIndex
+                ];
+
+                liquidityDelta = LiqMath.addDelta(
+                    liquidityDelta,
+                    -currentFeeLevel.liquidityNet
+                );
+
+                liquidityUpper = LiqMath.addDelta(
+                    liquidityUpper,
+                    -int128(liquidityDelta)
+                );
+
+                feeLevelMultipliedLiquidityUpper = LiqMath.addDelta(
+                    feeLevelMultipliedLiquidityUpper,
+                    -(currentFeeLevel.liquidityNet *
+                        (1e10 + int128(_currentFeeLevelIndex) / 2)) / 1e10
+                );
+
+                _currentFeeLevelIndex -= 1;
+            }
+        }
+
+        uint128 liquidityLower = liquidityUpper;
+        uint128 feeLevelMultipliedLiquidityLower = feeLevelMultipliedLiquidityUpper;
+
+        while (_lower <= _currentFeeLevelIndex) {
+            IFeeLevel.Info memory currentFeeLevel = self[_currentFeeLevelIndex];
+
+            liquidityDelta = LiqMath.addDelta(
+                liquidityDelta,
+                -currentFeeLevel.liquidityNet
+            );
+
+            liquidityLower = LiqMath.addDelta(
+                liquidityLower,
+                -int128(liquidityDelta)
+            );
+
+            feeLevelMultipliedLiquidityLower = LiqMath.addDelta(
+                feeLevelMultipliedLiquidityLower,
+                -((currentFeeLevel.liquidityNet *
+                    (1e10 + int128(_currentFeeLevelIndex) / 2)) / 1e10)
+            );
+
+            _currentFeeLevelIndex -= 1;
+        }
+
+        return (
+            liquidityUpper - liquidityLower,
+            feeLevelMultipliedLiquidityUpper - feeLevelMultipliedLiquidityLower
         );
     }
 
@@ -85,7 +158,7 @@ library TradeStateLib {
         int24 _feeLevelUpper,
         uint128 _amount
     ) internal pure returns (uint128) {
-        uint128 lockedInLevel = _tradeState.lockedInLevel;
+        uint128 lockedInLevel = _tradeState.lockedLiquidity;
         uint128 liquidityDelta = _tradeState.liquidityDelta;
 
         uint128 lockedAmountInCurrentLevel = (_amount * lockedInLevel) /

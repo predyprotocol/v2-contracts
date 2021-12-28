@@ -58,8 +58,8 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const Hedging = await ethers.getContractFactory('Hedging')
   const hedging = (await Hedging.deploy())
 
-  const FeeLevel = await ethers.getContractFactory('FeeLevel')
-  const feeLevel = (await FeeLevel.deploy())
+  const TradeStateLib = await ethers.getContractFactory('TradeStateLib')
+  const tradeStateLib = (await TradeStateLib.deploy())
 
   const LiquidityPool = await ethers.getContractFactory('LiquidityPool')
 
@@ -68,11 +68,11 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket', {
     libraries: {
       Hedging: hedging.address,
-      FeeLevel: feeLevel.address
+      TradeStateLib: tradeStateLib.address
     },
   })
 
-  const perpetualMarket = (await PerpetualMarket.deploy(liquidityPool.address, aggregator.address)) as PerpetualMarket
+  const perpetualMarket = (await PerpetualMarket.deploy(aggregator.address)) as PerpetualMarket
 
   const TradeWrapper = await ethers.getContractFactory('TradeWrapper')
   const tradeWrapper = (await TradeWrapper.deploy(perpetualMarket.address, liquidityPool.address)) as TradeWrapper

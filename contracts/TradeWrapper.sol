@@ -103,7 +103,7 @@ contract TradeWrapper {
                 _tradeParams.vaultId,
                 1,
                 _tradeParams.sizes[1],
-                totalPrice0
+                totalPrice1
             );
         }
 
@@ -120,7 +120,6 @@ contract TradeWrapper {
                 uint128(finalDepositOrWithdrawAmount)
             );
         } else {
-            console.log(7, uint128(-finalDepositOrWithdrawAmount));
             liquidityPool.sendLiquidity(
                 msg.sender,
                 uint128(-finalDepositOrWithdrawAmount)
@@ -181,5 +180,29 @@ contract TradeWrapper {
         );
 
         liquidityPool.sendLiquidity(msg.sender, reward);
+    }
+
+    /**
+     * @notice execute hedging
+     */
+    function execHedge() external {
+        (uint256 usdcAmount, uint256 uAmount, bool isLong) = perpetualMarket
+            .execHedge();
+
+        if (isLong) {
+            ERC20(liquidityPool.underlying()).transferFrom(
+                msg.sender,
+                address(liquidityPool),
+                uAmount
+            );
+            liquidityPool.sendLiquidity(msg.sender, usdcAmount);
+        } else {
+            ERC20(liquidityPool.collateral()).transferFrom(
+                msg.sender,
+                address(liquidityPool),
+                usdcAmount
+            );
+            liquidityPool.sendUndrlying(msg.sender, uAmount);
+        }
     }
 }

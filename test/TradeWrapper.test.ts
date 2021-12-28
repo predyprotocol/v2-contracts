@@ -73,7 +73,7 @@ describe("TradeWrapper", function () {
       await testContractHelper.openLong(wallet, vaultId, scaledBN(18, 5), scaledBN(100, 6))
 
       const pool = await testContractSet.perpetualMarket.pools(poolId)
-      expect(pool.tradeState.currentFeeLevel).to.be.gt(scaledBN(50, 6))
+      expect(pool.tradeState.currentFeeLevelIndex).to.be.gt(50)
 
       await tradeWrapper.deposit(poolId, scaledBN(1, 6), 10, 12)
     })
@@ -95,12 +95,12 @@ describe("TradeWrapper", function () {
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
         const pool1 = await testContractSet.perpetualMarket.pools(poolId)
-        console.log('fee level', pool1.tradeState.currentFeeLevel.toString())
+        console.log('fee level', pool1.tradeState.currentFeeLevelIndex.toString())
 
         await testContractHelper.openShort(wallet, vaultId, 10000, 0)
 
         const pool2 = await testContractSet.perpetualMarket.pools(poolId)
-        console.log('fee level', pool2.tradeState.currentFeeLevel.toString())
+        console.log('fee level', pool2.tradeState.currentFeeLevelIndex.toString())
 
         const beforeUnrealizedPnLPerLiq = await testContractSet.perpetualMarket.getUnrealizedPnLPerLiquidity(poolId)
         const poolBefore = await testContractSet.perpetualMarket.pools(poolId)
@@ -159,6 +159,7 @@ describe("TradeWrapper", function () {
 
       // trades
       const depositCollateral = scaledBN(2000, 6)
+      await testContractHelper.updateSpot(scaledBN(1000, 8))
       await testContractSet.tradeWrapper.openLongPosition(poolId, vaultId, scaledBN(1, 8), depositCollateral)
       await testContractHelper.updateSpot(scaledBN(900, 8))
       await testContractSet.tradeWrapper.openShortPosition(poolId, vaultId, scaledBN(1, 8), 0)
@@ -202,7 +203,7 @@ describe("TradeWrapper", function () {
       expect(after.size[0].sub(before.size[0])).to.equal(size);
 
       const pool = await testContractSet.perpetualMarket.pools(poolId)
-      expect(pool.tradeState.currentFeeLevel).to.be.gt(scaledBN(80, 6))
+      expect(pool.tradeState.currentFeeLevelIndex).to.be.gte(80)
 
       await testContractSet.tradeWrapper.openLongPosition(poolId, vaultId, size, maxFee)
     })
@@ -343,7 +344,7 @@ describe("TradeWrapper", function () {
 
       const beforeUsdcBalance = await usdc.balanceOf(wallet.address)
 
-      const tx = await testContractSet.tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(1, 5), scaledBN(-1, 6)], depositOrWithdrawAmount })
+      const tx = await testContractSet.tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(1, 5), scaledBN(-1, 8)], depositOrWithdrawAmount })
       const receipt = await tx.wait()
 
       // The gas usage of opening Sqeeth and short future is less than 400k gas
@@ -352,12 +353,12 @@ describe("TradeWrapper", function () {
       const vault = await testContractSet.perpetualMarket.getVault(wallet.address, vaultId)
 
       expect(vault.size[0]).to.equal(scaledBN(1, 5));
-      expect(vault.size[1]).to.equal(scaledBN(-1, 6));
+      expect(vault.size[1]).to.equal(scaledBN(-1, 8));
 
       await increaseTime(60 * 60 * 2)
       await testContractHelper.updateSpot(scaledBN(1005, 8))
 
-      await testContractSet.tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(-1, 5), scaledBN(1, 6)], depositOrWithdrawAmount: MinInt128 })
+      await testContractSet.tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(-1, 5), scaledBN(1, 8)], depositOrWithdrawAmount: MinInt128 })
 
       const afterUsdcBalance = await usdc.balanceOf(wallet.address)
 

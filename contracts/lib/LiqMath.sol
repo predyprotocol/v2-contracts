@@ -13,4 +13,12 @@ library LiqMath {
     function abs(int128 x) internal pure returns (uint128) {
         return uint128(x >= 0 ? x : -x);
     }
+
+    function max(int128 a, int128 b) internal pure returns (int128) {
+        return a > b ? a : b;
+    }
+
+    function min(int128 a, int128 b) internal pure returns (int128) {
+        return a > b ? b : a;
+    }
 }
