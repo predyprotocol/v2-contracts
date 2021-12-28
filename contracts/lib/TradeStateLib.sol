@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IFeeLevel.sol";
 import "./LiqMath.sol";
+import "hardhat/console.sol";
 
 /**
  * @title TradeStateLib
@@ -26,7 +27,8 @@ library TradeStateLib {
     function update(
         TradeState storage _tradeState,
         int128 _lockedLiquidity,
-        int128 _amountPerLevel
+        int128 _amountPerLevel,
+        int128 _feeLevelMultipliedLiquidity
     ) internal {
         _tradeState.liquidityBefore = LiqMath.addDelta(
             _tradeState.liquidityBefore,
@@ -36,10 +38,14 @@ library TradeStateLib {
             _tradeState.liquidityDelta,
             _amountPerLevel
         );
+        _tradeState.feeLevelMultipliedLiquidityGlobal = LiqMath.addDelta(
+            _tradeState.feeLevelMultipliedLiquidityGlobal,
+            _feeLevelMultipliedLiquidity
+        );
     }
 
     function getFeeLevelMultipliedByLiquidity(
-        TradeState storage _tradeState,
+        TradeState memory _tradeState,
         mapping(int24 => IFeeLevel.Info) storage self,
         int24 _lower,
         int24 _upper,
@@ -53,7 +59,7 @@ library TradeStateLib {
         if (_lower > _currentFeeLevelIndex) {
             return (0, 0);
         } else if (_upper < _currentFeeLevelIndex) {
-            while (_upper <= _currentFeeLevelIndex) {
+            while (_upper < _currentFeeLevelIndex) {
                 IFeeLevel.Info memory currentFeeLevel = self[
                     _currentFeeLevelIndex
                 ];
@@ -70,12 +76,28 @@ library TradeStateLib {
 
                 feeLevelMultipliedLiquidityUpper = LiqMath.addDelta(
                     feeLevelMultipliedLiquidityUpper,
-                    -(currentFeeLevel.liquidityNet *
-                        (1e10 + int128(_currentFeeLevelIndex) / 2)) / 1e10
+                    -(int128(liquidityDelta) *
+                        (1e10 +
+                            (int128(2 * _currentFeeLevelIndex + 1) * 1e6) /
+                            2)) / 1e10
                 );
 
                 _currentFeeLevelIndex -= 1;
             }
+        } else {
+            console.log(2, liquidityUpper, _tradeState.lockedLiquidity);
+            liquidityUpper = LiqMath.addDelta(
+                liquidityUpper,
+                -int128(_tradeState.lockedLiquidity)
+            );
+            feeLevelMultipliedLiquidityUpper = LiqMath.addDelta(
+                feeLevelMultipliedLiquidityUpper,
+                -((int128(_tradeState.lockedLiquidity) *
+                    (1e10 +
+                        (int128(2 * _currentFeeLevelIndex + 1) * 1e6) /
+                        2)) / 1e10)
+            );
+            _currentFeeLevelIndex -= 1;
         }
 
         uint128 liquidityLower = liquidityUpper;
@@ -96,8 +118,10 @@ library TradeStateLib {
 
             feeLevelMultipliedLiquidityLower = LiqMath.addDelta(
                 feeLevelMultipliedLiquidityLower,
-                -((currentFeeLevel.liquidityNet *
-                    (1e10 + int128(_currentFeeLevelIndex) / 2)) / 1e10)
+                -((int128(liquidityDelta) *
+                    (1e10 +
+                        (int128(2 * _currentFeeLevelIndex + 1) * 1e6) /
+                        2)) / 1e10)
             );
 
             _currentFeeLevelIndex -= 1;
@@ -113,7 +137,7 @@ library TradeStateLib {
      * @notice Returns notional value of locked and unlocked liquidity.
      * @param _amount The amount of LP token
      */
-    function calculateNotionalLockedAndUnlockedLiquidity(
+    function calculateLockedAndUnlockedLiquidity(
         TradeState memory _tradeState,
         int24 _currentFeeLevelIndex,
         int24 _feeLevelLower,
@@ -125,15 +149,23 @@ library TradeStateLib {
         returns (
             uint128 lockedLiquidity,
             uint128 unlockedLiquidity,
-            uint128 liqDelta
+            uint128 liqDelta,
+            uint128 feeLevelMultipliedLiquidity
         )
     {
         if (_feeLevelLower > _currentFeeLevelIndex) {
             unlockedLiquidity = _amount;
         } else if (_feeLevelUpper < _currentFeeLevelIndex) {
             lockedLiquidity = _amount;
+            feeLevelMultipliedLiquidity = ((lockedLiquidity *
+                uint128(
+                    1e10 + (int128(_feeLevelLower + _feeLevelUpper) * 1e6) / 2
+                )) / 1e10);
         } else {
-            lockedLiquidity = calculateNotionalLockedLiquidity(
+            (
+                lockedLiquidity,
+                feeLevelMultipliedLiquidity
+            ) = calculateLockedLiquidity(
                 _tradeState,
                 _currentFeeLevelIndex,
                 _feeLevelLower,
@@ -151,23 +183,35 @@ library TradeStateLib {
      * @notice Returns notional value of locked liquidity.
      * @param _amount The amount of LP token
      */
-    function calculateNotionalLockedLiquidity(
+    function calculateLockedLiquidity(
         TradeState memory _tradeState,
         int24 _currentFeeLevelIndex,
         int24 _feeLevelLower,
         int24 _feeLevelUpper,
         uint128 _amount
-    ) internal pure returns (uint128) {
+    ) internal pure returns (uint128, uint128) {
         uint128 lockedInLevel = _tradeState.lockedLiquidity;
         uint128 liquidityDelta = _tradeState.liquidityDelta;
 
         uint128 lockedAmountInCurrentLevel = (_amount * lockedInLevel) /
             (uint24(_feeLevelUpper - _feeLevelLower) * liquidityDelta);
 
-        uint128 lockedAmount = lockedAmountInCurrentLevel +
-            (_amount * uint24(_currentFeeLevelIndex - _feeLevelLower)) /
+        uint128 lockedAmountBefore = (_amount *
+            uint24(_currentFeeLevelIndex - _feeLevelLower)) /
             uint24(_feeLevelUpper - _feeLevelLower);
 
-        return lockedAmount;
+        return (
+            lockedAmountBefore + lockedAmountInCurrentLevel,
+            ((lockedAmountBefore *
+                uint128(
+                    1e10 +
+                        (int128(_feeLevelLower + _currentFeeLevelIndex) * 1e6) /
+                        2
+                )) +
+                (lockedAmountInCurrentLevel *
+                    uint128(
+                        1e10 + (int128(2 * _currentFeeLevelIndex + 1) * 1e6) / 2
+                    ))) / 1e10
+        );
     }
 }

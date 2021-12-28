@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { MockERC20, TradeWrapper } from '../typechain'
+import { MockERC20, PerpetualMarket } from '../typechain'
 import { BigNumber, BigNumberish, ContractTransaction, Wallet } from 'ethers'
 import {
   deployTestContractSet,
@@ -28,7 +28,7 @@ describe("TradeWrapper gas test", function () {
   let testContractHelper: TestContractHelper
   let snapshotId: number
 
-  let tradeWrapper: TradeWrapper
+  let tradeWrapper: PerpetualMarket
 
   const MaxInt128 = BigNumber.from(2).pow(127).sub(1)
   const MinInt128 = BigNumber.from(2).pow(127).sub(1).mul(-1)
@@ -41,7 +41,7 @@ describe("TradeWrapper gas test", function () {
 
     weth = testContractSet.weth
     usdc = testContractSet.usdc
-    tradeWrapper = testContractSet.tradeWrapper
+    tradeWrapper = testContractSet.perpetualMarket
   })
 
   beforeEach(async () => {
@@ -57,7 +57,6 @@ describe("TradeWrapper gas test", function () {
     await usdc.mint(other.address, testUsdcAmount)
 
     await usdc.approve(testContractSet.perpetualMarket.address, MaxInt128)
-    await usdc.approve(testContractSet.tradeWrapper.address, MaxInt128)
 
     // spot price is $1,000
     await testContractHelper.updateSpot(scaledBN(1000, 8))
@@ -72,47 +71,47 @@ describe("TradeWrapper gas test", function () {
     const vaultId = 0
 
     it("deposit 1 usdc", async () => {
-      const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 100, 110)
+      const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 100, 110, 0, 0)
 
-      await checkGas(tx, 165543)
+      await checkGas(tx, 215584)
     })
 
     it("deposit around current level", async () => {
-      await tradeWrapper.deposit(poolId, scaledBN(5, 6), 10, 60)
+      await tradeWrapper.deposit(poolId, scaledBN(5, 6), 10, 60, 0, 0)
 
       await testContractHelper.openLong(wallet, vaultId, scaledBN(18, 5), scaledBN(100, 6))
 
-      const pool = await testContractSet.perpetualMarket.pools(poolId)
+      const pool = await testContractSet.perpetualMarketCore.pools(poolId)
       expect(pool.tradeState.currentFeeLevelIndex).to.be.gt(50)
 
-      const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 45, 55)
+      const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 45, 55, 0, 0)
 
-      await checkGas(tx, 300000)
+      await checkGas(tx, 312822)
     })
     it("deposit into lower", async () => {
-      await tradeWrapper.deposit(poolId, scaledBN(5, 6), 10, 60)
+      await tradeWrapper.deposit(poolId, scaledBN(5, 6), 10, 60, 0, 0)
 
       await testContractHelper.openLong(wallet, vaultId, scaledBN(18, 5), scaledBN(100, 6))
 
-      const pool = await testContractSet.perpetualMarket.pools(poolId)
+      const pool = await testContractSet.perpetualMarketCore.pools(poolId)
       expect(pool.tradeState.currentFeeLevelIndex).to.be.gt(50)
 
-      const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 10, 12)
+      const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 10, 12, 0, 0)
 
-      await checkGas(tx, 515167)
+      await checkGas(tx, 557793)
     })
 
     it("deposit into lower range", async () => {
-      await tradeWrapper.deposit(poolId, scaledBN(6, 6), 10, 70)
+      await tradeWrapper.deposit(poolId, scaledBN(6, 6), 10, 70, 0, 0)
 
       await testContractHelper.openLong(wallet, vaultId, scaledBN(20, 5), scaledBN(100, 6))
 
-      const pool = await testContractSet.perpetualMarket.pools(poolId)
+      const pool = await testContractSet.perpetualMarketCore.pools(poolId)
       expect(pool.tradeState.currentFeeLevelIndex).to.be.gt(52)
 
-      const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 10, 50)
+      const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 10, 50, 0, 0)
 
-      await checkGas(tx, 554075)
+      await checkGas(tx, 588919)
     })
   })
 
@@ -129,82 +128,81 @@ describe("TradeWrapper gas test", function () {
       const feeLevelLower = 80
       const feeLevelUpper = 100
 
-      await testContractSet.tradeWrapper.deposit(sqeethPoolId, amount, feeLevelLower, feeLevelUpper)
-      await testContractSet.tradeWrapper.deposit(futurePoolId, amount, feeLevelLower, feeLevelUpper)
+      await tradeWrapper.deposit(sqeethPoolId, amount, feeLevelLower, feeLevelUpper, 0, 0)
+      await tradeWrapper.deposit(futurePoolId, amount, feeLevelLower, feeLevelUpper, 0, 0)
 
-      await usdc.approve(testContractSet.tradeWrapper.address, MaxInt128)
-      await usdc.connect(other).approve(testContractSet.tradeWrapper.address, MaxInt128)
+      await usdc.connect(other).approve(tradeWrapper.address, MaxInt128)
 
       await testContractHelper.updateSpot(scaledBN(1002, 8))
     })
 
     it("first open Sqeeth and long future contracts", async () => {
-      const tx = await testContractSet.tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(1, 8), scaledBN(1, 6)], depositOrWithdrawAmount })
+      const tx = await tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(1, 8), scaledBN(1, 6)], depositOrWithdrawAmount })
 
       await checkGas(tx, 1897119)
     })
 
     it("open Sqeeth", async () => {
-      await testContractSet.tradeWrapper.connect(other).openPositions({ vaultId, sizes: [1000, size], depositOrWithdrawAmount })
+      await tradeWrapper.connect(other).openPositions({ vaultId, sizes: [1000, size], depositOrWithdrawAmount })
 
       await increaseTime(60 * 60 * 2)
 
-      const tx = await testContractSet.tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(1, 8), 0], depositOrWithdrawAmount })
+      const tx = await tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(1, 8), 0], depositOrWithdrawAmount })
 
-      const pool = await testContractSet.perpetualMarket.pools(sqeethPoolId)
+      const pool = await testContractSet.perpetualMarketCore.pools(sqeethPoolId)
       expect(pool.tradeState.currentFeeLevelIndex).to.be.eq(80)
 
       await checkGas(tx, 264595)
     })
 
     it("open long future contracts", async () => {
-      await testContractSet.tradeWrapper.connect(other).openPositions({ vaultId, sizes: [1000, size], depositOrWithdrawAmount })
+      await tradeWrapper.connect(other).openPositions({ vaultId, sizes: [1000, size], depositOrWithdrawAmount })
 
       await increaseTime(60 * 60 * 2)
 
-      const tx = await testContractSet.tradeWrapper.openPositions({ vaultId, sizes: [0, scaledBN(1, 5)], depositOrWithdrawAmount })
+      const tx = await tradeWrapper.openPositions({ vaultId, sizes: [0, scaledBN(1, 5)], depositOrWithdrawAmount })
 
-      const pool = await testContractSet.perpetualMarket.pools(futurePoolId)
+      const pool = await testContractSet.perpetualMarketCore.pools(futurePoolId)
       expect(pool.tradeState.currentFeeLevelIndex).to.be.eq(80)
 
-      await checkGas(tx, 262128)
+      await checkGas(tx, 262150)
     })
 
     it("open Sqeeth and short future contracts", async () => {
-      await testContractSet.tradeWrapper.connect(other).openPositions({ vaultId, sizes: [100, size], depositOrWithdrawAmount })
+      await tradeWrapper.connect(other).openPositions({ vaultId, sizes: [100, size], depositOrWithdrawAmount })
 
       await increaseTime(60 * 60 * 2)
 
-      const tx = await testContractSet.tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(1, 8), scaledBN(-1, 6)], depositOrWithdrawAmount })
+      const tx = await tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(1, 8), scaledBN(-1, 6)], depositOrWithdrawAmount })
 
       await checkGas(tx, 385282)
     })
 
     it("open Sqeeth and short future contracts after price changed", async () => {
-      await testContractSet.tradeWrapper.connect(other).openPositions({ vaultId, sizes: [100, size], depositOrWithdrawAmount })
+      await tradeWrapper.connect(other).openPositions({ vaultId, sizes: [100, size], depositOrWithdrawAmount })
 
       await increaseTime(60 * 60 * 2)
       await testContractHelper.updateSpot(scaledBN(1020, 8))
 
-      const tx = await testContractSet.tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(1, 8), scaledBN(-1, 6)], depositOrWithdrawAmount })
+      const tx = await tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(1, 8), scaledBN(-1, 6)], depositOrWithdrawAmount })
 
       // The gas usage of opening Sqeeth and short future is less than 400k gas
       await checkGas(tx, 423120)
     })
 
     it("open Sqeeth and short future contracts crossing several fee levels after price changed", async () => {
-      await testContractSet.tradeWrapper.connect(other).openPositions({ vaultId, sizes: [1000, size], depositOrWithdrawAmount })
+      await tradeWrapper.connect(other).openPositions({ vaultId, sizes: [1000, size], depositOrWithdrawAmount })
 
       await increaseTime(60 * 60 * 2)
       await testContractHelper.updateSpot(scaledBN(1020, 8))
 
-      const tx = await testContractSet.tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(50, 8), scaledBN(-1, 6)], depositOrWithdrawAmount: scaledBN(500000, 6) })
+      const tx = await tradeWrapper.openPositions({ vaultId, sizes: [scaledBN(50, 8), scaledBN(-1, 6)], depositOrWithdrawAmount: scaledBN(500000, 6) })
 
-      const pool = await testContractSet.perpetualMarket.pools(sqeethPoolId)
+      const pool = await testContractSet.perpetualMarketCore.pools(sqeethPoolId)
       expect(pool.tradeState.currentFeeLevelIndex).to.be.gt(90)
       expect(pool.tradeState.currentFeeLevelIndex).to.be.lt(95)
 
-      await checkGas(tx, 606189)
+      await checkGas(tx, 622562)
     })
   })
 })

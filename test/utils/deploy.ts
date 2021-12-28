@@ -1,8 +1,8 @@
 import { BigNumber, BigNumberish, Wallet } from 'ethers'
 import { ethers } from 'hardhat'
 import {
-  TradeWrapper,
   PerpetualMarket,
+  PerpetualMarketCore,
   LiquidityPool,
   MockERC20,
   MockWETH,
@@ -11,8 +11,8 @@ import {
 
 export type TestContractSet = {
   aggregator: MockChainlinkAggregator
-  tradeWrapper: TradeWrapper
   perpetualMarket: PerpetualMarket
+  perpetualMarketCore: PerpetualMarketCore
   liquidityPool: LiquidityPool
   usdc: MockERC20
   weth: MockWETH
@@ -37,11 +37,11 @@ export class TestContractHelper {
   }
 
   async openLong(wallet: Wallet, vaultId: BigNumberish, size: BigNumberish, depositAmount: BigNumberish) {
-    await this.testContractSet.tradeWrapper.connect(wallet).openPositions({ vaultId, sizes: [size, 0], depositOrWithdrawAmount: depositAmount })
+    await this.testContractSet.perpetualMarket.connect(wallet).openPositions({ vaultId, sizes: [size, 0], depositOrWithdrawAmount: depositAmount })
   }
 
   async openShort(wallet: Wallet, vaultId: BigNumberish, size: BigNumberish, depositAmount: BigNumberish) {
-    await this.testContractSet.tradeWrapper.connect(wallet).openPositions({ vaultId, sizes: [BigNumber.from(size).mul(-1), 0], depositOrWithdrawAmount: depositAmount })
+    await this.testContractSet.perpetualMarket.connect(wallet).openPositions({ vaultId, sizes: [BigNumber.from(size).mul(-1), 0], depositOrWithdrawAmount: depositAmount })
   }
 }
 
@@ -65,25 +65,25 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
 
   const liquidityPool = (await LiquidityPool.deploy(usdc.address, weth.address)) as LiquidityPool
 
-  const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket', {
+  const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore', {
     libraries: {
       Hedging: hedging.address,
       TradeStateLib: tradeStateLib.address
     },
   })
 
-  const perpetualMarket = (await PerpetualMarket.deploy(aggregator.address)) as PerpetualMarket
+  const perpetualMarketCore = (await PerpetualMarketCore.deploy(aggregator.address)) as PerpetualMarketCore
 
-  const TradeWrapper = await ethers.getContractFactory('TradeWrapper')
-  const tradeWrapper = (await TradeWrapper.deploy(perpetualMarket.address, liquidityPool.address)) as TradeWrapper
+  const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
+  const perpetualMarket = (await PerpetualMarket.deploy(perpetualMarketCore.address, liquidityPool.address)) as PerpetualMarket
 
   return {
     weth,
     usdc,
     aggregator,
     liquidityPool,
-    perpetualMarket,
-    tradeWrapper
+    perpetualMarketCore,
+    perpetualMarket
   }
 }
 

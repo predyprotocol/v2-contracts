@@ -34,22 +34,11 @@ library LpPosition {
      * @notice Update a position
      * @param _position The position to update
      * @param _liquidityDelta The change in pool liquidity by the position update
-     * @param _realizedPnLInside Realized profit and loss inside the range of the position
      */
-    function update(
-        Info storage _position,
-        int128 _liquidityDelta,
-        int128 _realizedPnLInside
-    ) internal {
-        int128 realizedPnL = ((_realizedPnLInside -
-            _position.realizedPnLInsideLast) * int128(_position.liquidity)) /
-            1e6;
-
+    function update(Info storage _position, int128 _liquidityDelta) internal {
         _position.liquidity = LiqMath.addDelta(
             _position.liquidity,
             _liquidityDelta
         );
-        _position.realizedPnL += realizedPnL;
-        _position.realizedPnLInsideLast = _realizedPnLInside;
     }
 }
