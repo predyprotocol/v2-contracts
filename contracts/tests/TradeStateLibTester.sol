@@ -26,12 +26,11 @@ contract TradeStateLibTester {
         uint128 _amount
     )
         external
-        pure
+        view
         returns (
             uint128,
             uint128,
-            uint128,
-            uint128
+            TradeStateLib.Result memory
         )
     {
         return

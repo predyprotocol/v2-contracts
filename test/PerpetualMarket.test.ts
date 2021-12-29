@@ -126,7 +126,7 @@ describe("PerpetualMarket", function () {
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
-          ).to.be.eq(69997272)
+          ).to.be.eq(69997296)
         })
       })
 

@@ -65,14 +65,23 @@ describe("TradeStateLib", function () {
   describe("getFeeLevelMultipliedByLiquidity", () => {
 
     beforeEach(async () => {
-    })
-
-    it("1", async () => {
-      const feeLevelMultipliedLiquidityGlobal = BigNumber.from('12418690')
-      const realizedPnLGlobal = 0
-
       await tester.testSetFeeLevel(30, 1000000)
       await tester.testSetFeeLevel(60, -1000000)
+    })
+
+    it("within a range", async () => {
+      const feeLevelMultipliedLiquidityGlobal = BigNumber.from('24339193')
+      const realizedPnLGlobal = 0
+
+      const result = await tester.testGetFeeLevelMultipliedByLiquidity({ liquidityDelta: 1000000, liquidityBefore: 2400000, lockedLiquidity: 400000, currentFeeLevelIndex: 32, feeLevelMultipliedLiquidityGlobal, realizedPnLGlobal }, 30, 60, 32)
+
+      expect(result[0]).to.be.eq(1400000)
+      expect(result[1]).to.be.eq(1404450)
+    })
+
+    it("below range", async () => {
+      const feeLevelMultipliedLiquidityGlobal = BigNumber.from('12418690')
+      const realizedPnLGlobal = 0
 
       await tester.testSetFeeLevel(10, 1000000)
       await tester.testSetFeeLevel(20, -1000000)
@@ -81,19 +90,6 @@ describe("TradeStateLib", function () {
 
       expect(result[0]).to.be.eq(10000000)
       expect(result[1]).to.be.eq(10016000)
-    })
-
-    it("2", async () => {
-      const feeLevelMultipliedLiquidityGlobal = BigNumber.from('24339193')
-      const realizedPnLGlobal = 0
-
-      await tester.testSetFeeLevel(100, 10000000)
-      await tester.testSetFeeLevel(120, -10000000)
-
-      const result = await tester.testGetFeeLevelMultipliedByLiquidity({ liquidityDelta: 10000000, liquidityBefore: 24217185, lockedLiquidity: 4217185, currentFeeLevelIndex: 102, feeLevelMultipliedLiquidityGlobal, realizedPnLGlobal }, 100, 120, 102)
-
-      expect(result[0]).to.be.eq(10000000)
-      expect(result[1]).to.be.eq(10101500)
     })
   })
 })
