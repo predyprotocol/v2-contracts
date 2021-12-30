@@ -5,7 +5,7 @@ import "../interfaces/ILiquidityPool.sol";
 
 library Pricer {
     /**
-     * @return calculated price scaled by 1e6
+     * @return calculated price scaled by 1e8
      */
     function calculatePrice(uint256 _poolId, uint256 _spot)
         internal

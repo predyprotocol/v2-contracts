@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IFeeLevel.sol";
 import "./LiqMath.sol";
+import "./FeeLevel.sol";
 import "./FeeLevelMultipliedLiquidity.sol";
 import "hardhat/console.sol";
 
@@ -22,6 +23,19 @@ library TradeStateLib {
         // current fee level scaled by 1e6. e.g) 1 bps is 1e6.
         int24 currentFeeLevelIndex;
         // Global realized profit and loss
+        int128 realizedPnLGlobal;
+    }
+
+    // Cache data for TradeState
+    struct TradeStateCache {
+        uint128 liquidityDelta;
+        uint128 liquidityBefore;
+        uint128 lockedLiquidity;
+        int128 currentFeeLevel;
+        int24 currentFeeLevelIndex;
+        int24 nextFeeLevelIndex;
+        // Global feeLevel multiplied by liquidity
+        uint128 feeLevelMultipliedLiquidityGlobal;
         int128 realizedPnLGlobal;
     }
 
@@ -252,5 +266,69 @@ library TradeStateLib {
                         1e10 + (int128(2 * _currentFeeLevelIndex + 1) * 1e6) / 2
                     ))) / 1e10
         );
+    }
+
+    function transitionToNextTick(
+        mapping(int24 => IFeeLevel.Info) storage _feeLevels,
+        TradeStateCache memory _cache,
+        bool _direction
+    ) external returns (TradeStateCache memory) {
+        if (_direction) {
+            _cache.liquidityDelta = LiqMath.addDelta(
+                _cache.liquidityDelta,
+                -_feeLevels[_cache.currentFeeLevelIndex].liquidityNet
+            );
+        } else {
+            _cache.liquidityDelta = LiqMath.addDelta(
+                _cache.liquidityDelta,
+                _feeLevels[_cache.nextFeeLevelIndex].liquidityNet
+            );
+        }
+
+        FeeLevel.cross(
+            _feeLevels,
+            _cache.currentFeeLevelIndex,
+            _cache.realizedPnLGlobal
+        );
+
+        _cache.lockedLiquidity = 0;
+        _cache.currentFeeLevelIndex = _cache.nextFeeLevelIndex;
+
+        _cache.currentFeeLevel = getCurrentFeeLevel(
+            _cache.currentFeeLevelIndex,
+            _cache.lockedLiquidity,
+            _cache.liquidityDelta
+        );
+
+        if (_direction) {
+            _cache.lockedLiquidity = _cache.liquidityDelta;
+        }
+
+        return _cache;
+    }
+
+    /**
+     * @return current fee level scaled by 1e8
+     */
+    function getCurrentFeeLevel(
+        int128 _currentFeeLevelIndex,
+        uint128 _lockedLiquidity,
+        uint128 _liquidityDelta
+    ) public pure returns (int128) {
+        int128 baseFeeLevel = int128(1e8) * _currentFeeLevelIndex;
+
+        if (_liquidityDelta == 0) {
+            return 0;
+        }
+
+        int128 fractionFeeLevel = int128(
+            (1e8 * _lockedLiquidity) / _liquidityDelta
+        );
+
+        if (baseFeeLevel >= 0) {
+            return baseFeeLevel + fractionFeeLevel;
+        } else {
+            return baseFeeLevel - fractionFeeLevel;
+        }
     }
 }

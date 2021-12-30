@@ -17,32 +17,18 @@ import "hardhat/console.sol";
  */
 contract PerpetualMarketCore {
     using Hedging for Hedging.Info;
+    using Hedging for Hedging.PoolInfo;
     using LpPosition for mapping(bytes32 => LpPosition.Info);
     using LpPosition for LpPosition.Info;
     using FeeLevel for mapping(int24 => IFeeLevel.Info);
     using FeeLevel for IFeeLevel.Info;
     using TradeStateLib for TradeStateLib.TradeState;
 
-    // Cache data for TradeState
-    struct TradeStateCache {
-        uint128 liquidityDelta;
-        uint128 liquidityBefore;
-        uint128 lockedLiquidity;
-        int128 currentFeeLevel;
-        int24 currentFeeLevelIndex;
-        int24 nextFeeLevelIndex;
-        // Global feeLevel multiplied by liquidity
-        uint128 feeLevelMultipliedLiquidityGlobal;
-        int128 realizedPnLGlobal;
-    }
-
     struct Pool {
         uint16 id;
         // The normalization factor of the derivative price, which is reduced by the funding payment
         uint128 nfactor;
-        // The last snapshot of required margin
-        int128 lastI;
-        // Cumulative entry price of long side
+        // Cumulative entry price scaled by 1e16
         int128 entry;
         // The timestamp of last trade
         uint128 lastTradeTime;
@@ -53,6 +39,7 @@ contract PerpetualMarketCore {
 
     struct TraderPosition {
         int128[2] size;
+        // entry price scaled by 1e16
         int128[2] entry;
         int128 usdcPosition;
     }
@@ -83,6 +70,12 @@ contract PerpetualMarketCore {
         pools[1].lastTradeTime = uint128(block.timestamp);
     }
 
+    struct PositionChangeResult {
+        uint128 depositAmount;
+        uint128 size;
+        int128 entryPrice;
+    }
+
     /**
      * @notice provide liquidity to the range of fee levels
      */
@@ -91,33 +84,30 @@ contract PerpetualMarketCore {
         uint128 _amount,
         int24 _feeLevelLower,
         int24 _feeLevelUpper
-    )
-        external
-        returns (
-            uint128 depositAmount,
-            uint128 size,
-            int128 entryPrice
-        )
-    {
+    ) external returns (PositionChangeResult memory posResult) {
         TradeStateLib.TradeState storage tradeState = pools[_poolId].tradeState;
 
         {
-            (
-                uint128 lockedLiquidity,
-                uint128 unlockedLiquidity,
-                TradeStateLib.Result memory result
-            ) = tradeState.calculateLockedAndUnlockedLiquidity(
-                    tradeState.currentFeeLevelIndex,
-                    _feeLevelLower,
-                    _feeLevelUpper,
-                    _amount
-                );
+            uint128 lockedLiquidity;
+            uint128 unlockedLiquidity;
+            {
+                TradeStateLib.Result memory result;
+                (lockedLiquidity, unlockedLiquidity, result) = tradeState
+                    .calculateLockedAndUnlockedLiquidity(
+                        tradeState.currentFeeLevelIndex,
+                        _feeLevelLower,
+                        _feeLevelUpper,
+                        _amount
+                    );
 
-            if (lockedLiquidity > 0) {
-                size = (lockedLiquidity * uint128(getSRate(_poolId))) / 1e6;
+                if (lockedLiquidity > 0) {
+                    posResult.size = uint128(
+                        getSRate(_poolId, lockedLiquidity)
+                    );
+                }
+
+                tradeState.update(int128(lockedLiquidity), result, true);
             }
-
-            tradeState.update(int128(lockedLiquidity), result, true);
 
             _updatePosition(
                 pools[_poolId],
@@ -128,23 +118,30 @@ contract PerpetualMarketCore {
             );
 
             if (lockedLiquidity > 0) {
-                uint128 lockedNotional;
-                (lockedNotional, entryPrice) = calculateLockedNotional(
+                uint128 lockedNotional = calculateLockedNotional(
                     pools[_poolId],
-                    _feeLevelLower,
-                    _feeLevelUpper,
                     lockedLiquidity
                 );
-                depositAmount += lockedNotional;
+                posResult.depositAmount += lockedNotional / 1e2;
 
-                entryPrice = (entryPrice * int128(size)) / 1e8;
+                posResult.entryPrice =
+                    (pools[_poolId].entry * int128(posResult.size)) /
+                    positions[_poolId];
 
-                positions[_poolId] += int128(size);
-                pools[_poolId].entry += entryPrice;
+                positions[_poolId] += int128(posResult.size);
+                pools[_poolId].entry += posResult.entryPrice;
+
+                (uint128 spot, ) = getUnderlyingPrice();
+                hedging.addPosition(
+                    _poolId,
+                    -Pricer.calculateDelta(_poolId, int128(spot)),
+                    int128(lockedNotional),
+                    spot
+                );
             }
 
             if (unlockedLiquidity > 0) {
-                depositAmount += calculateUnlockedNotional(
+                posResult.depositAmount += calculateUnlockedNotional(
                     pools[_poolId],
                     _feeLevelLower,
                     _feeLevelUpper,
@@ -162,14 +159,7 @@ contract PerpetualMarketCore {
         uint128 _amount,
         int24 _feeLevelLower,
         int24 _feeLevelUpper
-    )
-        external
-        returns (
-            uint128 withdrawableAmount,
-            uint128 size,
-            int128 entryPrice
-        )
-    {
+    ) external returns (PositionChangeResult memory posResult) {
         TradeStateLib.TradeState storage tradeState = pools[_poolId].tradeState;
 
         {
@@ -185,29 +175,34 @@ contract PerpetualMarketCore {
                 );
 
             if (lockedLiquidity > 0) {
-                size = (lockedLiquidity * uint128(getSRate(_poolId))) / 1e6;
+                posResult.size = uint128(getSRate(_poolId, lockedLiquidity));
             }
 
-            console.log(2, lockedLiquidity);
-
             if (lockedLiquidity > 0) {
-                uint128 lockedNotional;
-                (lockedNotional, entryPrice) = calculateLockedNotional(
+                uint128 lockedNotional = calculateLockedNotional(
                     pools[_poolId],
-                    _feeLevelLower,
-                    _feeLevelUpper,
                     lockedLiquidity
                 );
-                withdrawableAmount += lockedNotional;
+                posResult.depositAmount += lockedNotional / 1e2;
 
-                entryPrice = (entryPrice * int128(size)) / 1e8;
+                posResult.entryPrice =
+                    (pools[_poolId].entry * int128(posResult.size)) /
+                    positions[_poolId];
 
-                positions[_poolId] -= int128(size);
-                pools[_poolId].entry -= entryPrice;
+                positions[_poolId] -= int128(posResult.size);
+                pools[_poolId].entry -= posResult.entryPrice;
+
+                (uint128 spot, ) = getUnderlyingPrice();
+                hedging.addPosition(
+                    _poolId,
+                    -Pricer.calculateDelta(_poolId, int128(spot)),
+                    -int128(lockedNotional),
+                    spot
+                );
             }
 
             if (unlockedLiquidity > 0) {
-                withdrawableAmount = calculateUnlockedNotional(
+                posResult.depositAmount += calculateUnlockedNotional(
                     pools[_poolId],
                     _feeLevelLower,
                     _feeLevelUpper,
@@ -229,40 +224,16 @@ contract PerpetualMarketCore {
 
     function calculateLockedNotional(
         Pool storage _pool,
-        int24 _feeLevelLower,
-        int24 _feeLevelUpper,
         uint128 _lockedLiquidity
-    ) internal view returns (uint128, int128) {
+    ) internal view returns (uint128) {
         (uint128 spot, ) = getUnderlyingPrice();
 
-        (
-            uint128 liquidity,
-            uint128 feeLevelMultipliedByLiquidity
-        ) = TradeStateLib.getFeeLevelMultipliedByLiquidity(
-                _pool.tradeState,
-                _pool.feeLevels,
-                _feeLevelLower,
-                _feeLevelUpper,
-                _pool.tradeState.currentFeeLevelIndex
-            );
+        int128 hedgeNotional = hedging.pools[_pool.id].getHedgeNotional(spot);
 
-        uint128 lockedNotional = (_lockedLiquidity *
-            getUPnLPerLiquidity(
-                _pool,
-                spot,
-                getMarkPrice(_pool.id, spot),
-                feeLevelMultipliedByLiquidity,
-                liquidity
-            )) / 1e6;
+        uint128 lockedNotional = (_lockedLiquidity * uint128(hedgeNotional)) /
+            ((_pool.tradeState.liquidityBefore - _lockedLiquidity));
 
-        uint128 weight = (feeLevelMultipliedByLiquidity *
-            (_pool.tradeState.liquidityBefore) *
-            1e6) /
-            (_pool.tradeState.feeLevelMultipliedLiquidityGlobal * liquidity);
-
-        int128 entryPrice = (1e2 * int128(weight) * _pool.entry) /
-            positions[_pool.id];
-        return (lockedNotional, entryPrice);
+        return lockedNotional;
     }
 
     function calculateUnlockedNotional(
@@ -278,7 +249,7 @@ contract PerpetualMarketCore {
             _pool.tradeState.realizedPnLGlobal
         );
 
-        return (_unlockedLiquidity * uint128(int128(1e6) + realizedPnL)) / 1e6;
+        return (_unlockedLiquidity * uint128(int128(1e8) + realizedPnL)) / 1e8;
     }
 
     /**
@@ -291,10 +262,7 @@ contract PerpetualMarketCore {
         external
         returns (uint128)
     {
-        Pool storage pool = pools[_poolId];
-
         (uint128 spot, ) = getUnderlyingPrice();
-        uint128 price = getDerivativeIndexPrice(_poolId, spot);
 
         // Calculate margin and price
         int128 totalMargin;
@@ -313,11 +281,26 @@ contract PerpetualMarketCore {
         uint128 markPrice;
         int128 feeLevel;
 
-        int128 m = totalMargin -
-            int128(pool.tradeState.liquidityBefore) -
-            getHedgeNotional(_poolId, spot);
+        int128 m;
 
-        (markPrice, feeLevel) = trade(pool, spot, price, m);
+        Pool storage pool = pools[_poolId];
+        {
+            uint128 price = getDerivativeIndexPrice(_poolId, spot);
+
+            int128 hedgeNotional = hedging.pools[_poolId].getHedgeNotional(
+                spot
+            );
+            m = totalMargin - hedgeNotional;
+
+            PnLParams memory pnlParams = PnLParams(
+                hedgeNotional,
+                pool.entry,
+                pool.tradeState.liquidityBefore,
+                positions[_poolId]
+            );
+
+            (markPrice, feeLevel) = trade(pool, price, m / 1e2, pnlParams);
+        }
 
         positions[_poolId] += _size;
 
@@ -327,14 +310,13 @@ contract PerpetualMarketCore {
         hedging.addPosition(_poolId, -derivativeDelta, m, spot);
 
         // Update pool info
-        int128 totalPrice = (_size * int128(markPrice)) / 1e6;
+        int128 totalPrice = (_size * int128(markPrice));
 
         pool.entry += totalPrice;
-        pool.lastI = totalMargin;
         pool.nfactor = calculateNewNFactor(_poolId, feeLevel);
         pool.lastTradeTime = uint128(block.timestamp);
 
-        return LiqMath.abs(totalPrice);
+        return LiqMath.abs(totalPrice / 1e8);
     }
 
     /**
@@ -367,7 +349,7 @@ contract PerpetualMarketCore {
 
         (uint128 spot, ) = getUnderlyingPrice();
 
-        int128 im = getInitialMargin(traderPosition, spot);
+        int128 im = getInitialOrMaintenanceMargin(traderPosition, spot, true);
         int128 derivativePnL = getPnL(traderPosition, spot);
         int128 pnl = traderPosition.usdcPosition + derivativePnL;
 
@@ -392,13 +374,14 @@ contract PerpetualMarketCore {
         uint256 _poolId,
         int128 _size
     ) external returns (uint128) {
+        /*
         TraderPosition storage traderPosition = traders[_trader][_vaultId];
 
         (uint128 spot, ) = getUnderlyingPrice();
 
         require(
             traderPosition.usdcPosition + getPnL(traderPosition, spot) <
-                getMaintenanceMargin(traderPosition, spot),
+                getInitialOrMaintenanceMargin(traderPosition, spot, false),
             "LB"
         );
 
@@ -411,7 +394,7 @@ contract PerpetualMarketCore {
 
         require(
             traderPosition.usdcPosition + getPnL(traderPosition, spot) >=
-                getMaintenanceMargin(traderPosition, spot),
+                getInitialOrMaintenanceMargin(traderPosition, spot, false),
             "LA"
         );
 
@@ -424,6 +407,7 @@ contract PerpetualMarketCore {
         );
 
         return reward;
+        */
     }
 
     /**
@@ -476,6 +460,9 @@ contract PerpetualMarketCore {
     //     Private Functions    //
     //////////////////////////////
 
+    /**
+     * @return nfactor scaled by 1e8
+     */
     function calculateNewNFactor(uint256 _poolId, int128 _feeLevel)
         internal
         view
@@ -485,70 +472,52 @@ contract PerpetualMarketCore {
 
         int128 currentFeeLevel = _feeLevel;
 
-        uint128 fundingFee = (1e10 *
+        uint128 fundingFee = (1e12 *
             (uint128(currentFeeLevel) *
                 uint128(block.timestamp - pool.lastTradeTime))) /
-            (1 days * (1e10 + uint128(currentFeeLevel)));
+            (1 days * (1e12 + uint128(currentFeeLevel)));
 
         return (pool.nfactor * (1e16 - fundingFee)) / 1e16;
     }
 
+    /**
+     * @return current fee level scaled by 1e8
+     */
     function getCurrentFeeLevel(Pool storage _pool)
         internal
         view
         returns (int128)
     {
         return
-            _getCurrentFeeLevel(
+            TradeStateLib.getCurrentFeeLevel(
                 _pool.tradeState.currentFeeLevelIndex,
                 _pool.tradeState.lockedLiquidity,
                 _pool.tradeState.liquidityDelta
             );
     }
 
-    function _getCurrentFeeLevel(
-        int128 _currentFeeLevelIndex,
-        uint128 _lockedLiquidity,
-        uint128 _liquidityDelta
-    ) internal pure returns (int128) {
-        int128 baseFeeLevel = int128(1e6) * _currentFeeLevelIndex;
-
-        if (_liquidityDelta == 0) {
-            return 0;
-        }
-
-        if (baseFeeLevel >= 0) {
-            return
-                baseFeeLevel +
-                int128((1e6 * _lockedLiquidity) / _liquidityDelta);
-        } else {
-            return
-                baseFeeLevel -
-                int128((1e6 * _lockedLiquidity) / _liquidityDelta);
-        }
-    }
-
     /**
-     * @return totalPrice total price scaled by 1e6
+     * @return totalPrice total price scaled by 1e8
      */
     function trade(
         Pool storage _pool,
-        uint128 _spot,
         uint128 _price,
-        int128 _margin
+        int128 _margin,
+        PnLParams memory _pnlParams
     ) internal returns (uint128 totalPrice, int128) {
         require(_margin != 0, "TM");
 
-        TradeStateCache memory tradeStateCache = TradeStateCache(
-            _pool.tradeState.liquidityDelta,
-            _pool.tradeState.liquidityBefore,
-            _pool.tradeState.lockedLiquidity,
-            0,
-            _pool.tradeState.currentFeeLevelIndex,
-            0,
-            _pool.tradeState.feeLevelMultipliedLiquidityGlobal,
-            _pool.tradeState.realizedPnLGlobal
-        );
+        TradeStateLib.TradeStateCache memory tradeStateCache = TradeStateLib
+            .TradeStateCache(
+                _pool.tradeState.liquidityDelta,
+                _pool.tradeState.liquidityBefore,
+                _pool.tradeState.lockedLiquidity,
+                0,
+                _pool.tradeState.currentFeeLevelIndex,
+                0,
+                _pool.tradeState.feeLevelMultipliedLiquidityGlobal,
+                _pool.tradeState.realizedPnLGlobal
+            );
 
         bool _direction = _margin < 0;
         uint128 remain = LiqMath.abs(_margin);
@@ -558,11 +527,11 @@ contract PerpetualMarketCore {
                 ? tradeStateCache.currentFeeLevelIndex - 1
                 : tradeStateCache.currentFeeLevelIndex + 1;
 
-            if (tradeStateCache.currentFeeLevel >= 3 * 1e8) {
+            if (tradeStateCache.currentFeeLevel >= 3 * 1e10) {
                 revert("OFL");
             }
 
-            if (tradeStateCache.currentFeeLevel <= -3 * 1e8) {
+            if (tradeStateCache.currentFeeLevel <= -3 * 1e10) {
                 revert("LFL");
             }
 
@@ -579,7 +548,11 @@ contract PerpetualMarketCore {
 
                 // jump if there is no liquidity
                 if (targetLiquidity == 0) {
-                    _cross(_pool, tradeStateCache, _direction);
+                    tradeStateCache = TradeStateLib.transitionToNextTick(
+                        _pool.feeLevels,
+                        tradeStateCache,
+                        _direction
+                    );
 
                     continue;
                 }
@@ -591,13 +564,11 @@ contract PerpetualMarketCore {
             {
                 // calculate m
                 uint128 notionalPerLiquidity = _direction
-                    ? (uint128(
-                        int128(_pool.tradeState.liquidityBefore) +
-                            getHedgeNotional(_pool.id, _spot)
-                    ) * 1e6) / _pool.tradeState.liquidityBefore
+                    ? (uint128(_pnlParams.hedgeNotional) * 1e6) /
+                        _pnlParams.liquidityBefore
                     : getRPnL(_pool, tradeStateCache);
 
-                marginStep = (1e6 * marginStep) / notionalPerLiquidity;
+                marginStep = (1e8 * marginStep) / notionalPerLiquidity;
 
                 if (marginStep >= targetLiquidity) {
                     remain = marginStep - targetLiquidity;
@@ -606,45 +577,37 @@ contract PerpetualMarketCore {
                     remain = 0;
                 }
 
-                deltaH = int128((marginStep * 1e6) / targetLiquidity);
+                deltaH = int128((marginStep * 1e8) / targetLiquidity);
                 if (_direction) {
                     deltaH = -deltaH;
                 }
             }
 
-            // update realized PnL
-            if (_direction) {
-                uint128 upnl = getUPnLPerLiquidity(
-                    _pool,
-                    _spot,
-                    (_price * uint128(1e10 + tradeStateCache.currentFeeLevel)) /
-                        1e10,
-                    FeeLevelMultipliedLiquidity.calFeeLevelMultipliedLiquidity(
-                        tradeStateCache.lockedLiquidity,
-                        tradeStateCache.currentFeeLevelIndex
-                    ),
-                    tradeStateCache.lockedLiquidity
-                );
-
-                tradeStateCache.realizedPnLGlobal +=
-                    ((int128(upnl) - 1e6) * int128(marginStep)) /
-                    int128(tradeStateCache.liquidityDelta);
-            }
-
             // calculate price
             {
                 uint128 priceInFeeLevel = (_price *
-                    (1e10 +
+                    (1e12 +
                         (
                             LiqMath.abs(
                                 (2 * tradeStateCache.currentFeeLevel + deltaH) *
                                     deltaH
                             )
                         ) /
-                        (2 * 1e10))) / 1e12;
+                        (2 * 1e12))) / 1e12;
                 totalPrice +=
                     (marginStep * priceInFeeLevel) /
                     LiqMath.abs(_margin);
+
+                // update realized PnL
+                if (_direction) {
+                    _cumulateRealizedPnL(
+                        _pool,
+                        tradeStateCache,
+                        _pnlParams,
+                        marginStep,
+                        int128(priceInFeeLevel)
+                    );
+                }
             }
 
             if (_direction) {
@@ -668,7 +631,11 @@ contract PerpetualMarketCore {
             }
 
             if (marginStep == targetLiquidity) {
-                _cross(_pool, tradeStateCache, _direction);
+                tradeStateCache = TradeStateLib.transitionToNextTick(
+                    _pool.feeLevels,
+                    tradeStateCache,
+                    _direction
+                );
             }
         }
 
@@ -685,48 +652,27 @@ contract PerpetualMarketCore {
         return (totalPrice, tradeStateCache.currentFeeLevel);
     }
 
-    function _cross(
+    function _cumulateRealizedPnL(
         Pool storage _pool,
-        TradeStateCache memory _cache,
-        bool _direction
-    ) internal {
-        if (_direction) {
-            IFeeLevel.Info memory currentFeeLevel = _pool.feeLevels[
+        TradeStateLib.TradeStateCache memory _cache,
+        PnLParams memory _pnlParams,
+        uint128 _marginStep,
+        int128 _currentPrice
+    ) internal view {
+        uint128 upnl = (getUPnL(
+            _pool,
+            _currentPrice,
+            _pnlParams,
+            FeeLevelMultipliedLiquidity.calFeeLevelMultipliedLiquidity(
+                _cache.lockedLiquidity,
                 _cache.currentFeeLevelIndex
-            ];
+            ),
+            _cache.lockedLiquidity
+        ) * 1e6) / _cache.liquidityBefore;
 
-            _cache.liquidityDelta = LiqMath.addDelta(
-                _cache.liquidityDelta,
-                -currentFeeLevel.liquidityNet
-            );
-        } else {
-            IFeeLevel.Info memory nextFeeLevel = _pool.feeLevels[
-                _cache.nextFeeLevelIndex
-            ];
-
-            _cache.liquidityDelta = LiqMath.addDelta(
-                _cache.liquidityDelta,
-                nextFeeLevel.liquidityNet
-            );
-        }
-
-        _pool.feeLevels.cross(
-            _cache.currentFeeLevelIndex,
-            _cache.realizedPnLGlobal
-        );
-
-        _cache.lockedLiquidity = 0;
-        _cache.currentFeeLevelIndex = _cache.nextFeeLevelIndex;
-
-        _cache.currentFeeLevel = _getCurrentFeeLevel(
-            _cache.currentFeeLevelIndex,
-            _cache.lockedLiquidity,
-            _cache.liquidityDelta
-        );
-
-        if (_direction) {
-            _cache.lockedLiquidity = _cache.liquidityDelta;
-        }
+        _cache.realizedPnLGlobal +=
+            ((int128(upnl) - 1e8) * int128(_marginStep)) /
+            (int128(_cache.liquidityDelta));
     }
 
     function _updatePosition(
@@ -751,10 +697,9 @@ contract PerpetualMarketCore {
         return position;
     }
 
-    function getFeeLevelIndex(int128 _feeLevel) internal pure returns (int24) {
-        return int24(_feeLevel / 1e6);
-    }
-
+    /**
+     * @return calculate notional unrealized PnL scaled by 1e8
+     */
     function getUnrealizedPnLPerLiquidity(uint256 _poolId)
         public
         view
@@ -762,64 +707,67 @@ contract PerpetualMarketCore {
     {
         (uint128 spot, ) = getUnderlyingPrice();
 
+        if (pools[_poolId].tradeState.liquidityBefore == 0) {
+            return 1e8;
+        }
+
         return
-            getUPnLPerLiquidity(
+            (getUPnL(
                 pools[_poolId],
-                spot,
-                getMarkPrice(_poolId, spot),
+                int128(getMarkPrice(_poolId, spot)),
+                getPnLParams(pools[_poolId], spot),
                 pools[_poolId].tradeState.feeLevelMultipliedLiquidityGlobal,
                 pools[_poolId].tradeState.liquidityBefore
+            ) * 1e6) / pools[_poolId].tradeState.liquidityBefore;
+    }
+
+    function getPnLParams(Pool storage _pool, uint128 _spot)
+        internal
+        view
+        returns (PnLParams memory _pnlParams)
+    {
+        return
+            PnLParams(
+                hedging.pools[_pool.id].getHedgeNotional(_spot),
+                _pool.entry,
+                _pool.tradeState.liquidityBefore,
+                positions[_pool.id]
             );
     }
 
     /**
      * @notice Calculates collateral's notional value per liquidity
-     * @return Notional value per liquidity scaled by 1e6
+     * @return Notional value per liquidity scaled by 1e8
      */
-    function getUPnLPerLiquidity(
-        Pool storage _pool,
-        uint128 _spot,
-        uint128 _price,
-        uint128 _feeLevelMultipliedByLiquidity,
-        uint128 _liquidity
-    ) internal view returns (uint128) {
-        return
-            (1e6 *
-                getUPnL(
-                    _pool,
-                    _spot,
-                    _price,
-                    _feeLevelMultipliedByLiquidity,
-                    _liquidity
-                )) / _pool.tradeState.liquidityBefore;
-    }
-
     function getUPnL(
         Pool storage _pool,
-        uint128 _spot,
-        uint128 _price,
+        int128 _currentPrice,
+        PnLParams memory _pnlParams,
         uint128 _feeLevelMultipliedByLiquidity,
         uint128 _liquidity
     ) internal view returns (uint128) {
         if (_liquidity == 0) {
             return 0;
         }
-        uint128 weight = (_feeLevelMultipliedByLiquidity * 1e12) /
+        uint128 weight = (_feeLevelMultipliedByLiquidity *
+            _pnlParams.liquidityBefore *
+            1e6) /
             (_pool.tradeState.feeLevelMultipliedLiquidityGlobal * _liquidity);
 
-        int128 totalNotional = int128(_pool.tradeState.liquidityBefore) +
-            calculateUnrealizedPnL(_pool.id, _spot, _price, weight);
-
+        int128 totalNotional = _calculateUnrealizedPnL(
+            _currentPrice,
+            _pnlParams,
+            weight
+        );
         require(totalNotional > 0, "Insolvency");
 
         return uint128(totalNotional);
     }
 
-    function getRPnL(Pool storage _pool, TradeStateCache memory _cache)
-        internal
-        view
-        returns (uint128)
-    {
+    function getRPnL(
+        Pool storage _pool,
+        TradeStateLib.TradeStateCache memory _cache
+    ) internal view returns (uint128) {
         int128 realizedPnLInside = _pool.feeLevels.getFeeGrowthInside(
             _cache.currentFeeLevelIndex,
             _cache.currentFeeLevelIndex + 1,
@@ -827,53 +775,46 @@ contract PerpetualMarketCore {
             _cache.realizedPnLGlobal
         );
 
-        return uint128(int128(1e6) + realizedPnLInside);
+        return uint128(int128(1e8) + realizedPnLInside);
     }
 
     /**
      * @notice Calculates position size per liquidity
-     * @return Position size per liquidity scaled by 1e8
+     * @return Position size for liquidity scaled by 1e8
      */
-    function getSRate(uint256 _poolId) internal view returns (int128) {
-        return
-            (1e6 * positions[_poolId]) /
-            int128(pools[_poolId].tradeState.liquidityBefore);
-    }
-
-    /**
-     * @return calculate notional unrealized PnL scaled by 1e6;
-     */
-    function calculateUnrealizedPnL(
-        uint256 _poolId,
-        uint128 _spot,
-        uint128 _price,
-        uint128 _weight
-    ) internal view returns (int128) {
-        int128 hedgeNotional = getHedgeNotional(_poolId, _spot);
-
-        int128 positionNotional = ((int128(_weight) *
-            pools[_poolId].entry *
-            int128(pools[_poolId].tradeState.liquidityBefore)) /
-            1e12 -
-            (int128(_price) * positions[_poolId]) /
-            1e8);
-
-        return (hedgeNotional + positionNotional) / 1e2;
-    }
-
-    function getHedgeNotional(uint256 _poolId, uint128 _spot)
+    function getSRate(uint256 _poolId, uint128 _liquidity)
         internal
         view
         returns (int128)
     {
-        int128 hedgeNotional = (-int128(_spot) * hedging.pools[_poolId].delta) /
-            1e8 -
-            Hedging.getEntry(hedging.pools[_poolId], _spot);
-        return hedgeNotional;
+        return
+            (int128(_liquidity) * positions[_poolId]) /
+            int128(pools[_poolId].tradeState.liquidityBefore);
+    }
+
+    struct PnLParams {
+        int128 hedgeNotional;
+        int128 entry;
+        uint128 liquidityBefore;
+        int128 position;
+    }
+
+    function _calculateUnrealizedPnL(
+        int128 _currentPrice,
+        PnLParams memory _params,
+        uint128 _weight
+    ) internal pure returns (int128) {
+        int128 positionNotional = (int128(_weight) * _params.entry) /
+            1e14 -
+            (_currentPrice * _params.position) /
+            1e8;
+
+        return (_params.hedgeNotional + positionNotional);
     }
 
     /**
      * @notice Calculates perpetual's price multiplied by normalization factor
+     * @return mark price scaled by 1e8
      */
     function getMarkPrice(uint256 _poolId, uint128 _spot)
         internal
@@ -886,9 +827,13 @@ contract PerpetualMarketCore {
 
         int128 currentFeeLevel = getCurrentFeeLevel(pool);
 
-        return (price * uint128(1e10 + currentFeeLevel)) / 1e10;
+        return (price * uint128(1e12 + currentFeeLevel)) / 1e12;
     }
 
+    /**
+     * @notice Gets perpetual's index price
+     * @return index price scaled by 1e8
+     */
     function getDerivativeIndexPrice(uint256 _poolId, uint128 _spot)
         internal
         view
@@ -904,7 +849,7 @@ contract PerpetualMarketCore {
 
     /**
      * @notice Calculate required margin for delta hedging
-     * @return required margin scaled by 1e6
+     * @return required margin scaled by 1e8
      */
     function calculateMargin(
         uint256 _poolId,
@@ -917,7 +862,7 @@ contract PerpetualMarketCore {
                 _spot *
                 LiqMath.abs(
                     calculateWeightedDelta(_poolId, int128(_spot), _pos0, _pos1)
-                )) / (100 * 1e10);
+                )) / (100 * 1e8);
     }
 
     function calNetDelta(int128 _spot) internal view returns (int128) {
@@ -927,6 +872,9 @@ contract PerpetualMarketCore {
         return positions[0] * delta1 + positions[1] * delta2;
     }
 
+    /**
+     * @return weighted delta scaled by 1e8
+     */
     function calculateWeightedDelta(
         uint256 _poolId,
         int128 _spot,
@@ -956,30 +904,25 @@ contract PerpetualMarketCore {
         }
     }
 
-    function getInitialMargin(
+    /**
+     * @return required margin scaled by 1e6
+     */
+    function getInitialOrMaintenanceMargin(
         TraderPosition memory _traderPosition,
-        uint128 _spot
+        uint128 _spot,
+        bool _isImOrMm
     ) internal pure returns (int128) {
         uint128 im = ((LiqMath.abs(_traderPosition.size[0]) +
             LiqMath.abs(_traderPosition.size[1])) *
             _spot *
-            20) / (100 * 1e10);
+            (_isImOrMm ? 20 : 8)) / (100 * 1e10);
 
         return int128(im);
     }
 
-    function getMaintenanceMargin(
-        TraderPosition memory _traderPosition,
-        uint128 _spot
-    ) internal pure returns (int128) {
-        uint128 im = ((LiqMath.abs(_traderPosition.size[0]) +
-            LiqMath.abs(_traderPosition.size[1])) *
-            _spot *
-            8) / (100 * 1e10);
-
-        return int128(im);
-    }
-
+    /**
+     * @return Profit and Loss scaled by 1e6
+     */
     function getPnL(TraderPosition memory _traderPosition, uint128 _spot)
         internal
         view

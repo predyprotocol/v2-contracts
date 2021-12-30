@@ -41,24 +41,21 @@ contract PerpetualMarket {
     ) external {
         require(_amount > 0);
         checkFeeLevels(_feeLevelLower, _feeLevelUpper);
-        (
-            uint128 depositAmount,
-            uint128 longSize,
-            int128 entryPrice
-        ) = perpetualMarketCore.deposit(
+        PerpetualMarketCore.PositionChangeResult
+            memory result = perpetualMarketCore.deposit(
                 _poolId,
                 _amount,
                 _feeLevelLower,
                 _feeLevelUpper
             );
 
-        if (longSize > 0) {
+        if (result.size > 0) {
             perpetualMarketCore.makePositions(
                 msg.sender,
                 _vaultId,
                 _poolId,
-                int128(longSize),
-                ((uint128(entryPrice) * 1e6) / longSize)
+                int128(result.size),
+                ((uint128(result.entryPrice)) / result.size)
             );
 
             perpetualMarketCore.checkIM(
@@ -72,7 +69,7 @@ contract PerpetualMarket {
         ERC20(liquidityPool.collateral()).transferFrom(
             msg.sender,
             address(liquidityPool),
-            depositAmount + _collateralAmount
+            result.depositAmount + _collateralAmount
         );
     }
 
@@ -89,24 +86,21 @@ contract PerpetualMarket {
     ) external {
         require(_amount > 0);
         checkFeeLevels(_feeLevelLower, _feeLevelUpper);
-        (
-            uint128 withdrawableAmount,
-            uint128 shortSize,
-            int128 entryPrice
-        ) = perpetualMarketCore.withdraw(
+        PerpetualMarketCore.PositionChangeResult
+            memory result = perpetualMarketCore.withdraw(
                 _poolId,
                 _amount,
                 _feeLevelLower,
                 _feeLevelUpper
             );
 
-        if (shortSize > 0) {
+        if (result.size > 0) {
             perpetualMarketCore.makePositions(
                 msg.sender,
                 _vaultId,
                 _poolId,
-                -int128(shortSize),
-                (uint128(entryPrice) * 1e6) / shortSize
+                -int128(result.size),
+                (uint128(result.entryPrice)) / result.size
             );
 
             perpetualMarketCore.checkIM(
@@ -119,7 +113,7 @@ contract PerpetualMarket {
         // Send collateral to msg.sender
         liquidityPool.sendLiquidity(
             msg.sender,
-            withdrawableAmount - _collateralAmount
+            result.depositAmount - _collateralAmount
         );
     }
 

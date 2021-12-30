@@ -6,11 +6,12 @@ import "./LiqMath.sol";
 library Hedging {
     struct Info {
         int128 underlyingPosition;
-        uint128 usdcBuffer;
+        int128 usdcBuffer;
         PoolInfo[2] pools;
     }
 
     struct PoolInfo {
+        int128 usdcPosition;
         int128 delta;
         int128 entry;
         int128 latestEntry;
@@ -35,10 +36,8 @@ library Hedging {
             addShort(_info.pools[_poolId], uint128(dd), _spot);
         }
 
-        _info.usdcBuffer = LiqMath.addDelta(
-            _info.usdcBuffer,
-            _requiredCollateral
-        );
+        // _info.usdcBuffer += _requiredCollateral;
+        _info.pools[_poolId].usdcPosition += _requiredCollateral;
 
         _info.pools[_poolId].delta = _newDelta;
     }
@@ -59,6 +58,18 @@ library Hedging {
     ) internal {
         _hedgeState.latestEntrySize -= int128(_amount);
         _hedgeState.latestEntry -= int128((_amount * _spot) / 1e8);
+    }
+
+    function getHedgeNotional(PoolInfo storage _hedgeState, uint128 _spot)
+        external
+        view
+        returns (int128)
+    {
+        int128 hedgeNotional = _hedgeState.usdcPosition +
+            (-int128(_spot) * _hedgeState.delta) /
+            1e8 -
+            getEntry(_hedgeState, _spot);
+        return hedgeNotional;
     }
 
     /**

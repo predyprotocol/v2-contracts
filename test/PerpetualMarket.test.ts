@@ -76,7 +76,12 @@ describe("PerpetualMarket", function () {
       let beforeUnrealizedPnLPerLiq: BigNumber
 
       beforeEach(async () => {
+        console.log('=====')
         await perpetualMarket.deposit(poolId, scaledBN(30, 6), 30, 60, 0, 0)
+
+        const upnl = await testContractSet.perpetualMarketCore.getUnrealizedPnLPerLiquidity(poolId)
+
+        console.log('upnl', upnl.toString())
 
         await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 6), scaledBN(10, 6))
 
@@ -96,10 +101,12 @@ describe("PerpetualMarket", function () {
         const afterUnrealizedPnLPerLiq = await testContractSet.perpetualMarketCore.getUnrealizedPnLPerLiquidity(poolId)
 
         console.log('before', beforeUnrealizedPnLPerLiq.toString())
-        console.log('after', afterUnrealizedPnLPerLiq.toString())
+        console.log('after ', afterUnrealizedPnLPerLiq.toString())
 
         expect(beforeUnrealizedPnLPerLiq).to.be.gte(afterUnrealizedPnLPerLiq.sub(1))
         expect(beforeUnrealizedPnLPerLiq).to.be.lte(afterUnrealizedPnLPerLiq.add(1))
+
+        console.log('=====')
       })
 
       it("initial deposit", async () => {
@@ -122,11 +129,11 @@ describe("PerpetualMarket", function () {
 
       describe('including current level', async () => {
         it('deposit with margin', async () => {
-          await perpetualMarket.deposit(poolId, scaledBN(20, 6), 20, 40, 1, scaledBN(10, 6))
+          await perpetualMarket.deposit(poolId, scaledBN(20, 6), 20, 40, 1, scaledBN(20, 6))
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
-          ).to.be.eq(69997296)
+          ).to.be.eq(80000000)
         })
       })
 
@@ -136,7 +143,7 @@ describe("PerpetualMarket", function () {
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
-          ).to.be.eq(59997200)
+          ).to.be.eq(60000000)
         })
 
         it('reverts if margin is 0', async () => {
@@ -155,7 +162,7 @@ describe("PerpetualMarket", function () {
 
         await testContractHelper.updateSpot(scaledBN(100, 8))
 
-        await testContractHelper.openLong(wallet, vaultId, 20000, scaledBN(1, 6))
+        await testContractHelper.openLong(wallet, vaultId, 200000, scaledBN(1, 6))
       })
 
       it("deposit after unrealized PnL becomes larger", async () => {
@@ -164,7 +171,7 @@ describe("PerpetualMarket", function () {
         const pool1 = await testContractSet.perpetualMarketCore.pools(poolId)
         console.log('fee level', pool1.tradeState.currentFeeLevelIndex.toString())
 
-        await testContractHelper.openShort(wallet, vaultId, 10000, 0)
+        await testContractHelper.openShort(wallet, vaultId, 100000, 0)
 
         const pool2 = await testContractSet.perpetualMarketCore.pools(poolId)
         console.log('fee level', pool2.tradeState.currentFeeLevelIndex.toString())
@@ -186,7 +193,7 @@ describe("PerpetualMarket", function () {
       it("deposit after unrealized PnL becomes smaller", async () => {
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, 10000, 0)
+        await testContractHelper.openShort(wallet, vaultId, 100000, 0)
 
         const beforeUnrealizedPnL = await testContractSet.perpetualMarketCore.getUnrealizedPnLPerLiquidity(poolId)
 
