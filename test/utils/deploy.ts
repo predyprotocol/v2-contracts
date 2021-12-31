@@ -61,6 +61,9 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const TradeStateLib = await ethers.getContractFactory('TradeStateLib')
   const tradeStateLib = (await TradeStateLib.deploy())
 
+  const TraderVault = await ethers.getContractFactory('TraderVault')
+  const traderVault = (await TraderVault.deploy())
+
   const LiquidityPool = await ethers.getContractFactory('LiquidityPool')
 
   const liquidityPool = (await LiquidityPool.deploy(usdc.address, weth.address)) as LiquidityPool
@@ -68,7 +71,8 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore', {
     libraries: {
       Hedging: hedging.address,
-      TradeStateLib: tradeStateLib.address
+      TradeStateLib: tradeStateLib.address,
+      TraderVault: traderVault.address
     },
   })
 

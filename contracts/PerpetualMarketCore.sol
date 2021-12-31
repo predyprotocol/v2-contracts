@@ -8,6 +8,7 @@ import "./lib/FeeLevel.sol";
 import "./lib/Hedging.sol";
 import "./lib/Pricer.sol";
 import "./lib/TradeStateLib.sol";
+import "./lib/TraderVault.sol";
 import "./lib/FeeLevelMultipliedLiquidity.sol";
 import "hardhat/console.sol";
 
@@ -37,18 +38,12 @@ contract PerpetualMarketCore {
         TradeStateLib.TradeState tradeState;
     }
 
-    struct TraderPosition {
-        int128[2] size;
-        // entry price scaled by 1e16
-        int128[2] entry;
-        int128 usdcPosition;
-    }
-
     mapping(uint256 => Pool) public pools;
 
     mapping(uint256 => int128) public positions;
 
-    mapping(address => mapping(uint256 => TraderPosition)) private traders;
+    mapping(address => mapping(uint256 => TraderVault.TraderPosition))
+        private traders;
 
     AggregatorV3Interface private priceFeed;
 
@@ -329,7 +324,9 @@ contract PerpetualMarketCore {
         int128 _size,
         uint128 _price
     ) public {
-        TraderPosition storage traderPosition = traders[_trader][_vaultId];
+        TraderVault.TraderPosition storage traderPosition = traders[_trader][
+            _vaultId
+        ];
 
         traderPosition.size[_poolId] += _size;
         traderPosition.entry[_poolId] += _size * int128(_price);
@@ -345,24 +342,20 @@ contract PerpetualMarketCore {
         uint256 _vaultId,
         int128 _depositOrWithdrawAmount
     ) public returns (int128 finalDepositOrWithdrawAmount) {
-        TraderPosition storage traderPosition = traders[_trader][_vaultId];
+        TraderVault.TraderPosition storage traderPosition = traders[_trader][
+            _vaultId
+        ];
 
         (uint128 spot, ) = getUnderlyingPrice();
 
-        int128 im = getInitialOrMaintenanceMargin(traderPosition, spot, true);
-        int128 derivativePnL = getPnL(traderPosition, spot);
-        int128 pnl = traderPosition.usdcPosition + derivativePnL;
-
-        if (_depositOrWithdrawAmount <= -pnl && pnl > 0) {
-            finalDepositOrWithdrawAmount = -int128(pnl);
-            traderPosition.usdcPosition = -derivativePnL;
-        } else {
-            traderPosition.usdcPosition += _depositOrWithdrawAmount;
-
-            finalDepositOrWithdrawAmount = _depositOrWithdrawAmount;
-        }
-
-        require(traderPosition.usdcPosition + derivativePnL >= im, "IM");
+        return
+            TraderVault.checkIM(
+                traderPosition,
+                _depositOrWithdrawAmount,
+                spot,
+                int128(getMarkPrice(0, spot)),
+                int128(getMarkPrice(1, spot))
+            );
     }
 
     /**
@@ -374,40 +367,21 @@ contract PerpetualMarketCore {
         uint256 _poolId,
         int128 _size
     ) external returns (uint128) {
-        /*
-        TraderPosition storage traderPosition = traders[_trader][_vaultId];
+        TraderVault.TraderPosition storage traderPosition = traders[_trader][
+            _vaultId
+        ];
 
         (uint128 spot, ) = getUnderlyingPrice();
 
-        require(
-            traderPosition.usdcPosition + getPnL(traderPosition, spot) <
-                getInitialOrMaintenanceMargin(traderPosition, spot, false),
-            "LB"
-        );
-
-        require(
-            LiqMath.abs(traderPosition.size[_poolId]) >= LiqMath.abs(_size),
-            "LS"
-        );
-
-        traderPosition.size[_poolId] -= _size;
-
-        require(
-            traderPosition.usdcPosition + getPnL(traderPosition, spot) >=
-                getInitialOrMaintenanceMargin(traderPosition, spot, false),
-            "LA"
-        );
-
-        uint128 reward = 100 * 1e6 + (LiqMath.abs(_size) * spot) / 1e10;
-
-        require(
-            int128(reward) >
-                getPnL(traderPosition, spot) + traderPosition.usdcPosition,
-            "LR"
-        );
-
-        return reward;
-        */
+        return
+            TraderVault.liquidate(
+                traderPosition,
+                _poolId,
+                _size,
+                spot,
+                int128(getMarkPrice(0, spot)),
+                int128(getMarkPrice(1, spot))
+            );
     }
 
     /**
@@ -421,7 +395,6 @@ contract PerpetualMarketCore {
             bool
         )
     {
-        /*
         (uint128 spot, ) = getUnderlyingPrice();
 
         int128 poolDelta = calNetDelta(int128(spot));
@@ -441,7 +414,6 @@ contract PerpetualMarketCore {
 
             return ((uint128(netDelta) * spot) / 1e10, uAmount, false);
         }
-        */
     }
 
     ////////////////////////
@@ -451,7 +423,7 @@ contract PerpetualMarketCore {
     function getVault(address _trader, uint256 _vaultId)
         external
         view
-        returns (TraderPosition memory traderPosition)
+        returns (TraderVault.TraderPosition memory traderPosition)
     {
         traderPosition = traders[_trader][_vaultId];
     }
@@ -902,40 +874,6 @@ contract PerpetualMarketCore {
         } else {
             revert("NP");
         }
-    }
-
-    /**
-     * @return required margin scaled by 1e6
-     */
-    function getInitialOrMaintenanceMargin(
-        TraderPosition memory _traderPosition,
-        uint128 _spot,
-        bool _isImOrMm
-    ) internal pure returns (int128) {
-        uint128 im = ((LiqMath.abs(_traderPosition.size[0]) +
-            LiqMath.abs(_traderPosition.size[1])) *
-            _spot *
-            (_isImOrMm ? 20 : 8)) / (100 * 1e10);
-
-        return int128(im);
-    }
-
-    /**
-     * @return Profit and Loss scaled by 1e6
-     */
-    function getPnL(TraderPosition memory _traderPosition, uint128 _spot)
-        internal
-        view
-        returns (int128)
-    {
-        int128 pnl = (int128(getMarkPrice(0, _spot)) *
-            _traderPosition.size[0] -
-            _traderPosition.entry[0] +
-            int128(getMarkPrice(1, _spot)) *
-            _traderPosition.size[1] -
-            _traderPosition.entry[1]);
-
-        return pnl / 1e10;
     }
 
     /**
