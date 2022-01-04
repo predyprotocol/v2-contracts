@@ -76,12 +76,9 @@ describe("PerpetualMarket", function () {
       let beforeUnrealizedPnLPerLiq: BigNumber
 
       beforeEach(async () => {
-        console.log('=====')
         await perpetualMarket.deposit(poolId, scaledBN(30, 6), 30, 60, 0, 0)
 
         const upnl = await testContractSet.perpetualMarketCore.getUnrealizedPnLPerLiquidity(poolId)
-
-        console.log('upnl', upnl.toString())
 
         await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 6), scaledBN(10, 6))
 
@@ -95,18 +92,10 @@ describe("PerpetualMarket", function () {
       })
 
       afterEach(async () => {
-        const pool = await testContractSet.perpetualMarketCore.pools(poolId)
-        console.log('feeLevelMultipliedLiquidityGlobal', pool.tradeState.feeLevelMultipliedLiquidityGlobal.toString())
-
         const afterUnrealizedPnLPerLiq = await testContractSet.perpetualMarketCore.getUnrealizedPnLPerLiquidity(poolId)
-
-        console.log('before', beforeUnrealizedPnLPerLiq.toString())
-        console.log('after ', afterUnrealizedPnLPerLiq.toString())
 
         expect(beforeUnrealizedPnLPerLiq).to.be.gte(afterUnrealizedPnLPerLiq.sub(1))
         expect(beforeUnrealizedPnLPerLiq).to.be.lte(afterUnrealizedPnLPerLiq.add(1))
-
-        console.log('=====')
       })
 
       it("initial deposit", async () => {
@@ -125,11 +114,52 @@ describe("PerpetualMarket", function () {
             await usdc.balanceOf(testContractSet.liquidityPool.address)
           ).to.be.eq(60000000)
         })
+
+        it('withdrawal works after deposit', async () => {
+          await perpetualMarket.deposit(poolId, scaledBN(20, 6), 40, 60, 0, 0)
+          await perpetualMarket.withdraw(poolId, scaledBN(20, 6), 40, 60, 0, 0)
+
+          expect(
+            await usdc.balanceOf(testContractSet.liquidityPool.address)
+          ).to.be.eq(40000000)
+        })
+
+        it('add liquidity to liquidityNet', async () => {
+          await perpetualMarket.deposit(poolId, scaledBN(10, 6), 40, 50, 0, 0)
+
+          expect(
+            (await testContractSet.perpetualMarketCore.getFeeLevel(poolId, 40)).liquidityNet
+          ).to.be.eq(1000000)
+          expect(
+            (await testContractSet.perpetualMarketCore.getFeeLevel(poolId, 50)).liquidityNet
+          ).to.be.eq(-1000000)
+        })
+
+        it('remove liquidity from liquidityNet', async () => {
+          await perpetualMarket.deposit(poolId, scaledBN(10, 6), 40, 50, 0, 0)
+          await perpetualMarket.withdraw(poolId, scaledBN(10, 6), 40, 50, 0, 0)
+
+          expect(
+            (await testContractSet.perpetualMarketCore.getFeeLevel(poolId, 40)).liquidityNet
+          ).to.be.eq(0)
+          expect(
+            (await testContractSet.perpetualMarketCore.getFeeLevel(poolId, 50)).liquidityNet
+          ).to.be.eq(0)
+        })
       })
 
       describe('including current level', async () => {
         it('deposit with margin', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(20, 6), 20, 40, 1, scaledBN(20, 6))
+
+          expect(
+            await usdc.balanceOf(testContractSet.liquidityPool.address)
+          ).to.be.eq(80000000)
+        })
+
+        it('withdrawal works after deposit', async () => {
+          await perpetualMarket.deposit(poolId, scaledBN(20, 6), 20, 40, 1, scaledBN(20, 6))
+          await perpetualMarket.withdraw(poolId, scaledBN(20, 6), 20, 40, 1, scaledBN(20, 6))
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
@@ -146,6 +176,15 @@ describe("PerpetualMarket", function () {
           ).to.be.eq(60000000)
         })
 
+        it('withdrawal works after deposit', async () => {
+          await perpetualMarket.deposit(poolId, scaledBN(10, 6), 10, 20, 1, scaledBN(10, 6))
+          await perpetualMarket.withdraw(poolId, scaledBN(10, 6), 10, 20, 1, scaledBN(10, 6))
+
+          expect(
+            await usdc.balanceOf(testContractSet.liquidityPool.address)
+          ).to.be.eq(60000000)
+        })
+
         it('reverts if margin is 0', async () => {
           await expect(perpetualMarket.deposit(poolId, scaledBN(10, 6), 10, 20, 1, 0)).to.be.revertedWith('IM')
         })
@@ -154,8 +193,8 @@ describe("PerpetualMarket", function () {
 
     describe("deposit after unrealized PnL changed", () => {
       const amount = scaledBN(1, 6)
-      const feeLevelLower = 50
-      const feeLevelUpper = 60
+      const feeLevelLower = 20
+      const feeLevelUpper = 30
 
       beforeEach(async () => {
         await perpetualMarket.deposit(poolId, amount, feeLevelLower, feeLevelUpper, 0, 0)
@@ -177,15 +216,14 @@ describe("PerpetualMarket", function () {
         console.log('fee level', pool2.tradeState.currentFeeLevelIndex.toString())
 
         const beforeUnrealizedPnLPerLiq = await testContractSet.perpetualMarketCore.getUnrealizedPnLPerLiquidity(poolId)
-        const poolBefore = await testContractSet.perpetualMarketCore.pools(poolId)
 
+        const before = await usdc.balanceOf(testContractSet.liquidityPool.address)
         await perpetualMarket.deposit(poolId, amount, feeLevelLower, feeLevelUpper, 0, 0)
+        const after = await usdc.balanceOf(testContractSet.liquidityPool.address)
 
         const afterUnrealizedPnLPerLiq = await testContractSet.perpetualMarketCore.getUnrealizedPnLPerLiquidity(poolId)
-        const poolAfter = await testContractSet.perpetualMarketCore.pools(poolId)
 
-
-        // expect(poolBefore.tradeState.liquidityBefore).to.be.lt(poolAfter.tradeState.liquidityBefore)
+        expect(after.sub(before)).to.be.eq(1002256)
 
         expect(beforeUnrealizedPnLPerLiq).to.be.eq(afterUnrealizedPnLPerLiq)
       })
@@ -197,9 +235,13 @@ describe("PerpetualMarket", function () {
 
         const beforeUnrealizedPnL = await testContractSet.perpetualMarketCore.getUnrealizedPnLPerLiquidity(poolId)
 
+        const before = await usdc.balanceOf(testContractSet.liquidityPool.address)
         await perpetualMarket.deposit(poolId, amount, feeLevelLower, feeLevelUpper, 0, 0)
+        const after = await usdc.balanceOf(testContractSet.liquidityPool.address)
 
         const afterUnrealizedPnL = await testContractSet.perpetualMarketCore.getUnrealizedPnLPerLiquidity(poolId)
+
+        expect(after.sub(before)).to.be.eq(998345)
 
         expect(beforeUnrealizedPnL).to.be.eq(afterUnrealizedPnL)
       })

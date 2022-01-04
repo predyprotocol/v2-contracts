@@ -26,7 +26,6 @@ contract PerpetualMarketCore {
     using TradeStateLib for TradeStateLib.TradeState;
 
     struct Pool {
-        uint16 id;
         // The normalization factor of the derivative price, which is reduced by the funding payment
         uint128 nfactor;
         // Cumulative entry price scaled by 1e16
@@ -55,9 +54,6 @@ contract PerpetualMarketCore {
     constructor(address _aggregator) {
         priceFeed = AggregatorV3Interface(_aggregator);
 
-        pools[0].id = 0;
-        pools[1].id = 1;
-
         pools[0].nfactor = 1e8;
         pools[1].nfactor = 1e8;
 
@@ -80,69 +76,70 @@ contract PerpetualMarketCore {
         int24 _feeLevelLower,
         int24 _feeLevelUpper
     ) external returns (PositionChangeResult memory posResult) {
-        TradeStateLib.TradeState storage tradeState = pools[_poolId].tradeState;
-
+        uint128 lockedLiquidity;
+        uint128 unlockedLiquidity;
+        TradeStateLib.Result memory result;
         {
-            uint128 lockedLiquidity;
-            uint128 unlockedLiquidity;
-            {
-                TradeStateLib.Result memory result;
-                (lockedLiquidity, unlockedLiquidity, result) = tradeState
-                    .calculateLockedAndUnlockedLiquidity(
-                        tradeState.currentFeeLevelIndex,
-                        _feeLevelLower,
-                        _feeLevelUpper,
-                        _amount
-                    );
-
-                if (lockedLiquidity > 0) {
-                    posResult.size = uint128(
-                        getSRate(_poolId, lockedLiquidity)
-                    );
-                }
-
-                tradeState.update(int128(lockedLiquidity), result, true);
-            }
-
-            _updatePosition(
-                pools[_poolId],
-                msg.sender,
-                int128(_amount),
-                _feeLevelLower,
-                _feeLevelUpper
-            );
-
-            if (lockedLiquidity > 0) {
-                uint128 lockedNotional = calculateLockedNotional(
-                    pools[_poolId],
-                    lockedLiquidity
-                );
-                posResult.depositAmount += lockedNotional / 1e2;
-
-                posResult.entryPrice =
-                    (pools[_poolId].entry * int128(posResult.size)) /
-                    positions[_poolId];
-
-                positions[_poolId] += int128(posResult.size);
-                pools[_poolId].entry += posResult.entryPrice;
-
-                (uint128 spot, ) = getUnderlyingPrice();
-                hedging.addPosition(
-                    _poolId,
-                    -Pricer.calculateDelta(_poolId, int128(spot)),
-                    int128(lockedNotional),
-                    spot
-                );
-            }
-
-            if (unlockedLiquidity > 0) {
-                posResult.depositAmount += calculateUnlockedNotional(
-                    pools[_poolId],
+            TradeStateLib.TradeState storage tradeState = pools[_poolId]
+                .tradeState;
+            (lockedLiquidity, unlockedLiquidity, result) = tradeState
+                .calculateLockedAndUnlockedLiquidity(
+                    tradeState.currentFeeLevelIndex,
                     _feeLevelLower,
                     _feeLevelUpper,
-                    unlockedLiquidity
+                    _amount
                 );
+
+            if (lockedLiquidity > 0) {
+                posResult.size = uint128(getSRate(_poolId, lockedLiquidity));
             }
+
+            tradeState.update(int128(lockedLiquidity), result, true);
+        }
+
+        _updatePosition(
+            pools[_poolId],
+            msg.sender,
+            int128(_amount),
+            _feeLevelLower,
+            _feeLevelUpper
+        );
+
+        if (lockedLiquidity > 0) {
+            (uint128 lockedNotional, int128 weight) = calculateLockedNotional(
+                _poolId,
+                pools[_poolId],
+                lockedLiquidity,
+                result.levelMultiplied
+            );
+            posResult.depositAmount += lockedNotional / 1e2;
+
+            posResult.entryPrice =
+                (pools[_poolId].entry * int128(posResult.size)) /
+                positions[_poolId];
+
+            positions[_poolId] += int128(posResult.size);
+            pools[_poolId].entry += posResult.entryPrice;
+
+            // after
+            posResult.entryPrice = (weight * posResult.entryPrice) / 1e6;
+
+            (uint128 spot, ) = getUnderlyingPrice();
+            hedging.addPosition(
+                _poolId,
+                -Pricer.calculateDelta(_poolId, int128(spot)),
+                int128(lockedNotional),
+                spot
+            );
+        }
+
+        if (unlockedLiquidity > 0) {
+            posResult.depositAmount += calculateUnlockedNotional(
+                pools[_poolId],
+                _feeLevelLower,
+                _feeLevelUpper,
+                unlockedLiquidity
+            );
         }
     }
 
@@ -155,9 +152,9 @@ contract PerpetualMarketCore {
         int24 _feeLevelLower,
         int24 _feeLevelUpper
     ) external returns (PositionChangeResult memory posResult) {
-        TradeStateLib.TradeState storage tradeState = pools[_poolId].tradeState;
-
         {
+            TradeStateLib.TradeState storage tradeState = pools[_poolId]
+                .tradeState;
             (
                 uint128 lockedLiquidity,
                 uint128 unlockedLiquidity,
@@ -174,25 +171,12 @@ contract PerpetualMarketCore {
             }
 
             if (lockedLiquidity > 0) {
-                uint128 lockedNotional = calculateLockedNotional(
-                    pools[_poolId],
-                    lockedLiquidity
-                );
-                posResult.depositAmount += lockedNotional / 1e2;
-
-                posResult.entryPrice =
-                    (pools[_poolId].entry * int128(posResult.size)) /
-                    positions[_poolId];
-
-                positions[_poolId] -= int128(posResult.size);
-                pools[_poolId].entry -= posResult.entryPrice;
-
-                (uint128 spot, ) = getUnderlyingPrice();
-                hedging.addPosition(
+                _withdraw(
                     _poolId,
-                    -Pricer.calculateDelta(_poolId, int128(spot)),
-                    -int128(lockedNotional),
-                    spot
+                    pools[_poolId],
+                    lockedLiquidity,
+                    result.levelMultiplied,
+                    posResult
                 );
             }
 
@@ -217,18 +201,75 @@ contract PerpetualMarketCore {
         );
     }
 
-    function calculateLockedNotional(
+    function _withdraw(
+        uint256 _poolId,
         Pool storage _pool,
-        uint128 _lockedLiquidity
-    ) internal view returns (uint128) {
+        uint128 _lockedLiquidity,
+        uint128 _feeLevelMultipliedByLiquidity,
+        PositionChangeResult memory posResult
+    ) internal {
+        uint128 lockedNotional;
+        int128 weight;
         (uint128 spot, ) = getUnderlyingPrice();
 
-        int128 hedgeNotional = hedging.pools[_pool.id].getHedgeNotional(spot);
+        {
+            int128 hedgeNotional = hedging.pools[_poolId].getHedgeNotional(
+                spot
+            );
+
+            lockedNotional =
+                (_lockedLiquidity * uint128(hedgeNotional)) /
+                (_pool.tradeState.liquidityBefore);
+
+            weight = int128(
+                (_feeLevelMultipliedByLiquidity *
+                    (_pool.tradeState.liquidityBefore) *
+                    1e6) /
+                    (_pool.tradeState.feeLevelMultipliedLiquidityGlobal *
+                        _lockedLiquidity)
+            );
+        }
+
+        posResult.depositAmount += lockedNotional / 1e2;
+
+        posResult.entryPrice =
+            (pools[_poolId].entry * int128(posResult.size)) /
+            positions[_poolId];
+
+        positions[_poolId] -= int128(posResult.size);
+        pools[_poolId].entry -= posResult.entryPrice;
+
+        // after
+        posResult.entryPrice = (weight * posResult.entryPrice) / 1e6;
+
+        hedging.addPosition(
+            _poolId,
+            -Pricer.calculateDelta(_poolId, int128(spot)),
+            -int128(lockedNotional),
+            spot
+        );
+    }
+
+    function calculateLockedNotional(
+        uint256 _poolId,
+        Pool storage _pool,
+        uint128 _lockedLiquidity,
+        uint128 _feeLevelMultipliedByLiquidity
+    ) internal view returns (uint128, int128) {
+        (uint128 spot, ) = getUnderlyingPrice();
+
+        int128 hedgeNotional = hedging.pools[_poolId].getHedgeNotional(spot);
 
         uint128 lockedNotional = (_lockedLiquidity * uint128(hedgeNotional)) /
             ((_pool.tradeState.liquidityBefore - _lockedLiquidity));
 
-        return lockedNotional;
+        uint128 weight = (_feeLevelMultipliedByLiquidity *
+            (_pool.tradeState.liquidityBefore) *
+            1e6) /
+            (_pool.tradeState.feeLevelMultipliedLiquidityGlobal *
+                _lockedLiquidity);
+
+        return (lockedNotional, int128(weight));
     }
 
     function calculateUnlockedNotional(
@@ -419,6 +460,14 @@ contract PerpetualMarketCore {
     ////////////////////////
     //  Getter Functions  //
     ////////////////////////
+
+    function getFeeLevel(uint256 _poolId, int24 _feeLevel)
+        external
+        view
+        returns (IFeeLevel.Info memory)
+    {
+        return pools[_poolId].feeLevels[_feeLevel];
+    }
 
     function getVault(address _trader, uint256 _vaultId)
         external
@@ -687,23 +736,23 @@ contract PerpetualMarketCore {
             (getUPnL(
                 pools[_poolId],
                 int128(getMarkPrice(_poolId, spot)),
-                getPnLParams(pools[_poolId], spot),
+                getPnLParams(_poolId, pools[_poolId], spot),
                 pools[_poolId].tradeState.feeLevelMultipliedLiquidityGlobal,
                 pools[_poolId].tradeState.liquidityBefore
             ) * 1e6) / pools[_poolId].tradeState.liquidityBefore;
     }
 
-    function getPnLParams(Pool storage _pool, uint128 _spot)
-        internal
-        view
-        returns (PnLParams memory _pnlParams)
-    {
+    function getPnLParams(
+        uint256 _poolId,
+        Pool storage _pool,
+        uint128 _spot
+    ) internal view returns (PnLParams memory _pnlParams) {
         return
             PnLParams(
-                hedging.pools[_pool.id].getHedgeNotional(_spot),
+                hedging.pools[_poolId].getHedgeNotional(_spot),
                 _pool.entry,
                 _pool.tradeState.liquidityBefore,
-                positions[_pool.id]
+                positions[_poolId]
             );
     }
 
