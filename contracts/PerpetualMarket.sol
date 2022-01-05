@@ -17,6 +17,23 @@ contract PerpetualMarket {
         int128 depositOrWithdrawAmount;
     }
 
+    struct DepositParams {
+        bool closeSoon;
+        uint256 vaultId;
+        uint128 depositAmount;
+    }
+
+    event Deposited(
+        uint256 poolId,
+        address _account,
+        int24 feeLevelLower,
+        int24 feeLevelUpper,
+        uint128 issued,
+        uint128 amount
+    );
+
+    int128 constant MAX_DEPOSIT = 10000000000 * 1e6;
+
     /**
      * @notice initialize trade wrapper
      */
@@ -36,8 +53,7 @@ contract PerpetualMarket {
         uint128 _amount,
         int24 _feeLevelLower,
         int24 _feeLevelUpper,
-        uint128 _vaultId,
-        uint128 _collateralAmount
+        DepositParams memory _depositParams
     ) external {
         require(_amount > 0);
         checkFeeLevels(_feeLevelLower, _feeLevelUpper);
@@ -49,27 +65,74 @@ contract PerpetualMarket {
                 _feeLevelUpper
             );
 
+        int128 collateralAmount;
+
+        collateralAmount = int128(result.depositAmount);
+
         if (result.size > 0) {
             perpetualMarketCore.makePositions(
                 msg.sender,
-                _vaultId,
+                _depositParams.vaultId,
                 _poolId,
                 int128(result.size),
                 ((uint128(result.entryPrice)) / result.size)
             );
 
-            perpetualMarketCore.checkIM(
-                msg.sender,
-                _vaultId,
-                int128(_collateralAmount)
-            );
+            if (_depositParams.closeSoon) {
+                uint128 totalPrice0 = perpetualMarketCore.addOrRemovePositions(
+                    0,
+                    -int128(result.size)
+                );
+
+                perpetualMarketCore.makePositions(
+                    msg.sender,
+                    _depositParams.vaultId,
+                    _poolId,
+                    -int128(result.size),
+                    totalPrice0
+                );
+
+                perpetualMarketCore.depositToVault(
+                    msg.sender,
+                    _depositParams.vaultId,
+                    MAX_DEPOSIT
+                );
+                collateralAmount += MAX_DEPOSIT;
+
+                collateralAmount += perpetualMarketCore.checkIM(
+                    msg.sender,
+                    _depositParams.vaultId,
+                    -MAX_DEPOSIT
+                );
+            } else {
+                perpetualMarketCore.checkIM(
+                    msg.sender,
+                    _depositParams.vaultId,
+                    int128(_depositParams.depositAmount)
+                );
+
+                collateralAmount += int128(_depositParams.depositAmount);
+            }
         }
 
         // Receive collateral from msg.sender
-        ERC20(liquidityPool.collateral()).transferFrom(
+        if (collateralAmount > 0) {
+            ERC20(liquidityPool.collateral()).transferFrom(
+                msg.sender,
+                address(liquidityPool),
+                uint128(collateralAmount)
+            );
+        } else {
+            liquidityPool.sendLiquidity(msg.sender, uint128(-collateralAmount));
+        }
+
+        emit Deposited(
+            _poolId,
             msg.sender,
-            address(liquidityPool),
-            result.depositAmount + _collateralAmount
+            _feeLevelLower,
+            _feeLevelUpper,
+            _amount,
+            result.depositAmount
         );
     }
 

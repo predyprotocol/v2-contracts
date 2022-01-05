@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "./LiqMath.sol";
+import "hardhat/console.sol";
 
 library TraderVault {
     struct TraderPosition {
@@ -28,7 +29,7 @@ library TraderVault {
         int128 pnl = traderPosition.usdcPosition + derivativePnL;
 
         if (_depositOrWithdrawAmount <= -pnl && pnl > 0) {
-            finalDepositOrWithdrawAmount = -int128(pnl);
+            finalDepositOrWithdrawAmount = -pnl;
             traderPosition.usdcPosition = -derivativePnL;
         } else {
             traderPosition.usdcPosition += _depositOrWithdrawAmount;
@@ -37,6 +38,14 @@ library TraderVault {
         }
 
         require(traderPosition.usdcPosition + derivativePnL >= im, "IM");
+    }
+
+    function deposit(
+        TraderPosition storage _traderPosition,
+        int128 _depositAmount
+    ) external {
+        require(_depositAmount > 0);
+        _traderPosition.usdcPosition += _depositAmount;
     }
 
     /**

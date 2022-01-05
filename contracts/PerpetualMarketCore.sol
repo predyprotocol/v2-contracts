@@ -399,6 +399,18 @@ contract PerpetualMarketCore {
             );
     }
 
+    function depositToVault(
+        address _trader,
+        uint256 _vaultId,
+        int128 _depositAmount
+    ) public {
+        TraderVault.TraderPosition storage traderPosition = traders[_trader][
+            _vaultId
+        ];
+
+        TraderVault.deposit(traderPosition, _depositAmount);
+    }
+
     /**
      * @notice liquidate short positions in a vault.
      */
@@ -689,7 +701,7 @@ contract PerpetualMarketCore {
                 _cache.currentFeeLevelIndex
             ),
             _cache.lockedLiquidity
-        ) * 1e6) / _cache.liquidityBefore;
+        ) * 1e6) / _pnlParams.liquidityBefore;
 
         _cache.realizedPnLGlobal +=
             ((int128(upnl) - 1e8) * int128(_marginStep)) /
@@ -780,6 +792,7 @@ contract PerpetualMarketCore {
             _pnlParams,
             weight
         );
+
         require(totalNotional > 0, "Insolvency");
 
         return uint128(totalNotional);
