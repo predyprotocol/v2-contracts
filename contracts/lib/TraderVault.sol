@@ -20,15 +20,19 @@ library TraderVault {
     function checkIM(
         TraderPosition storage traderPosition,
         int128 _depositOrWithdrawAmount,
-        uint128 _spot,
         int128 _martPrice0,
         int128 _markPrice1
     ) external returns (int128 finalDepositOrWithdrawAmount) {
-        int128 im = getInitialOrMaintenanceMargin(traderPosition, _spot, true);
+        int128 im = getInitialOrMaintenanceMargin(
+            traderPosition,
+            _martPrice0,
+            _markPrice1,
+            true
+        );
         int128 derivativePnL = getPnL(traderPosition, _martPrice0, _markPrice1);
         int128 pnl = traderPosition.usdcPosition + derivativePnL;
 
-        if (_depositOrWithdrawAmount <= -pnl && pnl > 0) {
+        if (_depositOrWithdrawAmount <= -pnl && pnl >= 0) {
             finalDepositOrWithdrawAmount = -pnl;
             traderPosition.usdcPosition = -derivativePnL;
         } else {
@@ -40,12 +44,23 @@ library TraderVault {
         require(traderPosition.usdcPosition + derivativePnL >= im, "IM");
     }
 
-    function deposit(
-        TraderPosition storage _traderPosition,
-        int128 _depositAmount
-    ) external {
-        require(_depositAmount > 0);
-        _traderPosition.usdcPosition += _depositAmount;
+    function getIM(
+        TraderPosition memory _traderPosition,
+        int128 _martPrice0,
+        int128 _markPrice1
+    ) external pure returns (int128) {
+        int128 derivativePnL = getPnL(
+            _traderPosition,
+            _martPrice0,
+            _markPrice1
+        );
+        int128 im = getInitialOrMaintenanceMargin(
+            _traderPosition,
+            _martPrice0,
+            _markPrice1,
+            true
+        );
+        return im - derivativePnL - _traderPosition.usdcPosition;
     }
 
     /**
@@ -62,7 +77,12 @@ library TraderVault {
         require(
             traderPosition.usdcPosition +
                 getPnL(traderPosition, _martPrice0, _markPrice1) <
-                getInitialOrMaintenanceMargin(traderPosition, _spot, false),
+                getInitialOrMaintenanceMargin(
+                    traderPosition,
+                    _martPrice0,
+                    _markPrice1,
+                    false
+                ),
             "LB"
         );
 
@@ -76,7 +96,12 @@ library TraderVault {
         require(
             traderPosition.usdcPosition +
                 getPnL(traderPosition, _martPrice0, _markPrice1) >=
-                getInitialOrMaintenanceMargin(traderPosition, _spot, false),
+                getInitialOrMaintenanceMargin(
+                    traderPosition,
+                    _martPrice0,
+                    _markPrice1,
+                    false
+                ),
             "LA"
         );
 
@@ -97,13 +122,14 @@ library TraderVault {
      */
     function getInitialOrMaintenanceMargin(
         TraderPosition memory _traderPosition,
-        uint128 _spot,
+        int128 _martPrice0,
+        int128 _markPrice1,
         bool _isImOrMm
     ) internal pure returns (int128) {
-        uint128 im = ((LiqMath.abs(_traderPosition.size[0]) +
-            LiqMath.abs(_traderPosition.size[1])) *
-            _spot *
-            (_isImOrMm ? 20 : 8)) / (100 * 1e10);
+        uint128 im = ((LiqMath.abs(_traderPosition.size[0]) *
+            uint128(_martPrice0) +
+            LiqMath.abs(_traderPosition.size[1]) *
+            uint128(_markPrice1)) * (_isImOrMm ? 20 : 8)) / (100 * 1e10);
 
         return int128(im);
     }

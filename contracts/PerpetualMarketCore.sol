@@ -283,7 +283,7 @@ contract PerpetualMarketCore {
             _feeLevelUpper,
             _pool.tradeState.currentFeeLevelIndex,
             _pool.tradeState.realizedPnLGlobal
-        );
+        ) / (_feeLevelUpper - _feeLevelLower);
 
         return (_unlockedLiquidity * uint128(int128(1e8) + realizedPnL)) / 1e8;
     }
@@ -298,6 +298,8 @@ contract PerpetualMarketCore {
         external
         returns (uint128)
     {
+        require(positions[_poolId] + _size >= 0 || _poolId == 1);
+
         (uint128 spot, ) = getUnderlyingPrice();
 
         // Calculate margin and price
@@ -352,25 +354,25 @@ contract PerpetualMarketCore {
         pool.nfactor = calculateNewNFactor(_poolId, feeLevel);
         pool.lastTradeTime = uint128(block.timestamp);
 
-        return LiqMath.abs(totalPrice / 1e8);
+        return LiqMath.abs(totalPrice);
     }
 
     /**
      * @notice make long or short positions
      */
-    function makePositions(
+    function addPositionDirectly(
         address _trader,
         uint256 _vaultId,
         uint256 _poolId,
         int128 _size,
-        uint128 _price
+        int128 _entry
     ) public {
         TraderVault.TraderPosition storage traderPosition = traders[_trader][
             _vaultId
         ];
 
         traderPosition.size[_poolId] += _size;
-        traderPosition.entry[_poolId] += _size * int128(_price);
+        traderPosition.entry[_poolId] += _entry;
     }
 
     /**
@@ -393,22 +395,27 @@ contract PerpetualMarketCore {
             TraderVault.checkIM(
                 traderPosition,
                 _depositOrWithdrawAmount,
-                spot,
                 int128(getMarkPrice(0, spot)),
                 int128(getMarkPrice(1, spot))
             );
     }
 
-    function depositToVault(
-        address _trader,
-        uint256 _vaultId,
-        int128 _depositAmount
-    ) public {
+    function getIM(address _trader, uint256 _vaultId)
+        external
+        view
+        returns (int128)
+    {
         TraderVault.TraderPosition storage traderPosition = traders[_trader][
             _vaultId
         ];
+        (uint128 spot, ) = getUnderlyingPrice();
 
-        TraderVault.deposit(traderPosition, _depositAmount);
+        return
+            TraderVault.getIM(
+                traderPosition,
+                int128(getMarkPrice(0, spot)),
+                int128(getMarkPrice(1, spot))
+            );
     }
 
     /**
@@ -851,7 +858,7 @@ contract PerpetualMarketCore {
      * @return mark price scaled by 1e8
      */
     function getMarkPrice(uint256 _poolId, uint128 _spot)
-        internal
+        public
         view
         returns (uint128)
     {

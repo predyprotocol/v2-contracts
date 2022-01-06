@@ -20,7 +20,6 @@ contract PerpetualMarket {
     struct DepositParams {
         bool closeSoon;
         uint256 vaultId;
-        uint128 depositAmount;
     }
 
     event Deposited(
@@ -70,48 +69,44 @@ contract PerpetualMarket {
         collateralAmount = int128(result.depositAmount);
 
         if (result.size > 0) {
-            perpetualMarketCore.makePositions(
+            perpetualMarketCore.addPositionDirectly(
                 msg.sender,
                 _depositParams.vaultId,
                 _poolId,
                 int128(result.size),
-                ((uint128(result.entryPrice)) / result.size)
+                result.entryPrice
+            );
+
+            int128 im = perpetualMarketCore.getIM(
+                msg.sender,
+                _depositParams.vaultId
+            );
+
+            collateralAmount += perpetualMarketCore.checkIM(
+                msg.sender,
+                _depositParams.vaultId,
+                im
             );
 
             if (_depositParams.closeSoon) {
                 uint128 totalPrice0 = perpetualMarketCore.addOrRemovePositions(
-                    0,
+                    _poolId,
                     -int128(result.size)
                 );
 
-                perpetualMarketCore.makePositions(
+                perpetualMarketCore.addPositionDirectly(
                     msg.sender,
                     _depositParams.vaultId,
                     _poolId,
                     -int128(result.size),
-                    totalPrice0
+                    -int128(totalPrice0)
                 );
-
-                perpetualMarketCore.depositToVault(
-                    msg.sender,
-                    _depositParams.vaultId,
-                    MAX_DEPOSIT
-                );
-                collateralAmount += MAX_DEPOSIT;
 
                 collateralAmount += perpetualMarketCore.checkIM(
                     msg.sender,
                     _depositParams.vaultId,
                     -MAX_DEPOSIT
                 );
-            } else {
-                perpetualMarketCore.checkIM(
-                    msg.sender,
-                    _depositParams.vaultId,
-                    int128(_depositParams.depositAmount)
-                );
-
-                collateralAmount += int128(_depositParams.depositAmount);
             }
         }
 
@@ -144,8 +139,7 @@ contract PerpetualMarket {
         uint128 _amount,
         int24 _feeLevelLower,
         int24 _feeLevelUpper,
-        uint128 _vaultId,
-        uint128 _collateralAmount
+        DepositParams memory _depositParams
     ) external {
         require(_amount > 0);
         checkFeeLevels(_feeLevelLower, _feeLevelUpper);
@@ -157,27 +151,54 @@ contract PerpetualMarket {
                 _feeLevelUpper
             );
 
+        int128 collateralAmount;
+
+        collateralAmount = -int128(result.depositAmount);
+
         if (result.size > 0) {
-            perpetualMarketCore.makePositions(
+            perpetualMarketCore.addPositionDirectly(
                 msg.sender,
-                _vaultId,
+                _depositParams.vaultId,
                 _poolId,
                 -int128(result.size),
-                (uint128(result.entryPrice)) / result.size
+                result.entryPrice
             );
 
-            perpetualMarketCore.checkIM(
+            int128 im = perpetualMarketCore.getIM(
                 msg.sender,
-                _vaultId,
-                int128(_collateralAmount)
+                _depositParams.vaultId
             );
+
+            collateralAmount += perpetualMarketCore.checkIM(
+                msg.sender,
+                _depositParams.vaultId,
+                im
+            );
+
+            if (_depositParams.closeSoon) {
+                uint128 totalPrice0 = perpetualMarketCore.addOrRemovePositions(
+                    _poolId,
+                    int128(result.size)
+                );
+
+                perpetualMarketCore.addPositionDirectly(
+                    msg.sender,
+                    _depositParams.vaultId,
+                    _poolId,
+                    int128(result.size),
+                    int128(totalPrice0)
+                );
+
+                collateralAmount += perpetualMarketCore.checkIM(
+                    msg.sender,
+                    _depositParams.vaultId,
+                    -MAX_DEPOSIT
+                );
+            }
         }
 
         // Send collateral to msg.sender
-        liquidityPool.sendLiquidity(
-            msg.sender,
-            result.depositAmount - _collateralAmount
-        );
+        liquidityPool.sendLiquidity(msg.sender, uint128(-collateralAmount));
     }
 
     /**
@@ -193,12 +214,14 @@ contract PerpetualMarket {
                 _tradeParams.sizes[0]
             );
 
-            perpetualMarketCore.makePositions(
+            perpetualMarketCore.addPositionDirectly(
                 msg.sender,
                 _tradeParams.vaultId,
                 0,
                 _tradeParams.sizes[0],
-                totalPrice0
+                _tradeParams.sizes[0] > 0
+                    ? int128(totalPrice0)
+                    : -int128(totalPrice0)
             );
         }
 
@@ -208,12 +231,14 @@ contract PerpetualMarket {
                 _tradeParams.sizes[1]
             );
 
-            perpetualMarketCore.makePositions(
+            perpetualMarketCore.addPositionDirectly(
                 msg.sender,
                 _tradeParams.vaultId,
                 1,
                 _tradeParams.sizes[1],
-                totalPrice1
+                _tradeParams.sizes[1] > 0
+                    ? int128(totalPrice1)
+                    : -int128(totalPrice1)
             );
         }
 
@@ -284,10 +309,7 @@ contract PerpetualMarket {
             _size
         );
 
-        uint128 totalPrice = perpetualMarketCore.addOrRemovePositions(
-            _poolId,
-            _size
-        );
+        perpetualMarketCore.addOrRemovePositions(_poolId, _size);
 
         liquidityPool.sendLiquidity(msg.sender, reward);
     }
@@ -323,5 +345,22 @@ contract PerpetualMarket {
         require(_levelLower < _levelUpper, "FLU");
         require(_levelLower >= 0, "FLM");
         require(_levelUpper <= 300, "FUM");
+    }
+
+    function getVaultPnL(
+        address _trader,
+        uint256 _vaultId,
+        uint128 _spot
+    ) external view returns (int128) {
+        TraderVault.TraderPosition memory traderPosition = perpetualMarketCore
+            .getVault(_trader, _vaultId);
+
+        return
+            traderPosition.usdcPosition +
+            TraderVault.getPnL(
+                traderPosition,
+                int128(perpetualMarketCore.getMarkPrice(0, _spot)),
+                int128(perpetualMarketCore.getMarkPrice(1, _spot))
+            );
     }
 }
