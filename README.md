@@ -1,4 +1,8 @@
-# Advanced Sample Hardhat Project
+# Predy v2 contracts
+
+![](https://github.com/predyprotocol/v2-contracts/workflows/Test/badge.svg)
+[![codecov](https://codecov.io/gh/predyprotocol/v2-contracts/branch/main/graph/badge.svg?token=0r39HNSn84)](https://codecov.io/gh/predyprotocol/v2-contracts)
+
 
 This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
 
