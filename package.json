@@ -7,6 +7,8 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "coverage": "hardhat coverage",
+    "lint:check": "prettier --check \"contracts/**/*.sol\" \"test/**/*.ts\"",
+    "lint:write": "prettier --write \"contracts/**/*.sol\" \"test/**/*.ts\""
   },
   "author": "predy",
   "license": "ISC",
