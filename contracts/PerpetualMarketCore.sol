@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./lib/LpPosition.sol";
 import "./lib/FeeLevel.sol";
@@ -48,10 +47,12 @@ contract PerpetualMarketCore {
 
     Hedging.Info private hedging;
 
+    bool private immutable isFunding;
+
     /**
      * @notice initialize perpetual pool
      */
-    constructor(address _aggregator) {
+    constructor(address _aggregator, bool _isFunding) {
         priceFeed = AggregatorV3Interface(_aggregator);
 
         pools[0].nfactor = 1e8;
@@ -59,6 +60,8 @@ contract PerpetualMarketCore {
 
         pools[0].lastTradeTime = uint128(block.timestamp);
         pools[1].lastTradeTime = uint128(block.timestamp);
+
+        isFunding = _isFunding;
     }
 
     struct PositionChangeResult {
@@ -351,7 +354,9 @@ contract PerpetualMarketCore {
         int128 totalPrice = (_size * int128(markPrice));
 
         pool.entry += totalPrice;
-        pool.nfactor = calculateNewNFactor(_poolId, feeLevel);
+        if (isFunding) {
+            pool.nfactor = calculateNewNFactor(_poolId, feeLevel);
+        }
         pool.lastTradeTime = uint128(block.timestamp);
 
         return LiqMath.abs(totalPrice);
@@ -517,7 +522,7 @@ contract PerpetualMarketCore {
                 uint128(block.timestamp - pool.lastTradeTime))) /
             (1 days * (1e12 + uint128(currentFeeLevel)));
 
-        return (pool.nfactor * (1e16 - fundingFee)) / 1e16;
+        return (pool.nfactor * (1e12 - fundingFee)) / 1e12;
     }
 
     /**

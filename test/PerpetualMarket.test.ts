@@ -21,6 +21,7 @@ describe("PerpetualMarket", function () {
   let snapshotId: number
 
   let perpetualMarket: PerpetualMarket
+  let perpetualMarketWithFunding: PerpetualMarket
 
   const MaxInt128 = BigNumber.from(2).pow(127).sub(1)
   const MinInt128 = BigNumber.from(2).pow(127).sub(1).mul(-1)
@@ -34,6 +35,7 @@ describe("PerpetualMarket", function () {
     weth = testContractSet.weth
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
+    perpetualMarketWithFunding = testContractSet.perpetualMarketWithFunding
   })
 
   beforeEach(async () => {
@@ -49,6 +51,7 @@ describe("PerpetualMarket", function () {
     await usdc.mint(other.address, testUsdcAmount)
 
     await usdc.approve(perpetualMarket.address, MaxInt128)
+    await usdc.approve(perpetualMarketWithFunding.address, MaxInt128)
 
     // spot price is $1,000
     await testContractHelper.updateSpot(scaledBN(1000, 8))
@@ -117,7 +120,7 @@ describe("PerpetualMarket", function () {
 
         it('withdrawal works after deposit', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(20, 6), 40, 60, { closeSoon: false, vaultId: 0 })
-          await perpetualMarket.withdraw(poolId, scaledBN(20, 6), 40, 60, { closeSoon: false, vaultId: 0 })
+          await perpetualMarket.withdraw(2, scaledBN(20, 6), { closeSoon: false, vaultId: 0 })
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
@@ -137,7 +140,7 @@ describe("PerpetualMarket", function () {
 
         it('remove liquidity from liquidityNet', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(10, 6), 40, 50, { closeSoon: false, vaultId: 0 })
-          await perpetualMarket.withdraw(poolId, scaledBN(10, 6), 40, 50, { closeSoon: false, vaultId: 0 })
+          await perpetualMarket.withdraw(2, scaledBN(10, 6), { closeSoon: false, vaultId: 0 })
 
           expect(
             (await testContractSet.perpetualMarketCore.getFeeLevel(poolId, 40)).liquidityNet
@@ -159,7 +162,7 @@ describe("PerpetualMarket", function () {
 
         it('withdrawal works after deposit', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(20, 6), 20, 40, { closeSoon: false, vaultId: 1 })
-          await perpetualMarket.withdraw(poolId, scaledBN(20, 6), 20, 40, { closeSoon: false, vaultId: 1 })
+          await perpetualMarket.withdraw(2, scaledBN(20, 6), { closeSoon: false, vaultId: 1 })
 
 
           expect(
@@ -179,7 +182,7 @@ describe("PerpetualMarket", function () {
 
         it('withdrawal works after deposit', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(10, 6), 10, 20, { closeSoon: false, vaultId: 1, })
-          await perpetualMarket.withdraw(poolId, scaledBN(10, 6), 10, 20, { closeSoon: false, vaultId: 1, })
+          await perpetualMarket.withdraw(2, scaledBN(10, 6), { closeSoon: false, vaultId: 1, })
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
@@ -273,7 +276,7 @@ describe("PerpetualMarket", function () {
 
         it('withdrawal works after deposit', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(20, 6), 40, 60, { closeSoon: false, vaultId: 0 })
-          await perpetualMarket.withdraw(poolId, scaledBN(20, 6), 40, 60, { closeSoon: false, vaultId: 0 })
+          await perpetualMarket.withdraw(2, scaledBN(20, 6), { closeSoon: false, vaultId: 0 })
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
@@ -293,7 +296,7 @@ describe("PerpetualMarket", function () {
 
         it('withdrawal works after deposit', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(20, 6), 20, 40, { closeSoon: false, vaultId: 1 })
-          await perpetualMarket.withdraw(poolId, scaledBN(20, 6), 20, 40, { closeSoon: false, vaultId: 1 })
+          await perpetualMarket.withdraw(2, scaledBN(20, 6), { closeSoon: false, vaultId: 1 })
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
@@ -312,7 +315,7 @@ describe("PerpetualMarket", function () {
 
         it('withdrawal works after deposit', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(10, 6), 10, 20, { closeSoon: false, vaultId: 1 })
-          await perpetualMarket.withdraw(poolId, scaledBN(10, 6), 10, 20, { closeSoon: false, vaultId: 1 })
+          await perpetualMarket.withdraw(2, scaledBN(10, 6), { closeSoon: false, vaultId: 1 })
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
@@ -359,7 +362,7 @@ describe("PerpetualMarket", function () {
 
         it('withdrawal works after deposit', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(20, 6), 40, 60, { closeSoon: false, vaultId: 0 })
-          await perpetualMarket.withdraw(poolId, scaledBN(20, 6), 40, 60, { closeSoon: false, vaultId: 0 })
+          await perpetualMarket.withdraw(2, scaledBN(20, 6), { closeSoon: false, vaultId: 0 })
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
@@ -369,13 +372,7 @@ describe("PerpetualMarket", function () {
 
       describe('including current level', async () => {
         it('deposit with margin', async () => {
-          const tx = await perpetualMarket.deposit(poolId, scaledBN(20, 6), 20, 40, { closeSoon: false, vaultId: 1 })
-
-          const receipt = await tx.wait()
-
-          const depositedAmount = receipt.events?.filter((x) => x.event === 'Deposited')[0].args?.amount
-
-          console.log('depositedAmount', depositedAmount.toString())
+          await perpetualMarket.deposit(poolId, scaledBN(20, 6), 20, 40, { closeSoon: false, vaultId: 1 })
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
@@ -384,7 +381,7 @@ describe("PerpetualMarket", function () {
 
         it('withdrawal works after deposit', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(20, 6), 20, 40, { closeSoon: false, vaultId: 1 })
-          await perpetualMarket.withdraw(poolId, scaledBN(20, 6), 20, 40, { closeSoon: false, vaultId: 1 })
+          await perpetualMarket.withdraw(2, scaledBN(20, 6), { closeSoon: false, vaultId: 1 })
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
@@ -403,7 +400,7 @@ describe("PerpetualMarket", function () {
 
         it('withdrawal works after deposit', async () => {
           await perpetualMarket.deposit(poolId, scaledBN(10, 6), 10, 20, { closeSoon: false, vaultId: 1 })
-          await perpetualMarket.withdraw(poolId, scaledBN(10, 6), 10, 20, { closeSoon: false, vaultId: 1 })
+          await perpetualMarket.withdraw(2, scaledBN(10, 6), { closeSoon: false, vaultId: 1 })
 
           expect(
             await usdc.balanceOf(testContractSet.liquidityPool.address)
@@ -416,43 +413,71 @@ describe("PerpetualMarket", function () {
   describe("withdraw", () => {
     const poolId = 0
 
-    it("withdraw 1 usdc", async function () {
-      const amount = scaledBN(1, 6)
-      const feeLevelLower = 100
-      const feeLevelUpper = 120
-
-      await perpetualMarket.deposit(poolId, amount, feeLevelLower, feeLevelUpper, { closeSoon: false, vaultId: 0 })
-
-      const before = await usdc.balanceOf(wallet.address)
-      await perpetualMarket.withdraw(poolId, amount, feeLevelLower, feeLevelUpper, { closeSoon: false, vaultId: 0 })
-      const after = await usdc.balanceOf(wallet.address)
-
-      expect(after.sub(before)).to.equal(amount);
+    beforeEach(async () => {
+      await testContractHelper.updateSpot(scaledBN(100, 8))
+      await perpetualMarket.deposit(poolId, scaledBN(100, 6), 50, 60, { closeSoon: false, vaultId: 0 })
     })
 
-    it("collect fee", async function () {
-      const amount = scaledBN(200, 6)
-      const feeLevelLower = 100
-      const feeLevelUpper = 120
-      const vaultId = 0
-
-      await perpetualMarket.deposit(poolId, amount, feeLevelLower, feeLevelUpper, { closeSoon: false, vaultId: 0 })
-
-      // trades
-      const depositCollateral = scaledBN(2000, 6)
-      await testContractHelper.updateSpot(scaledBN(1000, 8))
-      await perpetualMarket.openLongPosition(poolId, vaultId, scaledBN(2, 7), depositCollateral)
-      await testContractHelper.updateSpot(scaledBN(900, 8))
-      await perpetualMarket.openShortPosition(poolId, vaultId, scaledBN(2, 7), 0)
-
-      // withdraw fee
-      const before = await usdc.balanceOf(wallet.address)
-      await perpetualMarket.withdraw(poolId, amount, feeLevelLower, feeLevelUpper, { closeSoon: false, vaultId: 0 })
-      const after = await usdc.balanceOf(wallet.address)
-
-      expect(after.sub(before)).to.gt(amount);
+    it("reverts if amount is 0", async function () {
+      expect(perpetualMarket.withdraw(1, 0, { closeSoon: false, vaultId: 0 })).to.be.reverted
     })
 
+    it("reverts if caller is not position owner", async function () {
+      expect(perpetualMarket.connect(other).withdraw(1, 0, { closeSoon: false, vaultId: 0 })).to.be.reverted
+    })
+
+    it("reverts if withdraw with closing but there are no liquidity", async function () {
+      await perpetualMarket.openLongPosition(poolId, 0, scaledBN(1, 8), scaledBN(100, 6))
+
+      expect(perpetualMarket.withdraw(1, scaledBN(100, 6), { closeSoon: true, vaultId: 0 })).to.be.reverted
+    })
+
+    it("unrealized pnl and realized pnl has not changed", async function () {
+
+      const before = await usdc.balanceOf(wallet.address)
+      await perpetualMarket.withdraw(1, scaledBN(100, 6), { closeSoon: false, vaultId: 0 })
+      const after = await usdc.balanceOf(wallet.address)
+
+      expect(after.sub(before)).to.equal(scaledBN(100, 6));
+    })
+
+    it("current fee level is in range", async function () {
+      await perpetualMarket.openLongPosition(poolId, 0, scaledBN(1, 8), scaledBN(100, 6))
+
+      const before = await usdc.balanceOf(wallet.address)
+      await perpetualMarket.withdraw(1, scaledBN(100, 6), { closeSoon: false, vaultId: 0 })
+      const after = await usdc.balanceOf(wallet.address)
+
+      expect(after.sub(before)).to.equal(scaledBN(198, 6));
+    })
+
+    it("unrealized pnl and realized pnl are greater than 0", async function () {
+      await perpetualMarket.openLongPosition(poolId, 0, scaledBN(1, 8), scaledBN(100, 6))
+
+      await testContractHelper.updateSpot(scaledBN(90, 8))
+
+      await perpetualMarket.openShortPosition(poolId, 0, scaledBN(1, 8), 0)
+
+      const before = await usdc.balanceOf(wallet.address)
+      await perpetualMarket.withdraw(1, scaledBN(100, 6), { closeSoon: false, vaultId: 0 })
+      const after = await usdc.balanceOf(wallet.address)
+
+      expect(after.sub(before)).to.equal('100190000');
+    })
+
+    it("unrealized pnl and realized pnl are less than 0", async function () {
+      await perpetualMarket.openLongPosition(poolId, 0, scaledBN(1, 8), scaledBN(100, 6))
+
+      await testContractHelper.updateSpot(scaledBN(110, 8))
+
+      await perpetualMarket.openShortPosition(poolId, 0, scaledBN(1, 8), 0)
+
+      const before = await usdc.balanceOf(wallet.address)
+      await perpetualMarket.withdraw(1, scaledBN(100, 6), { closeSoon: false, vaultId: 0 })
+      const after = await usdc.balanceOf(wallet.address)
+
+      expect(after.sub(before)).to.equal('99790001');
+    })
   })
 
   describe("trade", () => {
@@ -598,51 +623,202 @@ describe("PerpetualMarket", function () {
     const vaultId = 0;
 
     beforeEach(async () => {
-      const amount = scaledBN(15000, 6)
-      const feeLevelLower = 80
-      const feeLevelUpper = 85
+      const amount = scaledBN(200, 6)
+      const feeLevelLower = 50
+      const feeLevelUpper = 55
 
-      await usdc.approve(testContractSet.perpetualMarketCore.address, MaxInt128)
+      await perpetualMarket.deposit(sqeethPoolId, amount, feeLevelLower, feeLevelUpper, { vaultId: 0, closeSoon: false })
+      await perpetualMarket.deposit(futurePoolId, amount, feeLevelLower, feeLevelUpper, { vaultId: 0, closeSoon: false })
 
-      await testContractSet.perpetualMarketCore.deposit(sqeethPoolId, amount, feeLevelLower, feeLevelUpper)
-      await testContractSet.perpetualMarketCore.deposit(futurePoolId, amount, feeLevelLower, feeLevelUpper)
-
-      await usdc.approve(perpetualMarket.address, MaxInt128)
-      await usdc.connect(other).approve(perpetualMarket.address, MaxInt128)
+      await testContractHelper.updateSpot(scaledBN(100, 8))
     })
 
-    it("open Sqeeth and short future contracts", async () => {
-      const size = scaledBN(2, 6)
-      const depositOrWithdrawAmount = scaledBN(2000, 6)
+    describe("Sqeeth", () => {
+      it("open", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(1, 6), 0], depositOrWithdrawAmount: scaledBN(100, 6) })
+      })
 
-      await testContractHelper.updateSpot(scaledBN(1002, 8))
+      it("close position", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(1, 6), 0], depositOrWithdrawAmount: scaledBN(100, 6) })
 
-      await perpetualMarket.connect(other).openPositions({ vaultId, sizes: [100, size], depositOrWithdrawAmount })
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(-1, 6), 0], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
 
-      await increaseTime(60 * 60 * 2)
-      await testContractHelper.updateSpot(scaledBN(1020, 8))
+        expect(after.sub(before)).to.be.eq('100000000')
+      })
 
-      const beforeUsdcBalance = await usdc.balanceOf(wallet.address)
+      it("close position with profit", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(1, 6), 0], depositOrWithdrawAmount: scaledBN(100, 6) })
+        await testContractHelper.updateSpot(scaledBN(110, 8))
 
-      const tx = await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(1, 5), scaledBN(-1, 8)], depositOrWithdrawAmount })
-      const receipt = await tx.wait()
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(-1, 6), 0], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
 
-      // The gas usage of opening Sqeeth and short future is less than 400k gas
-      expect(receipt.gasUsed).to.be.lt(500000)
+        expect(after.sub(before)).to.be.eq('100002100')
+      })
 
-      const vault = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
+      it("close position with loss", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(1, 6), 0], depositOrWithdrawAmount: scaledBN(100, 6) })
+        await testContractHelper.updateSpot(scaledBN(90, 8))
 
-      expect(vault.size[0]).to.equal(scaledBN(1, 5));
-      expect(vault.size[1]).to.equal(scaledBN(-1, 8));
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(-1, 6), 0], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
 
-      await increaseTime(60 * 60 * 2)
-      await testContractHelper.updateSpot(scaledBN(1005, 8))
+        expect(after.sub(before)).to.be.eq('99998100')
+      })
+    })
 
-      await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(-1, 5), scaledBN(1, 8)], depositOrWithdrawAmount: MinInt128 })
+    describe("Future", () => {
+      it("open", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [0, scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
+      })
 
-      const afterUsdcBalance = await usdc.balanceOf(wallet.address)
+      it("close", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [0, scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
 
-      expect(afterUsdcBalance.sub(beforeUsdcBalance)).to.be.gt(0);
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.openPositions({ vaultId, sizes: [0, scaledBN(-1, 6)], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.eq('100000000')
+      })
+
+      it("close with profit", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [0, scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
+
+        await testContractHelper.updateSpot(scaledBN(110, 8))
+
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.openPositions({ vaultId, sizes: [0, scaledBN(-1, 6)], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.eq('100099999')
+      })
+
+      it("close with loss", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [0, scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
+
+        await testContractHelper.updateSpot(scaledBN(90, 8))
+
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.openPositions({ vaultId, sizes: [0, scaledBN(-1, 6)], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.eq('99900000')
+      })
+    })
+
+    describe("Sqeeth and Future", () => {
+      it("open Sqeeth and Future contracts", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(1, 6), scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
+      })
+
+      it("close positions", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(1, 6), scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
+
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(-1, 6), scaledBN(-1, 6)], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.eq('100000000')
+      })
+
+      it("close Sqeeth", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(1, 6), scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
+
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(-1, 6), 0], depositOrWithdrawAmount: 0 })
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.eq('0')
+      })
+
+      it("close Future", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(1, 6), scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
+
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.openPositions({ vaultId, sizes: [0, scaledBN(-1, 6)], depositOrWithdrawAmount: 0 })
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.eq('0')
+      })
+
+      it("close positions with price move", async () => {
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(1, 6), scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
+
+        await testContractHelper.updateSpot(scaledBN(110, 8))
+
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.openPositions({ vaultId, sizes: [scaledBN(-1, 6), scaledBN(-1, 6)], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.eq('100102099')
+      })
+    })
+  })
+
+
+  describe.skip("openPositions with Funding Fee", () => {
+    const sqeethPoolId = 0
+    const futurePoolId = 1
+    const vaultId = 0;
+
+    beforeEach(async () => {
+      const amount = scaledBN(200, 6)
+      const feeLevelLower = 50
+      const feeLevelUpper = 55
+
+      await perpetualMarketWithFunding.deposit(sqeethPoolId, amount, feeLevelLower, feeLevelUpper, { vaultId: 0, closeSoon: false })
+      await perpetualMarketWithFunding.deposit(futurePoolId, amount, feeLevelLower, feeLevelUpper, { vaultId: 0, closeSoon: false })
+
+      await testContractHelper.updateSpot(scaledBN(100, 8))
+    })
+
+    describe("Sqeeth", () => {
+      it("close position with funding fee", async () => {
+        await perpetualMarketWithFunding.openPositions({ vaultId, sizes: [scaledBN(1, 6), 0], depositOrWithdrawAmount: scaledBN(100, 6) })
+
+        await increaseTime(60 * 60 * 24)
+
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarketWithFunding.openPositions({ vaultId, sizes: [scaledBN(-1, 6), 0], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.eq('99999999')
+      })
+
+    })
+
+    describe("Future", () => {
+      it("close with funding fee", async () => {
+        await perpetualMarketWithFunding.openPositions({ vaultId, sizes: [0, scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
+
+        await increaseTime(60 * 60 * 24)
+
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarketWithFunding.openPositions({ vaultId, sizes: [0, scaledBN(-1, 6)], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.eq('99999999')
+      })
+    })
+
+    describe("Sqeeth and Future", () => {
+      it("close positions with funding fee", async () => {
+        await perpetualMarketWithFunding.openPositions({ vaultId, sizes: [scaledBN(1, 6), scaledBN(1, 6)], depositOrWithdrawAmount: scaledBN(100, 6) })
+
+        await increaseTime(60 * 60 * 24)
+
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarketWithFunding.openPositions({ vaultId, sizes: [scaledBN(-1, 6), scaledBN(-1, 6)], depositOrWithdrawAmount: MinInt128 })
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.eq('99999999')
+      })
+
     })
   })
 })

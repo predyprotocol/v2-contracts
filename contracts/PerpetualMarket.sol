@@ -1,13 +1,15 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./PerpetualMarketCore.sol";
 
 /**
  * @title Trade Wrapper
  * @notice Trade Wrapper Contract
  */
-contract PerpetualMarket {
+contract PerpetualMarket is ERC721 {
     PerpetualMarketCore private immutable perpetualMarketCore;
     ILiquidityPool private immutable liquidityPool;
 
@@ -22,16 +24,24 @@ contract PerpetualMarket {
         uint256 vaultId;
     }
 
+    struct Position {
+        uint256 poolId;
+        int24 feeLevelLower;
+        int24 feeLevelUpper;
+    }
+
     event Deposited(
         uint256 poolId,
-        address _account,
-        int24 feeLevelLower,
-        int24 feeLevelUpper,
+        uint256 tokenId,
         uint128 issued,
         uint128 amount
     );
 
+    uint256 private nextId = 1;
+
     int128 constant MAX_DEPOSIT = 10000000000 * 1e6;
+
+    mapping(uint256 => Position) public positions;
 
     /**
      * @notice initialize trade wrapper
@@ -39,7 +49,7 @@ contract PerpetualMarket {
     constructor(
         PerpetualMarketCore _perpetualMarketCore,
         ILiquidityPool _liquidityPool
-    ) {
+    ) ERC721("Predy V2 Position", "PREDY-V2-POS") {
         perpetualMarketCore = _perpetualMarketCore;
         liquidityPool = _liquidityPool;
     }
@@ -121,34 +131,34 @@ contract PerpetualMarket {
             liquidityPool.sendLiquidity(msg.sender, uint128(-collateralAmount));
         }
 
-        emit Deposited(
-            _poolId,
-            msg.sender,
-            _feeLevelLower,
-            _feeLevelUpper,
-            _amount,
-            result.depositAmount
-        );
+        uint256 tokenId;
+
+        _mint(msg.sender, tokenId = nextId++);
+
+        positions[tokenId] = Position(_poolId, _feeLevelLower, _feeLevelUpper);
+
+        emit Deposited(_poolId, tokenId, _amount, result.depositAmount);
     }
 
     /**
      * @notice withdraw liquidity from the range of fee levels
      */
     function withdraw(
-        uint256 _poolId,
+        uint256 _tokenId,
         uint128 _amount,
-        int24 _feeLevelLower,
-        int24 _feeLevelUpper,
         DepositParams memory _depositParams
     ) external {
         require(_amount > 0);
-        checkFeeLevels(_feeLevelLower, _feeLevelUpper);
+        require(msg.sender == ownerOf(_tokenId), "TID");
+        Position memory position = positions[_tokenId];
+
+        checkFeeLevels(position.feeLevelLower, position.feeLevelUpper);
         PerpetualMarketCore.PositionChangeResult
             memory result = perpetualMarketCore.withdraw(
-                _poolId,
+                position.poolId,
                 _amount,
-                _feeLevelLower,
-                _feeLevelUpper
+                position.feeLevelLower,
+                position.feeLevelUpper
             );
 
         int128 collateralAmount;
@@ -159,7 +169,7 @@ contract PerpetualMarket {
             perpetualMarketCore.addPositionDirectly(
                 msg.sender,
                 _depositParams.vaultId,
-                _poolId,
+                position.poolId,
                 -int128(result.size),
                 result.entryPrice
             );
@@ -177,14 +187,14 @@ contract PerpetualMarket {
 
             if (_depositParams.closeSoon) {
                 uint128 totalPrice0 = perpetualMarketCore.addOrRemovePositions(
-                    _poolId,
+                    position.poolId,
                     int128(result.size)
                 );
 
                 perpetualMarketCore.addPositionDirectly(
                     msg.sender,
                     _depositParams.vaultId,
-                    _poolId,
+                    position.poolId,
                     int128(result.size),
                     int128(totalPrice0)
                 );
