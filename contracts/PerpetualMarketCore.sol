@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./lib/LpPosition.sol";
 import "./lib/FeeLevel.sol";
@@ -9,7 +10,6 @@ import "./lib/Pricer.sol";
 import "./lib/TradeStateLib.sol";
 import "./lib/TraderVault.sol";
 import "./lib/FeeLevelMultipliedLiquidity.sol";
-import "hardhat/console.sol";
 
 /**
  * @title PerpetualMarket
@@ -49,6 +49,13 @@ contract PerpetualMarketCore {
 
     bool private immutable isFunding;
 
+    address private perpetualMarket;
+
+    modifier onlyPerpetualMarket() {
+        require(msg.sender == perpetualMarket);
+        _;
+    }
+
     /**
      * @notice initialize perpetual pool
      */
@@ -62,12 +69,21 @@ contract PerpetualMarketCore {
         pools[1].lastTradeTime = uint128(block.timestamp);
 
         isFunding = _isFunding;
+
+        perpetualMarket = msg.sender;
     }
 
     struct PositionChangeResult {
         uint128 depositAmount;
         uint128 size;
         int128 entryPrice;
+    }
+
+    function setPerpetualMarket(address _perpetualMarket)
+        external
+        onlyPerpetualMarket
+    {
+        perpetualMarket = _perpetualMarket;
     }
 
     /**
@@ -78,7 +94,11 @@ contract PerpetualMarketCore {
         uint128 _amount,
         int24 _feeLevelLower,
         int24 _feeLevelUpper
-    ) external returns (PositionChangeResult memory posResult) {
+    )
+        external
+        onlyPerpetualMarket
+        returns (PositionChangeResult memory posResult)
+    {
         uint128 lockedLiquidity;
         uint128 unlockedLiquidity;
         TradeStateLib.Result memory result;
@@ -154,7 +174,11 @@ contract PerpetualMarketCore {
         uint128 _amount,
         int24 _feeLevelLower,
         int24 _feeLevelUpper
-    ) external returns (PositionChangeResult memory posResult) {
+    )
+        external
+        onlyPerpetualMarket
+        returns (PositionChangeResult memory posResult)
+    {
         {
             TradeStateLib.TradeState storage tradeState = pools[_poolId]
                 .tradeState;
@@ -299,6 +323,7 @@ contract PerpetualMarketCore {
      */
     function addOrRemovePositions(uint256 _poolId, int128 _size)
         external
+        onlyPerpetualMarket
         returns (uint128)
     {
         require(positions[_poolId] + _size >= 0 || _poolId == 1);
@@ -371,7 +396,7 @@ contract PerpetualMarketCore {
         uint256 _poolId,
         int128 _size,
         int128 _entry
-    ) public {
+    ) public onlyPerpetualMarket {
         TraderVault.TraderPosition storage traderPosition = traders[_trader][
             _vaultId
         ];
@@ -389,7 +414,7 @@ contract PerpetualMarketCore {
         address _trader,
         uint256 _vaultId,
         int128 _depositOrWithdrawAmount
-    ) public returns (int128 finalDepositOrWithdrawAmount) {
+    ) public onlyPerpetualMarket returns (int128 finalDepositOrWithdrawAmount) {
         TraderVault.TraderPosition storage traderPosition = traders[_trader][
             _vaultId
         ];
@@ -405,24 +430,6 @@ contract PerpetualMarketCore {
             );
     }
 
-    function getIM(address _trader, uint256 _vaultId)
-        external
-        view
-        returns (int128)
-    {
-        TraderVault.TraderPosition storage traderPosition = traders[_trader][
-            _vaultId
-        ];
-        (uint128 spot, ) = getUnderlyingPrice();
-
-        return
-            TraderVault.getIM(
-                traderPosition,
-                int128(getMarkPrice(0, spot)),
-                int128(getMarkPrice(1, spot))
-            );
-    }
-
     /**
      * @notice liquidate short positions in a vault.
      */
@@ -431,7 +438,7 @@ contract PerpetualMarketCore {
         uint256 _vaultId,
         uint256 _poolId,
         int128 _size
-    ) external returns (uint128) {
+    ) external onlyPerpetualMarket returns (uint128) {
         TraderVault.TraderPosition storage traderPosition = traders[_trader][
             _vaultId
         ];
@@ -454,6 +461,7 @@ contract PerpetualMarketCore {
      */
     function execHedge()
         external
+        onlyPerpetualMarket
         returns (
             uint256,
             uint256,
@@ -705,7 +713,7 @@ contract PerpetualMarketCore {
         int128 _currentPrice
     ) internal view {
         uint128 upnl = (getUPnL(
-            _pool,
+            _pool.tradeState.feeLevelMultipliedLiquidityGlobal,
             _currentPrice,
             _pnlParams,
             FeeLevelMultipliedLiquidity.calFeeLevelMultipliedLiquidity(
@@ -752,30 +760,32 @@ contract PerpetualMarketCore {
     {
         (uint128 spot, ) = getUnderlyingPrice();
 
-        if (pools[_poolId].tradeState.liquidityBefore == 0) {
+        TradeStateLib.TradeState memory tradeState = pools[_poolId].tradeState;
+
+        if (tradeState.liquidityBefore == 0) {
             return 1e8;
         }
 
         return
             (getUPnL(
-                pools[_poolId],
+                tradeState.feeLevelMultipliedLiquidityGlobal,
                 int128(getMarkPrice(_poolId, spot)),
-                getPnLParams(_poolId, pools[_poolId], spot),
-                pools[_poolId].tradeState.feeLevelMultipliedLiquidityGlobal,
-                pools[_poolId].tradeState.liquidityBefore
-            ) * 1e6) / pools[_poolId].tradeState.liquidityBefore;
+                getPnLParams(_poolId, spot),
+                tradeState.feeLevelMultipliedLiquidityGlobal,
+                tradeState.liquidityBefore
+            ) * 1e6) / tradeState.liquidityBefore;
     }
 
-    function getPnLParams(
-        uint256 _poolId,
-        Pool storage _pool,
-        uint128 _spot
-    ) internal view returns (PnLParams memory _pnlParams) {
+    function getPnLParams(uint256 _poolId, uint128 _spot)
+        internal
+        view
+        returns (PnLParams memory _pnlParams)
+    {
         return
             PnLParams(
                 hedging.pools[_poolId].getHedgeNotional(_spot),
-                _pool.entry,
-                _pool.tradeState.liquidityBefore,
+                pools[_poolId].entry,
+                pools[_poolId].tradeState.liquidityBefore,
                 positions[_poolId]
             );
     }
@@ -785,19 +795,18 @@ contract PerpetualMarketCore {
      * @return Notional value per liquidity scaled by 1e8
      */
     function getUPnL(
-        Pool storage _pool,
+        uint128 _feeLevelMultipliedLiquidityGlobal,
         int128 _currentPrice,
         PnLParams memory _pnlParams,
         uint128 _feeLevelMultipliedByLiquidity,
         uint128 _liquidity
-    ) internal view returns (uint128) {
+    ) internal pure returns (uint128) {
         if (_liquidity == 0) {
             return 0;
         }
         uint128 weight = (_feeLevelMultipliedByLiquidity *
             _pnlParams.liquidityBefore *
-            1e6) /
-            (_pool.tradeState.feeLevelMultipliedLiquidityGlobal * _liquidity);
+            1e6) / (_feeLevelMultipliedLiquidityGlobal * _liquidity);
 
         int128 totalNotional = _calculateUnrealizedPnL(
             _currentPrice,
@@ -953,7 +962,7 @@ contract PerpetualMarketCore {
     /**
      * @notice get underlying price scaled by 1e8
      */
-    function getUnderlyingPrice() internal view returns (uint128, uint256) {
+    function getUnderlyingPrice() public view returns (uint128, uint256) {
         (, int256 answer, , uint256 roundTimestamp, ) = priceFeed
             .latestRoundData();
 

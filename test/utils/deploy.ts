@@ -84,6 +84,9 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const perpetualMarket = (await PerpetualMarket.deploy(perpetualMarketCore.address, liquidityPool.address)) as PerpetualMarket
   const perpetualMarketWithFunding = (await PerpetualMarket.deploy(perpetualMarketCoreWithFunding.address, liquidityPool.address)) as PerpetualMarket
 
+  await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
+  await perpetualMarketCoreWithFunding.setPerpetualMarket(perpetualMarketWithFunding.address)
+
   return {
     weth,
     usdc,

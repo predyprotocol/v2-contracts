@@ -87,10 +87,7 @@ contract PerpetualMarket is ERC721 {
                 result.entryPrice
             );
 
-            int128 im = perpetualMarketCore.getIM(
-                msg.sender,
-                _depositParams.vaultId
-            );
+            int128 im = getIM(msg.sender, _depositParams.vaultId);
 
             collateralAmount += perpetualMarketCore.checkIM(
                 msg.sender,
@@ -174,10 +171,7 @@ contract PerpetualMarket is ERC721 {
                 result.entryPrice
             );
 
-            int128 im = perpetualMarketCore.getIM(
-                msg.sender,
-                _depositParams.vaultId
-            );
+            int128 im = getIM(msg.sender, _depositParams.vaultId);
 
             collateralAmount += perpetualMarketCore.checkIM(
                 msg.sender,
@@ -357,20 +351,21 @@ contract PerpetualMarket is ERC721 {
         require(_levelUpper <= 300, "FUM");
     }
 
-    function getVaultPnL(
-        address _trader,
-        uint256 _vaultId,
-        uint128 _spot
-    ) external view returns (int128) {
+    function getIM(address _trader, uint256 _vaultId)
+        internal
+        view
+        returns (int128)
+    {
         TraderVault.TraderPosition memory traderPosition = perpetualMarketCore
             .getVault(_trader, _vaultId);
 
+        (uint128 spot, ) = perpetualMarketCore.getUnderlyingPrice();
+
         return
-            traderPosition.usdcPosition +
-            TraderVault.getPnL(
+            TraderVault.getIM(
                 traderPosition,
-                int128(perpetualMarketCore.getMarkPrice(0, _spot)),
-                int128(perpetualMarketCore.getMarkPrice(1, _spot))
+                int128(perpetualMarketCore.getMarkPrice(0, spot)),
+                int128(perpetualMarketCore.getMarkPrice(1, spot))
             );
     }
 }
