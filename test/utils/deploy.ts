@@ -80,7 +80,11 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const perpetualMarketCore = (await PerpetualMarketCore.deploy(aggregator.address, false)) as PerpetualMarketCore
   const perpetualMarketCoreWithFunding = (await PerpetualMarketCore.deploy(aggregator.address, true)) as PerpetualMarketCore
 
-  const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
+  const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket', {
+    libraries: {
+      TraderVault: traderVault.address
+    },
+  })
   const perpetualMarket = (await PerpetualMarket.deploy(perpetualMarketCore.address, liquidityPool.address)) as PerpetualMarket
   const perpetualMarketWithFunding = (await PerpetualMarket.deploy(perpetualMarketCoreWithFunding.address, liquidityPool.address)) as PerpetualMarket
 
