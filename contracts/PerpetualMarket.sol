@@ -16,7 +16,7 @@ contract PerpetualMarket is ERC721 {
     struct TradeParams {
         uint256 vaultId;
         int128[2] sizes;
-        int128 depositOrWithdrawAmount;
+        int128 imRatio;
     }
 
     struct DepositParams {
@@ -30,16 +30,19 @@ contract PerpetualMarket is ERC721 {
         int24 feeLevelUpper;
     }
 
-    event Deposited(
-        uint256 poolId,
-        uint256 tokenId,
-        uint128 issued,
-        uint128 amount
-    );
+    event Deposited(uint256 tokenId, uint128 issued, uint128 amount);
+
+    event Withdrawn(uint256 tokenId, uint128 burned, uint128 amount);
+
+    event PositionUpdated(address trader, int128 size, uint128 totalPrice);
+
+    event Liquidated(address liquidator, uint256 vaultId);
+
+    event Hedged(address hedger, uint256 usdcAmount, uint256 underlyingAmount);
 
     uint256 private nextId = 1;
 
-    int128 private constant MIN_INT128 = 1 - 2**127;
+    int128 private constant IM_RATIO = 1e8;
 
     mapping(uint256 => Position) public positions;
 
@@ -102,21 +105,11 @@ contract PerpetualMarket is ERC721 {
                 );
             }
 
-            int128 im = getIM(msg.sender, _depositParams.vaultId);
-
             collateralAmount += perpetualMarketCore.checkIM(
                 msg.sender,
                 _depositParams.vaultId,
-                im
+                IM_RATIO
             );
-
-            if (_depositParams.closeSoon) {
-                collateralAmount += perpetualMarketCore.checkIM(
-                    msg.sender,
-                    _depositParams.vaultId,
-                    MIN_INT128
-                );
-            }
         }
 
         // Receive collateral from msg.sender
@@ -136,7 +129,7 @@ contract PerpetualMarket is ERC721 {
 
         positions[tokenId] = Position(_poolId, _feeLevelLower, _feeLevelUpper);
 
-        emit Deposited(_poolId, tokenId, _amount, result.depositAmount);
+        emit Deposited(tokenId, _amount, result.depositAmount);
     }
 
     /**
@@ -188,25 +181,17 @@ contract PerpetualMarket is ERC721 {
                 );
             }
 
-            int128 im = getIM(msg.sender, _depositParams.vaultId);
-
             collateralAmount += perpetualMarketCore.checkIM(
                 msg.sender,
                 _depositParams.vaultId,
-                im
+                IM_RATIO
             );
-
-            if (_depositParams.closeSoon) {
-                collateralAmount += perpetualMarketCore.checkIM(
-                    msg.sender,
-                    _depositParams.vaultId,
-                    MIN_INT128
-                );
-            }
         }
 
         // Send collateral to msg.sender
         liquidityPool.sendLiquidity(msg.sender, uint128(-collateralAmount));
+
+        emit Withdrawn(_tokenId, _amount, result.depositAmount);
     }
 
     /**
@@ -231,6 +216,12 @@ contract PerpetualMarket is ERC721 {
                     ? int128(totalPrice0)
                     : -int128(totalPrice0)
             );
+
+            emit PositionUpdated(
+                msg.sender,
+                _tradeParams.sizes[0],
+                totalPrice0
+            );
         }
 
         if (_tradeParams.sizes[1] != 0) {
@@ -248,12 +239,18 @@ contract PerpetualMarket is ERC721 {
                     ? int128(totalPrice1)
                     : -int128(totalPrice1)
             );
+
+            emit PositionUpdated(
+                msg.sender,
+                _tradeParams.sizes[1],
+                totalPrice1
+            );
         }
 
         int128 finalDepositOrWithdrawAmount = perpetualMarketCore.checkIM(
             msg.sender,
             _tradeParams.vaultId,
-            _tradeParams.depositOrWithdrawAmount
+            _tradeParams.imRatio
         );
 
         if (finalDepositOrWithdrawAmount > 0) {
@@ -320,6 +317,8 @@ contract PerpetualMarket is ERC721 {
         perpetualMarketCore.addOrRemovePositions(_poolId, _size);
 
         liquidityPool.sendLiquidity(msg.sender, reward);
+
+        emit Liquidated(msg.sender, _vaultId);
     }
 
     /**
@@ -344,6 +343,8 @@ contract PerpetualMarket is ERC721 {
             );
             liquidityPool.sendUndrlying(msg.sender, uAmount);
         }
+
+        emit Hedged(msg.sender, usdcAmount, uAmount);
     }
 
     function checkFeeLevels(int24 _levelLower, int24 _levelUpper)

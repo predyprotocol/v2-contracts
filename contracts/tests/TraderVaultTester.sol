@@ -26,13 +26,13 @@ contract TraderVaultTester {
     }
 
     function testCheckIM(
-        int128 _depositOrWithdrawAmount,
+        int128 _targetIMPerCollateral,
         int128 _martPrice0,
         int128 _markPrice1
     ) external {
         r = TraderVault.checkIM(
             traderPosition,
-            _depositOrWithdrawAmount,
+            _targetIMPerCollateral,
             _martPrice0,
             _markPrice1
         );

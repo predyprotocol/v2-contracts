@@ -8,6 +8,7 @@ import {
   MockWETH,
   MockChainlinkAggregator
 } from '../../typechain'
+import { scaledBN } from './helpers'
 
 export type TestContractSet = {
   aggregator: MockChainlinkAggregator
@@ -37,12 +38,12 @@ export class TestContractHelper {
     await this.updateRoundData(0, spot)
   }
 
-  async openLong(wallet: Wallet, vaultId: BigNumberish, size: BigNumberish, depositAmount: BigNumberish) {
-    await this.testContractSet.perpetualMarket.connect(wallet).openPositions({ vaultId, sizes: [size, 0], depositOrWithdrawAmount: depositAmount })
+  async openLong(wallet: Wallet, vaultId: BigNumberish, size: BigNumberish) {
+    await this.testContractSet.perpetualMarket.connect(wallet).openPositions({ vaultId, sizes: [size, 0], imRatio: scaledBN(1, 8) })
   }
 
-  async openShort(wallet: Wallet, vaultId: BigNumberish, size: BigNumberish, depositAmount: BigNumberish) {
-    await this.testContractSet.perpetualMarket.connect(wallet).openPositions({ vaultId, sizes: [BigNumber.from(size).mul(-1), 0], depositOrWithdrawAmount: depositAmount })
+  async openShort(wallet: Wallet, vaultId: BigNumberish, size: BigNumberish) {
+    await this.testContractSet.perpetualMarket.connect(wallet).openPositions({ vaultId, sizes: [BigNumber.from(size).mul(-1), 0], imRatio: scaledBN(1, 8) })
   }
 }
 
@@ -80,11 +81,7 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const perpetualMarketCore = (await PerpetualMarketCore.deploy(aggregator.address, false)) as PerpetualMarketCore
   const perpetualMarketCoreWithFunding = (await PerpetualMarketCore.deploy(aggregator.address, true)) as PerpetualMarketCore
 
-  const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket', {
-    libraries: {
-      TraderVault: traderVault.address
-    },
-  })
+  const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
   const perpetualMarket = (await PerpetualMarket.deploy(perpetualMarketCore.address, liquidityPool.address)) as PerpetualMarket
   const perpetualMarketWithFunding = (await PerpetualMarket.deploy(perpetualMarketCoreWithFunding.address, liquidityPool.address)) as PerpetualMarket
 

@@ -16,12 +16,13 @@ library TraderVault {
 
     /**
      * check Initial Margin
-     * @param _depositOrWithdrawAmount deposit for positive and withdrawal for negative
+     * @param _targetIMPerCollateral target IM / collateral ratio.
+     * 100% means withdraw all
      * Min Int128 represents for full withdrawal
      */
     function checkIM(
         TraderPosition storage traderPosition,
-        int128 _depositOrWithdrawAmount,
+        int128 _targetIMPerCollateral,
         int128 _martPrice0,
         int128 _markPrice1
     ) external returns (int128 finalDepositOrWithdrawAmount) {
@@ -32,16 +33,12 @@ library TraderVault {
             true
         );
         int128 derivativePnL = getPnL(traderPosition, _martPrice0, _markPrice1);
-        int128 pnl = traderPosition.usdcPosition + derivativePnL;
 
-        if (_depositOrWithdrawAmount <= -pnl && pnl >= 0) {
-            finalDepositOrWithdrawAmount = im - pnl;
-            traderPosition.usdcPosition = im - derivativePnL;
-        } else {
-            traderPosition.usdcPosition += _depositOrWithdrawAmount;
+        finalDepositOrWithdrawAmount =
+            ((1e8 * (im - derivativePnL)) / _targetIMPerCollateral) -
+            traderPosition.usdcPosition;
 
-            finalDepositOrWithdrawAmount = _depositOrWithdrawAmount;
-        }
+        traderPosition.usdcPosition += finalDepositOrWithdrawAmount;
 
         require(traderPosition.usdcPosition + derivativePnL >= im, "IM");
     }
