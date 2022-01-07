@@ -5,6 +5,8 @@ import "./LiqMath.sol";
 import "hardhat/console.sol";
 
 library TraderVault {
+    int128 constant MIN_INT128 = 1 - 2**127;
+
     struct TraderPosition {
         int128[2] size;
         // entry price scaled by 1e16
@@ -13,7 +15,7 @@ library TraderVault {
     }
 
     /**
-     * checm Initial Margin
+     * check Initial Margin
      * @param _depositOrWithdrawAmount deposit for positive and withdrawal for negative
      * Min Int128 represents for full withdrawal
      */
@@ -33,8 +35,8 @@ library TraderVault {
         int128 pnl = traderPosition.usdcPosition + derivativePnL;
 
         if (_depositOrWithdrawAmount <= -pnl && pnl >= 0) {
-            finalDepositOrWithdrawAmount = -pnl;
-            traderPosition.usdcPosition = -derivativePnL;
+            finalDepositOrWithdrawAmount = im - pnl;
+            traderPosition.usdcPosition = im - derivativePnL;
         } else {
             traderPosition.usdcPosition += _depositOrWithdrawAmount;
 

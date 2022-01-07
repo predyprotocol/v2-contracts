@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./PerpetualMarketCore.sol";
 
 /**
- * @title Trade Wrapper
- * @notice Trade Wrapper Contract
+ * @title Perpetual Market
+ * @notice Perpetual Market Contract
  */
 contract PerpetualMarket is ERC721 {
     PerpetualMarketCore private immutable perpetualMarketCore;
@@ -39,12 +39,12 @@ contract PerpetualMarket is ERC721 {
 
     uint256 private nextId = 1;
 
-    int128 constant MAX_DEPOSIT = 10000000000 * 1e6;
+    int128 private constant MIN_INT128 = 1 - 2**127;
 
     mapping(uint256 => Position) public positions;
 
     /**
-     * @notice initialize trade wrapper
+     * @notice initialize Perpetual Market
      */
     constructor(
         PerpetualMarketCore _perpetualMarketCore,
@@ -87,14 +87,6 @@ contract PerpetualMarket is ERC721 {
                 result.entryPrice
             );
 
-            int128 im = getIM(msg.sender, _depositParams.vaultId);
-
-            collateralAmount += perpetualMarketCore.checkIM(
-                msg.sender,
-                _depositParams.vaultId,
-                im
-            );
-
             if (_depositParams.closeSoon) {
                 uint128 totalPrice0 = perpetualMarketCore.addOrRemovePositions(
                     _poolId,
@@ -108,11 +100,21 @@ contract PerpetualMarket is ERC721 {
                     -int128(result.size),
                     -int128(totalPrice0)
                 );
+            }
 
+            int128 im = getIM(msg.sender, _depositParams.vaultId);
+
+            collateralAmount += perpetualMarketCore.checkIM(
+                msg.sender,
+                _depositParams.vaultId,
+                im
+            );
+
+            if (_depositParams.closeSoon) {
                 collateralAmount += perpetualMarketCore.checkIM(
                     msg.sender,
                     _depositParams.vaultId,
-                    -MAX_DEPOSIT
+                    MIN_INT128
                 );
             }
         }
@@ -171,14 +173,6 @@ contract PerpetualMarket is ERC721 {
                 result.entryPrice
             );
 
-            int128 im = getIM(msg.sender, _depositParams.vaultId);
-
-            collateralAmount += perpetualMarketCore.checkIM(
-                msg.sender,
-                _depositParams.vaultId,
-                im
-            );
-
             if (_depositParams.closeSoon) {
                 uint128 totalPrice0 = perpetualMarketCore.addOrRemovePositions(
                     position.poolId,
@@ -192,11 +186,21 @@ contract PerpetualMarket is ERC721 {
                     int128(result.size),
                     int128(totalPrice0)
                 );
+            }
 
+            int128 im = getIM(msg.sender, _depositParams.vaultId);
+
+            collateralAmount += perpetualMarketCore.checkIM(
+                msg.sender,
+                _depositParams.vaultId,
+                im
+            );
+
+            if (_depositParams.closeSoon) {
                 collateralAmount += perpetualMarketCore.checkIM(
                     msg.sender,
                     _depositParams.vaultId,
-                    -MAX_DEPOSIT
+                    MIN_INT128
                 );
             }
         }

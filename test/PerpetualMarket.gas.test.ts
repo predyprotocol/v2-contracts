@@ -73,7 +73,7 @@ describe("TradeWrapper gas test", function () {
     it("deposit 1 usdc", async () => {
       const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 100, 110, { vaultId: 0, closeSoon: false })
 
-      await checkGas(tx, 215584)
+      await checkGas(tx, 257245)
     })
 
     it("deposit around current level", async () => {
@@ -86,7 +86,7 @@ describe("TradeWrapper gas test", function () {
 
       const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 45, 55, { vaultId: 0, closeSoon: false })
 
-      await checkGas(tx, 312822)
+      await checkGas(tx, 378796)
     })
 
     it("deposit into lower", async () => {
@@ -99,7 +99,7 @@ describe("TradeWrapper gas test", function () {
 
       const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 10, 12, { vaultId: 0, closeSoon: true })
 
-      await checkGas(tx, 557793)
+      await checkGas(tx, 918573)
     })
 
     it("deposit into lower range", async () => {
@@ -112,7 +112,7 @@ describe("TradeWrapper gas test", function () {
 
       const tx = await tradeWrapper.deposit(poolId, scaledBN(1, 6), 10, 50, { vaultId: 0, closeSoon: true })
 
-      await checkGas(tx, 588919)
+      await checkGas(tx, 884921)
     })
   })
 
