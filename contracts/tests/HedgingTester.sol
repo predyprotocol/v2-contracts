@@ -16,24 +16,14 @@ contract HedgingTester {
         int128 _requiredCollateral,
         uint128 _spot
     ) external {
-        Hedging.addPosition(
-            info,
-            _poolId,
-            _newDelta,
-            _requiredCollateral,
-            _spot
-        );
+        Hedging.addPosition(info, _poolId, _newDelta, _requiredCollateral, _spot);
     }
 
     function testComplete(int128 _netDelta, uint128 _spot) external {
         Hedging.complete(info, _netDelta, _spot);
     }
 
-    function getEntry(uint256 _poolId, uint128 _spot)
-        external
-        view
-        returns (int128)
-    {
+    function getEntry(uint256 _poolId, uint128 _spot) external view returns (int128) {
         return Hedging.getEntry(info.pools[_poolId], _spot);
     }
 }

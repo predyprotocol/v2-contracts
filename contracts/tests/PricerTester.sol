@@ -8,19 +8,11 @@ import "../lib/Pricer.sol";
  * @notice Tester contract for Pricer library
  */
 contract PricerTester {
-    function testCalculatePrice(uint256 _poolId, uint128 _spot)
-        external
-        pure
-        returns (uint128)
-    {
+    function testCalculatePrice(uint256 _poolId, uint128 _spot) external pure returns (uint128) {
         return Pricer.calculatePrice(_poolId, _spot);
     }
 
-    function testCalculateDelta(uint256 _poolId, int128 _spot)
-        external
-        pure
-        returns (int128)
-    {
+    function testCalculateDelta(uint256 _poolId, int128 _spot) external pure returns (int128) {
         return Pricer.calculateDelta(_poolId, _spot);
     }
 }

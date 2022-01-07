@@ -36,9 +36,6 @@ library LpPosition {
      * @param _liquidityDelta The change in pool liquidity by the position update
      */
     function update(Info storage _position, int128 _liquidityDelta) internal {
-        _position.liquidity = LiqMath.addDelta(
-            _position.liquidity,
-            _liquidityDelta
-        );
+        _position.liquidity = LiqMath.addDelta(_position.liquidity, _liquidityDelta);
     }
 }

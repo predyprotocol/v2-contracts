@@ -30,11 +30,6 @@ contract TraderVaultTester {
         int128 _martPrice0,
         int128 _markPrice1
     ) external {
-        r = TraderVault.checkIM(
-            traderPosition,
-            _targetIMPerCollateral,
-            _martPrice0,
-            _markPrice1
-        );
+        r = TraderVault.checkIM(traderPosition, _targetIMPerCollateral, _martPrice0, _markPrice1);
     }
 }

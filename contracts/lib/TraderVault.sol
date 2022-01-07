@@ -26,12 +26,7 @@ library TraderVault {
         int128 _martPrice0,
         int128 _markPrice1
     ) external returns (int128 finalDepositOrWithdrawAmount) {
-        int128 im = getInitialOrMaintenanceMargin(
-            traderPosition,
-            _martPrice0,
-            _markPrice1,
-            true
-        );
+        int128 im = getInitialOrMaintenanceMargin(traderPosition, _martPrice0, _markPrice1, true);
         int128 derivativePnL = getPnL(traderPosition, _martPrice0, _markPrice1);
 
         finalDepositOrWithdrawAmount =
@@ -48,17 +43,8 @@ library TraderVault {
         int128 _martPrice0,
         int128 _markPrice1
     ) external pure returns (int128) {
-        int128 derivativePnL = getPnL(
-            _traderPosition,
-            _martPrice0,
-            _markPrice1
-        );
-        int128 im = getInitialOrMaintenanceMargin(
-            _traderPosition,
-            _martPrice0,
-            _markPrice1,
-            true
-        );
+        int128 derivativePnL = getPnL(_traderPosition, _martPrice0, _markPrice1);
+        int128 im = getInitialOrMaintenanceMargin(_traderPosition, _martPrice0, _markPrice1, true);
         return im - derivativePnL - _traderPosition.usdcPosition;
     }
 
@@ -74,44 +60,24 @@ library TraderVault {
         int128 _markPrice1
     ) external returns (uint128) {
         require(
-            traderPosition.usdcPosition +
-                getPnL(traderPosition, _martPrice0, _markPrice1) <
-                getInitialOrMaintenanceMargin(
-                    traderPosition,
-                    _martPrice0,
-                    _markPrice1,
-                    false
-                ),
+            traderPosition.usdcPosition + getPnL(traderPosition, _martPrice0, _markPrice1) <
+                getInitialOrMaintenanceMargin(traderPosition, _martPrice0, _markPrice1, false),
             "LB"
         );
 
-        require(
-            LiqMath.abs(traderPosition.size[_poolId]) >= LiqMath.abs(_size),
-            "LS"
-        );
+        require(LiqMath.abs(traderPosition.size[_poolId]) >= LiqMath.abs(_size), "LS");
 
         traderPosition.size[_poolId] -= _size;
 
         require(
-            traderPosition.usdcPosition +
-                getPnL(traderPosition, _martPrice0, _markPrice1) >=
-                getInitialOrMaintenanceMargin(
-                    traderPosition,
-                    _martPrice0,
-                    _markPrice1,
-                    false
-                ),
+            traderPosition.usdcPosition + getPnL(traderPosition, _martPrice0, _markPrice1) >=
+                getInitialOrMaintenanceMargin(traderPosition, _martPrice0, _markPrice1, false),
             "LA"
         );
 
         uint128 reward = 100 * 1e6 + (LiqMath.abs(_size) * _spot) / 1e10;
 
-        require(
-            int128(reward) >
-                getPnL(traderPosition, _martPrice0, _markPrice1) +
-                    traderPosition.usdcPosition,
-            "LR"
-        );
+        require(int128(reward) > getPnL(traderPosition, _martPrice0, _markPrice1) + traderPosition.usdcPosition, "LR");
 
         return reward;
     }

@@ -50,12 +50,6 @@ contract TradeStateLibTester {
         int24 _currentFeeLevelIndex
     ) external view returns (uint128, uint128) {
         return
-            TradeStateLib.getFeeLevelMultipliedByLiquidity(
-                _tradeState,
-                levels,
-                _lower,
-                _upper,
-                _currentFeeLevelIndex
-            );
+            TradeStateLib.getFeeLevelMultipliedByLiquidity(_tradeState, levels, _lower, _upper, _currentFeeLevelIndex);
     }
 }

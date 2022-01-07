@@ -20,17 +20,11 @@ contract LiquidityPool is ILiquidityPool {
         underlying = _underlying;
     }
 
-    function sendLiquidity(address _recipient, uint256 _amount)
-        external
-        override
-    {
+    function sendLiquidity(address _recipient, uint256 _amount) external override {
         ERC20(collateral).transfer(_recipient, _amount);
     }
 
-    function sendUndrlying(address _recipient, uint256 _amount)
-        external
-        override
-    {
+    function sendUndrlying(address _recipient, uint256 _amount) external override {
         ERC20(underlying).transfer(_recipient, _amount);
     }
 }

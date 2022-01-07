@@ -49,10 +49,9 @@ contract PerpetualMarket is ERC721 {
     /**
      * @notice initialize Perpetual Market
      */
-    constructor(
-        PerpetualMarketCore _perpetualMarketCore,
-        ILiquidityPool _liquidityPool
-    ) ERC721("Predy V2 Position", "PREDY-V2-POS") {
+    constructor(PerpetualMarketCore _perpetualMarketCore, ILiquidityPool _liquidityPool)
+        ERC721("Predy V2 Position", "PREDY-V2-POS")
+    {
         perpetualMarketCore = _perpetualMarketCore;
         liquidityPool = _liquidityPool;
     }
@@ -69,13 +68,12 @@ contract PerpetualMarket is ERC721 {
     ) external {
         require(_amount > 0);
         checkFeeLevels(_feeLevelLower, _feeLevelUpper);
-        PerpetualMarketCore.PositionChangeResult
-            memory result = perpetualMarketCore.deposit(
-                _poolId,
-                _amount,
-                _feeLevelLower,
-                _feeLevelUpper
-            );
+        PerpetualMarketCore.PositionChangeResult memory result = perpetualMarketCore.deposit(
+            _poolId,
+            _amount,
+            _feeLevelLower,
+            _feeLevelUpper
+        );
 
         int128 collateralAmount;
 
@@ -91,10 +89,7 @@ contract PerpetualMarket is ERC721 {
             );
 
             if (_depositParams.closeSoon) {
-                uint128 totalPrice0 = perpetualMarketCore.addOrRemovePositions(
-                    _poolId,
-                    -int128(result.size)
-                );
+                uint128 totalPrice0 = perpetualMarketCore.addOrRemovePositions(_poolId, -int128(result.size));
 
                 perpetualMarketCore.addPositionDirectly(
                     msg.sender,
@@ -105,11 +100,7 @@ contract PerpetualMarket is ERC721 {
                 );
             }
 
-            collateralAmount += perpetualMarketCore.checkIM(
-                msg.sender,
-                _depositParams.vaultId,
-                IM_RATIO
-            );
+            collateralAmount += perpetualMarketCore.checkIM(msg.sender, _depositParams.vaultId, IM_RATIO);
         }
 
         // Receive collateral from msg.sender
@@ -145,13 +136,12 @@ contract PerpetualMarket is ERC721 {
         Position memory position = positions[_tokenId];
 
         checkFeeLevels(position.feeLevelLower, position.feeLevelUpper);
-        PerpetualMarketCore.PositionChangeResult
-            memory result = perpetualMarketCore.withdraw(
-                position.poolId,
-                _amount,
-                position.feeLevelLower,
-                position.feeLevelUpper
-            );
+        PerpetualMarketCore.PositionChangeResult memory result = perpetualMarketCore.withdraw(
+            position.poolId,
+            _amount,
+            position.feeLevelLower,
+            position.feeLevelUpper
+        );
 
         int128 collateralAmount;
 
@@ -167,10 +157,7 @@ contract PerpetualMarket is ERC721 {
             );
 
             if (_depositParams.closeSoon) {
-                uint128 totalPrice0 = perpetualMarketCore.addOrRemovePositions(
-                    position.poolId,
-                    int128(result.size)
-                );
+                uint128 totalPrice0 = perpetualMarketCore.addOrRemovePositions(position.poolId, int128(result.size));
 
                 perpetualMarketCore.addPositionDirectly(
                     msg.sender,
@@ -181,11 +168,7 @@ contract PerpetualMarket is ERC721 {
                 );
             }
 
-            collateralAmount += perpetualMarketCore.checkIM(
-                msg.sender,
-                _depositParams.vaultId,
-                IM_RATIO
-            );
+            collateralAmount += perpetualMarketCore.checkIM(msg.sender, _depositParams.vaultId, IM_RATIO);
         }
 
         // Send collateral to msg.sender
@@ -202,49 +185,31 @@ contract PerpetualMarket is ERC721 {
         uint128 totalPrice1;
 
         if (_tradeParams.sizes[0] != 0) {
-            totalPrice0 = perpetualMarketCore.addOrRemovePositions(
-                0,
-                _tradeParams.sizes[0]
-            );
+            totalPrice0 = perpetualMarketCore.addOrRemovePositions(0, _tradeParams.sizes[0]);
 
             perpetualMarketCore.addPositionDirectly(
                 msg.sender,
                 _tradeParams.vaultId,
                 0,
                 _tradeParams.sizes[0],
-                _tradeParams.sizes[0] > 0
-                    ? int128(totalPrice0)
-                    : -int128(totalPrice0)
+                _tradeParams.sizes[0] > 0 ? int128(totalPrice0) : -int128(totalPrice0)
             );
 
-            emit PositionUpdated(
-                msg.sender,
-                _tradeParams.sizes[0],
-                totalPrice0
-            );
+            emit PositionUpdated(msg.sender, _tradeParams.sizes[0], totalPrice0);
         }
 
         if (_tradeParams.sizes[1] != 0) {
-            totalPrice1 = perpetualMarketCore.addOrRemovePositions(
-                1,
-                _tradeParams.sizes[1]
-            );
+            totalPrice1 = perpetualMarketCore.addOrRemovePositions(1, _tradeParams.sizes[1]);
 
             perpetualMarketCore.addPositionDirectly(
                 msg.sender,
                 _tradeParams.vaultId,
                 1,
                 _tradeParams.sizes[1],
-                _tradeParams.sizes[1] > 0
-                    ? int128(totalPrice1)
-                    : -int128(totalPrice1)
+                _tradeParams.sizes[1] > 0 ? int128(totalPrice1) : -int128(totalPrice1)
             );
 
-            emit PositionUpdated(
-                msg.sender,
-                _tradeParams.sizes[1],
-                totalPrice1
-            );
+            emit PositionUpdated(msg.sender, _tradeParams.sizes[1], totalPrice1);
         }
 
         int128 finalDepositOrWithdrawAmount = perpetualMarketCore.checkIM(
@@ -260,10 +225,7 @@ contract PerpetualMarket is ERC721 {
                 uint128(finalDepositOrWithdrawAmount)
             );
         } else {
-            liquidityPool.sendLiquidity(
-                msg.sender,
-                uint128(-finalDepositOrWithdrawAmount)
-            );
+            liquidityPool.sendLiquidity(msg.sender, uint128(-finalDepositOrWithdrawAmount));
         }
     }
 
@@ -307,12 +269,7 @@ contract PerpetualMarket is ERC721 {
         uint256 _vaultId,
         int128 _size
     ) external {
-        uint128 reward = perpetualMarketCore.liquidate(
-            msg.sender,
-            _vaultId,
-            _poolId,
-            _size
-        );
+        uint128 reward = perpetualMarketCore.liquidate(msg.sender, _vaultId, _poolId, _size);
 
         perpetualMarketCore.addOrRemovePositions(_poolId, _size);
 
@@ -325,44 +282,27 @@ contract PerpetualMarket is ERC721 {
      * @notice execute hedging
      */
     function execHedge() external {
-        (uint256 usdcAmount, uint256 uAmount, bool isLong) = perpetualMarketCore
-            .execHedge();
+        (uint256 usdcAmount, uint256 uAmount, bool isLong) = perpetualMarketCore.execHedge();
 
         if (isLong) {
-            ERC20(liquidityPool.underlying()).transferFrom(
-                msg.sender,
-                address(liquidityPool),
-                uAmount
-            );
+            ERC20(liquidityPool.underlying()).transferFrom(msg.sender, address(liquidityPool), uAmount);
             liquidityPool.sendLiquidity(msg.sender, usdcAmount);
         } else {
-            ERC20(liquidityPool.collateral()).transferFrom(
-                msg.sender,
-                address(liquidityPool),
-                usdcAmount
-            );
+            ERC20(liquidityPool.collateral()).transferFrom(msg.sender, address(liquidityPool), usdcAmount);
             liquidityPool.sendUndrlying(msg.sender, uAmount);
         }
 
         emit Hedged(msg.sender, usdcAmount, uAmount);
     }
 
-    function checkFeeLevels(int24 _levelLower, int24 _levelUpper)
-        internal
-        pure
-    {
+    function checkFeeLevels(int24 _levelLower, int24 _levelUpper) internal pure {
         require(_levelLower < _levelUpper, "FLU");
         require(_levelLower >= 0, "FLM");
         require(_levelUpper <= 300, "FUM");
     }
 
-    function getIM(address _trader, uint256 _vaultId)
-        internal
-        view
-        returns (int128)
-    {
-        TraderVault.TraderPosition memory traderPosition = perpetualMarketCore
-            .getVault(_trader, _vaultId);
+    function getIM(address _trader, uint256 _vaultId) internal view returns (int128) {
+        TraderVault.TraderPosition memory traderPosition = perpetualMarketCore.getVault(_trader, _vaultId);
 
         (uint128 spot, ) = perpetualMarketCore.getUnderlyingPrice();
 

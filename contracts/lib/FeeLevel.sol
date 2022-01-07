@@ -32,10 +32,7 @@ library FeeLevel {
         } else if (_upper < _currentFeeLevel) {
             return upper.realizedPnLOutside - lower.realizedPnLOutside;
         } else {
-            return
-                _globalRealizedPnL -
-                lower.realizedPnLOutside -
-                upper.realizedPnLOutside;
+            return _globalRealizedPnL - lower.realizedPnLOutside - upper.realizedPnLOutside;
         }
     }
 

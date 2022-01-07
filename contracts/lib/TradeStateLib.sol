@@ -51,15 +51,10 @@ library TradeStateLib {
         Result memory _result,
         bool _isDeposit
     ) external {
-        _tradeState.liquidityBefore = LiqMath.addDelta(
-            _tradeState.liquidityBefore,
-            _lockedLiquidity
-        );
+        _tradeState.liquidityBefore = LiqMath.addDelta(_tradeState.liquidityBefore, _lockedLiquidity);
         _tradeState.lockedLiquidity = LiqMath.addDelta(
             _tradeState.lockedLiquidity,
-            _isDeposit
-                ? int128(_result.lockedInLevel)
-                : -int128(_result.lockedInLevel)
+            _isDeposit ? int128(_result.lockedInLevel) : -int128(_result.lockedInLevel)
         );
         _tradeState.liquidityDelta = LiqMath.addDelta(
             _tradeState.liquidityDelta,
@@ -67,9 +62,7 @@ library TradeStateLib {
         );
         _tradeState.feeLevelMultipliedLiquidityGlobal = LiqMath.addDelta(
             _tradeState.feeLevelMultipliedLiquidityGlobal,
-            _isDeposit
-                ? int128(_result.levelMultiplied)
-                : -int128(_result.levelMultiplied)
+            _isDeposit ? int128(_result.levelMultiplied) : -int128(_result.levelMultiplied)
         );
     }
 
@@ -81,8 +74,7 @@ library TradeStateLib {
         int24 _currentFeeLevelIndex
     ) external view returns (uint128, uint128) {
         uint128 liquidityUpper = _tradeState.liquidityBefore;
-        uint128 feeLevelMultipliedLiquidityUpper = _tradeState
-            .feeLevelMultipliedLiquidityGlobal;
+        uint128 feeLevelMultipliedLiquidityUpper = _tradeState.feeLevelMultipliedLiquidityGlobal;
         uint128 liquidityDelta = _tradeState.liquidityDelta;
         uint128 liquidityLower;
         uint128 feeLevelMultipliedLiquidityLower;
@@ -91,28 +83,19 @@ library TradeStateLib {
             return (0, 0);
         } else if (_upper < _currentFeeLevelIndex) {
             while (_upper < _currentFeeLevelIndex) {
-                IFeeLevel.Info memory currentFeeLevel = self[
-                    _currentFeeLevelIndex
-                ];
+                IFeeLevel.Info memory currentFeeLevel = self[_currentFeeLevelIndex];
 
-                liquidityDelta = LiqMath.addDelta(
-                    liquidityDelta,
-                    -currentFeeLevel.liquidityNet
-                );
+                liquidityDelta = LiqMath.addDelta(liquidityDelta, -currentFeeLevel.liquidityNet);
 
-                liquidityUpper = LiqMath.addDelta(
-                    liquidityUpper,
-                    -int128(liquidityDelta)
-                );
+                liquidityUpper = LiqMath.addDelta(liquidityUpper, -int128(liquidityDelta));
 
                 feeLevelMultipliedLiquidityUpper = LiqMath.addDelta(
                     feeLevelMultipliedLiquidityUpper,
                     -int128(
-                        FeeLevelMultipliedLiquidity
-                            .calFeeLevelMultipliedLiquidity(
-                                liquidityDelta,
-                                _currentFeeLevelIndex
-                            )
+                        FeeLevelMultipliedLiquidity.calFeeLevelMultipliedLiquidity(
+                            liquidityDelta,
+                            _currentFeeLevelIndex
+                        )
                     )
                 );
 
@@ -124,10 +107,7 @@ library TradeStateLib {
         } else {
             liquidityLower = liquidityUpper;
             feeLevelMultipliedLiquidityLower = feeLevelMultipliedLiquidityUpper;
-            liquidityLower = LiqMath.addDelta(
-                liquidityLower,
-                -int128(_tradeState.lockedLiquidity)
-            );
+            liquidityLower = LiqMath.addDelta(liquidityLower, -int128(_tradeState.lockedLiquidity));
             feeLevelMultipliedLiquidityLower = LiqMath.addDelta(
                 feeLevelMultipliedLiquidityLower,
                 -int128(
@@ -143,33 +123,21 @@ library TradeStateLib {
         while (_lower <= _currentFeeLevelIndex) {
             IFeeLevel.Info memory currentFeeLevel = self[_currentFeeLevelIndex];
 
-            liquidityDelta = LiqMath.addDelta(
-                liquidityDelta,
-                -currentFeeLevel.liquidityNet
-            );
+            liquidityDelta = LiqMath.addDelta(liquidityDelta, -currentFeeLevel.liquidityNet);
 
-            liquidityLower = LiqMath.addDelta(
-                liquidityLower,
-                -int128(liquidityDelta)
-            );
+            liquidityLower = LiqMath.addDelta(liquidityLower, -int128(liquidityDelta));
 
             feeLevelMultipliedLiquidityLower = LiqMath.addDelta(
                 feeLevelMultipliedLiquidityLower,
                 -int128(
-                    FeeLevelMultipliedLiquidity.calFeeLevelMultipliedLiquidity(
-                        liquidityDelta,
-                        _currentFeeLevelIndex
-                    )
+                    FeeLevelMultipliedLiquidity.calFeeLevelMultipliedLiquidity(liquidityDelta, _currentFeeLevelIndex)
                 )
             );
 
             _currentFeeLevelIndex -= 1;
         }
 
-        return (
-            liquidityUpper - liquidityLower,
-            feeLevelMultipliedLiquidityUpper - feeLevelMultipliedLiquidityLower
-        );
+        return (liquidityUpper - liquidityLower, feeLevelMultipliedLiquidityUpper - feeLevelMultipliedLiquidityLower);
     }
 
     /**
@@ -198,15 +166,9 @@ library TradeStateLib {
         } else if (_feeLevelUpper < _currentFeeLevelIndex) {
             lockedLiquidity = _amount;
             result.levelMultiplied = ((lockedLiquidity *
-                uint128(
-                    1e10 + (int128(_feeLevelLower + _feeLevelUpper) * 1e6) / 2
-                )) / 1e10);
+                uint128(1e10 + (int128(_feeLevelLower + _feeLevelUpper) * 1e6) / 2)) / 1e10);
         } else {
-            (
-                lockedLiquidity,
-                result.lockedInLevel,
-                result.levelMultiplied
-            ) = calculateLockedLiquidity(
+            (lockedLiquidity, result.lockedInLevel, result.levelMultiplied) = calculateLockedLiquidity(
                 _tradeState,
                 _currentFeeLevelIndex,
                 _feeLevelLower,
@@ -248,23 +210,14 @@ library TradeStateLib {
                 (uint24(_feeLevelUpper - _feeLevelLower) * liquidityDelta);
         }
 
-        uint128 lockedAmountBefore = (_amount *
-            uint24(_currentFeeLevelIndex - _feeLevelLower)) /
+        uint128 lockedAmountBefore = (_amount * uint24(_currentFeeLevelIndex - _feeLevelLower)) /
             uint24(_feeLevelUpper - _feeLevelLower);
 
         return (
             lockedAmountBefore + lockedAmountInCurrentLevel,
             lockedAmountInCurrentLevel,
-            ((lockedAmountBefore *
-                uint128(
-                    1e10 +
-                        (int128(_feeLevelLower + _currentFeeLevelIndex) * 1e6) /
-                        2
-                )) +
-                (lockedAmountInCurrentLevel *
-                    uint128(
-                        1e10 + (int128(2 * _currentFeeLevelIndex + 1) * 1e6) / 2
-                    ))) / 1e10
+            ((lockedAmountBefore * uint128(1e10 + (int128(_feeLevelLower + _currentFeeLevelIndex) * 1e6) / 2)) +
+                (lockedAmountInCurrentLevel * uint128(1e10 + (int128(2 * _currentFeeLevelIndex + 1) * 1e6) / 2))) / 1e10
         );
     }
 
@@ -285,11 +238,7 @@ library TradeStateLib {
             );
         }
 
-        FeeLevel.cross(
-            _feeLevels,
-            _cache.currentFeeLevelIndex,
-            _cache.realizedPnLGlobal
-        );
+        FeeLevel.cross(_feeLevels, _cache.currentFeeLevelIndex, _cache.realizedPnLGlobal);
 
         _cache.lockedLiquidity = 0;
         _cache.currentFeeLevelIndex = _cache.nextFeeLevelIndex;
@@ -321,9 +270,7 @@ library TradeStateLib {
             return 0;
         }
 
-        int128 fractionFeeLevel = int128(
-            (1e8 * _lockedLiquidity) / _liquidityDelta
-        );
+        int128 fractionFeeLevel = int128((1e8 * _lockedLiquidity) / _liquidityDelta);
 
         if (baseFeeLevel >= 0) {
             return baseFeeLevel + fractionFeeLevel;

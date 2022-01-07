@@ -6,7 +6,7 @@ import {
   LiquidityPool,
   MockERC20,
   MockWETH,
-  MockChainlinkAggregator
+  MockChainlinkAggregator,
 } from '../../typechain'
 import { scaledBN } from './helpers'
 
@@ -39,11 +39,17 @@ export class TestContractHelper {
   }
 
   async openLong(wallet: Wallet, vaultId: BigNumberish, size: BigNumberish) {
-    await this.testContractSet.perpetualMarket.connect(wallet).openPositions({ vaultId, sizes: [size, 0], imRatio: scaledBN(1, 8) })
+    await this.testContractSet.perpetualMarket
+      .connect(wallet)
+      .openPositions({ vaultId, sizes: [size, 0], imRatio: scaledBN(1, 8) })
   }
 
   async openShort(wallet: Wallet, vaultId: BigNumberish, size: BigNumberish) {
-    await this.testContractSet.perpetualMarket.connect(wallet).openPositions({ vaultId, sizes: [BigNumber.from(size).mul(-1), 0], imRatio: scaledBN(1, 8) })
+    await this.testContractSet.perpetualMarket.connect(wallet).openPositions({
+      vaultId,
+      sizes: [BigNumber.from(size).mul(-1), 0],
+      imRatio: scaledBN(1, 8),
+    })
   }
 }
 
@@ -58,13 +64,13 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const aggregator = (await MockChainlinkAggregator.deploy()) as MockChainlinkAggregator
 
   const Hedging = await ethers.getContractFactory('Hedging')
-  const hedging = (await Hedging.deploy())
+  const hedging = await Hedging.deploy()
 
   const TradeStateLib = await ethers.getContractFactory('TradeStateLib')
-  const tradeStateLib = (await TradeStateLib.deploy())
+  const tradeStateLib = await TradeStateLib.deploy()
 
   const TraderVault = await ethers.getContractFactory('TraderVault')
-  const traderVault = (await TraderVault.deploy())
+  const traderVault = await TraderVault.deploy()
 
   const LiquidityPool = await ethers.getContractFactory('LiquidityPool')
 
@@ -74,16 +80,25 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     libraries: {
       Hedging: hedging.address,
       TradeStateLib: tradeStateLib.address,
-      TraderVault: traderVault.address
+      TraderVault: traderVault.address,
     },
   })
 
   const perpetualMarketCore = (await PerpetualMarketCore.deploy(aggregator.address, false)) as PerpetualMarketCore
-  const perpetualMarketCoreWithFunding = (await PerpetualMarketCore.deploy(aggregator.address, true)) as PerpetualMarketCore
+  const perpetualMarketCoreWithFunding = (await PerpetualMarketCore.deploy(
+    aggregator.address,
+    true,
+  )) as PerpetualMarketCore
 
   const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
-  const perpetualMarket = (await PerpetualMarket.deploy(perpetualMarketCore.address, liquidityPool.address)) as PerpetualMarket
-  const perpetualMarketWithFunding = (await PerpetualMarket.deploy(perpetualMarketCoreWithFunding.address, liquidityPool.address)) as PerpetualMarket
+  const perpetualMarket = (await PerpetualMarket.deploy(
+    perpetualMarketCore.address,
+    liquidityPool.address,
+  )) as PerpetualMarket
+  const perpetualMarketWithFunding = (await PerpetualMarket.deploy(
+    perpetualMarketCoreWithFunding.address,
+    liquidityPool.address,
+  )) as PerpetualMarket
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
   await perpetualMarketCoreWithFunding.setPerpetualMarket(perpetualMarketWithFunding.address)
@@ -95,7 +110,7 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     liquidityPool,
     perpetualMarketCore,
     perpetualMarket,
-    perpetualMarketWithFunding
+    perpetualMarketWithFunding,
   }
 }
 
