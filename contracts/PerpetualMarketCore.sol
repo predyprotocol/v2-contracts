@@ -61,8 +61,8 @@ contract PerpetualMarketCore {
     constructor(address _aggregator, bool _isFunding) {
         priceFeed = AggregatorV3Interface(_aggregator);
 
-        pools[0].nfactor = 1e8;
-        pools[1].nfactor = 1e8;
+        pools[0].nfactor = 1e16;
+        pools[1].nfactor = 1e16;
 
         pools[0].lastTradeTime = uint128(block.timestamp);
         pools[1].lastTradeTime = uint128(block.timestamp);
@@ -438,7 +438,7 @@ contract PerpetualMarketCore {
     //////////////////////////////
 
     /**
-     * @return nfactor scaled by 1e8
+     * @return nfactor scaled by 1e16
      */
     function calculateNewNFactor(uint256 _poolId, int128 _feeLevel) internal view returns (uint128) {
         Pool storage pool = pools[_poolId];
@@ -737,7 +737,7 @@ contract PerpetualMarketCore {
     function getDerivativeIndexPrice(uint256 _poolId, uint128 _spot) internal view returns (uint128) {
         Pool storage pool = pools[_poolId];
 
-        uint128 price = (pool.nfactor * Pricer.calculatePrice(_poolId, _spot)) / 1e8;
+        uint128 price = (pool.nfactor * Pricer.calculatePrice(_poolId, _spot)) / 1e16;
 
         return price;
     }

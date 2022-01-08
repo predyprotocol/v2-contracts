@@ -981,6 +981,7 @@ describe('PerpetualMarket', function () {
 
     describe('Sqeeth', () => {
       it('close position with funding fee', async () => {
+        const before = await usdc.balanceOf(wallet.address)
         await perpetualMarketWithFunding.openPositions({
           vaultId,
           sizes: [scaledBN(1, 6), 0],
@@ -989,7 +990,6 @@ describe('PerpetualMarket', function () {
 
         await increaseTime(60 * 60 * 24)
 
-        const before = await usdc.balanceOf(wallet.address)
         await perpetualMarketWithFunding.openPositions({
           vaultId,
           sizes: [scaledBN(-1, 6), 0],
@@ -1003,6 +1003,7 @@ describe('PerpetualMarket', function () {
 
     describe('Future', () => {
       it('close with funding fee', async () => {
+        const before = await usdc.balanceOf(wallet.address)
         await perpetualMarketWithFunding.openPositions({
           vaultId,
           sizes: [0, scaledBN(1, 6)],
@@ -1011,7 +1012,6 @@ describe('PerpetualMarket', function () {
 
         await increaseTime(60 * 60 * 24)
 
-        const before = await usdc.balanceOf(wallet.address)
         await perpetualMarketWithFunding.openPositions({
           vaultId,
           sizes: [0, scaledBN(-1, 6)],
@@ -1025,6 +1025,7 @@ describe('PerpetualMarket', function () {
 
     describe('Sqeeth and Future', () => {
       it('close positions with funding fee', async () => {
+        const before = await usdc.balanceOf(wallet.address)
         await perpetualMarketWithFunding.openPositions({
           vaultId,
           sizes: [scaledBN(1, 6), scaledBN(1, 6)],
@@ -1033,7 +1034,6 @@ describe('PerpetualMarket', function () {
 
         await increaseTime(60 * 60 * 24)
 
-        const before = await usdc.balanceOf(wallet.address)
         await perpetualMarketWithFunding.openPositions({
           vaultId,
           sizes: [scaledBN(-1, 6), scaledBN(-1, 6)],
