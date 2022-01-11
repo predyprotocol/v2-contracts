@@ -8,7 +8,6 @@ import "./lib/FeeLevel.sol";
 import "./lib/Hedging.sol";
 import "./lib/Pricer.sol";
 import "./lib/TradeStateLib.sol";
-import "./lib/TraderVault.sol";
 import "./lib/FeeLevelMultipliedLiquidity.sol";
 
 /**
@@ -39,8 +38,6 @@ contract PerpetualMarketCore {
     mapping(uint256 => Pool) public pools;
 
     mapping(uint256 => int128) public positions;
-
-    mapping(address => mapping(uint256 => TraderVault.TraderPosition)) private traders;
 
     AggregatorV3Interface private priceFeed;
 
@@ -322,69 +319,6 @@ contract PerpetualMarketCore {
     }
 
     /**
-     * @notice make long or short positions
-     */
-    function addPositionDirectly(
-        address _trader,
-        uint256 _vaultId,
-        uint256 _poolId,
-        int128 _size,
-        int128 _entry
-    ) public onlyPerpetualMarket {
-        TraderVault.TraderPosition storage traderPosition = traders[_trader][_vaultId];
-
-        traderPosition.size[_poolId] += _size;
-        traderPosition.entry[_poolId] += _entry;
-    }
-
-    /**
-     * checm Initial Margin
-     * @param _depositOrWithdrawAmount deposit for positive and withdrawal for negative
-     * Min Int128 represents for full withdrawal
-     */
-    function checkIM(
-        address _trader,
-        uint256 _vaultId,
-        int128 _depositOrWithdrawAmount
-    ) public onlyPerpetualMarket returns (int128 finalDepositOrWithdrawAmount) {
-        TraderVault.TraderPosition storage traderPosition = traders[_trader][_vaultId];
-
-        (uint128 spot, ) = getUnderlyingPrice();
-
-        return
-            TraderVault.checkIM(
-                traderPosition,
-                _depositOrWithdrawAmount,
-                int128(getMarkPrice(0, spot)),
-                int128(getMarkPrice(1, spot))
-            );
-    }
-
-    /**
-     * @notice liquidate short positions in a vault.
-     */
-    function liquidate(
-        address _trader,
-        uint256 _vaultId,
-        uint256 _poolId,
-        int128 _size
-    ) external onlyPerpetualMarket returns (uint128) {
-        TraderVault.TraderPosition storage traderPosition = traders[_trader][_vaultId];
-
-        (uint128 spot, ) = getUnderlyingPrice();
-
-        return
-            TraderVault.liquidate(
-                traderPosition,
-                _poolId,
-                _size,
-                spot,
-                int128(getMarkPrice(0, spot)),
-                int128(getMarkPrice(1, spot))
-            );
-    }
-
-    /**
      * @notice execute hedging
      */
     function execHedge()
@@ -423,14 +357,6 @@ contract PerpetualMarketCore {
 
     function getFeeLevel(uint256 _poolId, int24 _feeLevel) external view returns (IFeeLevel.Info memory) {
         return pools[_poolId].feeLevels[_feeLevel];
-    }
-
-    function getVault(address _trader, uint256 _vaultId)
-        external
-        view
-        returns (TraderVault.TraderPosition memory traderPosition)
-    {
-        traderPosition = traders[_trader][_vaultId];
     }
 
     //////////////////////////////
@@ -551,7 +477,13 @@ contract PerpetualMarketCore {
 
                 // update realized PnL
                 if (_direction) {
-                    _cumulateRealizedPnL(_pool, tradeStateCache, _pnlParams, marginStep, int128(priceInFeeLevel));
+                    _cumulateRealizedPnL(
+                        tradeStateCache,
+                        _pool.tradeState,
+                        _pnlParams,
+                        marginStep,
+                        int128(priceInFeeLevel)
+                    );
                 }
             }
 
@@ -586,14 +518,14 @@ contract PerpetualMarketCore {
     }
 
     function _cumulateRealizedPnL(
-        Pool storage _pool,
         TradeStateLib.TradeStateCache memory _cache,
+        TradeStateLib.TradeState memory _tradeState,
         PnLParams memory _pnlParams,
         uint128 _marginStep,
         int128 _currentPrice
-    ) internal view {
+    ) internal pure {
         uint128 upnl = (getUPnL(
-            _pool.tradeState.feeLevelMultipliedLiquidityGlobal,
+            _tradeState.feeLevelMultipliedLiquidityGlobal,
             _currentPrice,
             _pnlParams,
             FeeLevelMultipliedLiquidity.calFeeLevelMultipliedLiquidity(

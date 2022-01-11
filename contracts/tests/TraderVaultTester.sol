@@ -25,11 +25,16 @@ contract TraderVaultTester {
         traderPosition.usdcPosition = _usdcPosition;
     }
 
-    function testCheckIM(
+    function testUpdateUsdcPositionAndCheckInitialMargin(
         int128 _targetIMPerCollateral,
         int128 _martPrice0,
         int128 _markPrice1
     ) external {
-        r = TraderVault.checkIM(traderPosition, _targetIMPerCollateral, _martPrice0, _markPrice1);
+        r = TraderVault.updateUsdcPositionAndCheckInitialMargin(
+            traderPosition,
+            _targetIMPerCollateral,
+            _martPrice0,
+            _markPrice1
+        );
     }
 }

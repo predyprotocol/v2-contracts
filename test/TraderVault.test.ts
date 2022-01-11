@@ -18,17 +18,17 @@ describe('TraderVault', function () {
     tester = (await TraderVaultTester.deploy()) as TraderVaultTester
   })
 
-  describe('checkIM', () => {
+  describe('updateUsdcPositionAndCheckInitialMargin', () => {
     it('request withdrawal all but more collateral required', async function () {
       await tester.testSet('100000000', '0', '10000000000000000', '0', '0')
-      await tester.testCheckIM('100000000', '110000000', 0)
+      await tester.testUpdateUsdcPositionAndCheckInitialMargin('100000000', '110000000', 0)
       const r = await tester.r()
       expect(r).to.be.eq(120000)
     })
 
     it('withdraw all', async function () {
       await tester.testSet('100000000', '0', '10000000000000000', '0', '200000')
-      await tester.testCheckIM('100000000', '110000000', 0)
+      await tester.testUpdateUsdcPositionAndCheckInitialMargin('100000000', '110000000', 0)
       const r = await tester.r()
       expect(r).to.be.eq(-80000)
     })

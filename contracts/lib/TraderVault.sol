@@ -17,10 +17,9 @@ library TraderVault {
     /**
      * check Initial Margin
      * @param _targetIMPerCollateral target IM / collateral ratio.
-     * 100% means withdraw all
      * Min Int128 represents for full withdrawal
      */
-    function checkIM(
+    function updateUsdcPositionAndCheckInitialMargin(
         TraderPosition storage traderPosition,
         int128 _targetIMPerCollateral,
         int128 _martPrice0,

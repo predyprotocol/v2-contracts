@@ -1,17 +1,19 @@
 import { BigNumber, BigNumberish, Wallet } from 'ethers'
 import { ethers } from 'hardhat'
 import {
+  TraderVaults,
   PerpetualMarket,
   PerpetualMarketCore,
   LiquidityPool,
   MockERC20,
   MockWETH,
-  MockChainlinkAggregator,
+  MockChainlinkAggregator
 } from '../../typechain'
 import { scaledBN } from './helpers'
 
 export type TestContractSet = {
   aggregator: MockChainlinkAggregator
+  traderVaults: TraderVaults
   perpetualMarket: PerpetualMarket
   perpetualMarketWithFunding: PerpetualMarket
   perpetualMarketCore: PerpetualMarketCore
@@ -76,11 +78,16 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
 
   const liquidityPool = (await LiquidityPool.deploy(usdc.address, weth.address)) as LiquidityPool
 
+  const TraderVaults = await ethers.getContractFactory('TraderVaults', {
+    libraries: {
+      TraderVault: traderVault.address
+    },
+  })
+
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore', {
     libraries: {
       Hedging: hedging.address,
-      TradeStateLib: tradeStateLib.address,
-      TraderVault: traderVault.address,
+      TradeStateLib: tradeStateLib.address
     },
   })
 
@@ -90,18 +97,23 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     true,
   )) as PerpetualMarketCore
 
+  const traderVaults = (await TraderVaults.deploy(perpetualMarketCore.address)) as TraderVaults
+
   const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
   const perpetualMarket = (await PerpetualMarket.deploy(
     perpetualMarketCore.address,
+    traderVaults.address,
     liquidityPool.address,
   )) as PerpetualMarket
   const perpetualMarketWithFunding = (await PerpetualMarket.deploy(
     perpetualMarketCoreWithFunding.address,
+    traderVaults.address,
     liquidityPool.address,
   )) as PerpetualMarket
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
   await perpetualMarketCoreWithFunding.setPerpetualMarket(perpetualMarketWithFunding.address)
+  await traderVaults.setPerpetualMarket(perpetualMarket.address)
 
   return {
     weth,
@@ -109,6 +121,7 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     aggregator,
     liquidityPool,
     perpetualMarketCore,
+    traderVaults,
     perpetualMarket,
     perpetualMarketWithFunding,
   }

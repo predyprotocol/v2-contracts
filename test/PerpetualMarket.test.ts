@@ -596,9 +596,9 @@ describe('PerpetualMarket', function () {
 
       await testContractHelper.updateSpot(scaledBN(1002, 8))
 
-      const before = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
+      const before = await testContractSet.traderVaults.getVault(wallet.address, vaultId)
       await perpetualMarket.openLongPosition(poolId, vaultId, size, scaledBN(1, 8))
-      const after = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
+      const after = await testContractSet.traderVaults.getVault(wallet.address, vaultId)
 
       expect(after.size[0].sub(before.size[0])).to.equal(size)
 
@@ -616,9 +616,9 @@ describe('PerpetualMarket', function () {
 
       await usdc.approve(perpetualMarket.address, maxFee)
 
-      const before = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
+      const before = await testContractSet.traderVaults.getVault(wallet.address, vaultId)
       await perpetualMarket.openLongPosition(poolId, vaultId, size, scaledBN(1, 8))
-      const after = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
+      const after = await testContractSet.traderVaults.getVault(wallet.address, vaultId)
 
       expect(after.size[0].sub(before.size[0])).to.equal(size)
     })
@@ -635,7 +635,7 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.openShortPosition(poolId, vaultId, shortSize, scaledBN(1, 8))
 
-      const vault = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
+      const vault = await testContractSet.traderVaults.getVault(wallet.address, vaultId)
 
       expect(vault.size[0]).to.equal(scaledBN(1, 6))
     })
@@ -648,9 +648,9 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.openLongPosition(poolId, vaultId, size, scaledBN(1, 8))
 
-      const before = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
+      const before = await testContractSet.traderVaults.getVault(wallet.address, vaultId)
       await perpetualMarket.openShortPosition(poolId, vaultId, size, scaledBN(1, 8))
-      const after = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
+      const after = await testContractSet.traderVaults.getVault(wallet.address, vaultId)
 
       expect(after.size[0].sub(before.size[0])).to.equal(size.mul(-1))
     })
@@ -667,7 +667,7 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.connect(other).openShortPosition(poolId, vaultId, shortSize, scaledBN(1, 8))
 
-      const vault = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
+      const vault = await testContractSet.traderVaults.getVault(wallet.address, vaultId)
 
       expect(vault.size[0]).to.equal(scaledBN(2, 6))
     })
@@ -685,8 +685,8 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.connect(other).openLongPosition(poolId, vaultId, shortSize, scaledBN(1, 8))
 
-      const vault = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
-      const otherVault = await testContractSet.perpetualMarketCore.getVault(other.address, vaultId)
+      const vault = await testContractSet.traderVaults.getVault(wallet.address, vaultId)
+      const otherVault = await testContractSet.traderVaults.getVault(other.address, vaultId)
 
       expect(vault.size[0]).to.equal(scaledBN(2, 6))
       expect(otherVault.size[0]).to.equal(scaledBN(-1, 6))
@@ -705,7 +705,7 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.openLongPosition(poolId, vaultId, size, scaledBN(1, 8))
 
-      const vault = await testContractSet.perpetualMarketCore.getVault(wallet.address, vaultId)
+      const vault = await testContractSet.traderVaults.getVault(wallet.address, vaultId)
 
       expect(vault.size[0]).to.equal(scaledBN(10, 6))
     })
