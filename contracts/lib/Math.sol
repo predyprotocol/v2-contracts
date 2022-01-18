@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-library LiqMath {
+library Math {
     function addDelta(uint128 x, int128 y) internal pure returns (uint128 z) {
         if (y < 0) {
             require((z = x - uint128(-y)) < x, "LS");

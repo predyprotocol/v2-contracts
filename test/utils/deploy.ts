@@ -1,22 +1,11 @@
-import { BigNumber, BigNumberish, Wallet } from 'ethers'
+import { BigNumber, BigNumberish, constants, Wallet } from 'ethers'
 import { ethers } from 'hardhat'
-import {
-  TraderVaults,
-  PerpetualMarket,
-  PerpetualMarketCore,
-  LiquidityPool,
-  MockERC20,
-  MockWETH,
-  MockChainlinkAggregator
-} from '../../typechain'
+import { PerpetualMarket, LiquidityPool, MockERC20, MockWETH, MockChainlinkAggregator } from '../../typechain'
 import { scaledBN } from './helpers'
 
 export type TestContractSet = {
   aggregator: MockChainlinkAggregator
-  traderVaults: TraderVaults
   perpetualMarket: PerpetualMarket
-  perpetualMarketWithFunding: PerpetualMarket
-  perpetualMarketCore: PerpetualMarketCore
   liquidityPool: LiquidityPool
   usdc: MockERC20
   weth: MockWETH
@@ -43,14 +32,14 @@ export class TestContractHelper {
   async openLong(wallet: Wallet, vaultId: BigNumberish, size: BigNumberish) {
     await this.testContractSet.perpetualMarket
       .connect(wallet)
-      .openPositions({ vaultId, sizes: [size, 0], imRatio: scaledBN(1, 8) })
+      .openPositions({ vaultId, sizes: [size, 0], collateralRatio: scaledBN(1, 8) })
   }
 
   async openShort(wallet: Wallet, vaultId: BigNumberish, size: BigNumberish) {
     await this.testContractSet.perpetualMarket.connect(wallet).openPositions({
       vaultId,
       sizes: [BigNumber.from(size).mul(-1), 0],
-      imRatio: scaledBN(1, 8),
+      collateralRatio: scaledBN(1, 8),
     })
   }
 }
@@ -65,65 +54,28 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const MockChainlinkAggregator = await ethers.getContractFactory('MockChainlinkAggregator')
   const aggregator = (await MockChainlinkAggregator.deploy()) as MockChainlinkAggregator
 
-  const Hedging = await ethers.getContractFactory('Hedging')
-  const hedging = await Hedging.deploy()
+  const NettingLib = await ethers.getContractFactory('NettingLib')
+  const nettingLib = await NettingLib.deploy()
 
-  const TradeStateLib = await ethers.getContractFactory('TradeStateLib')
-  const tradeStateLib = await TradeStateLib.deploy()
-
-  const TraderVault = await ethers.getContractFactory('TraderVault')
-  const traderVault = await TraderVault.deploy()
+  const TraderVaultLib = await ethers.getContractFactory('TraderVaultLib')
+  const traderVaultLib = await TraderVaultLib.deploy()
 
   const LiquidityPool = await ethers.getContractFactory('LiquidityPool')
 
   const liquidityPool = (await LiquidityPool.deploy(usdc.address, weth.address)) as LiquidityPool
 
-  const TraderVaults = await ethers.getContractFactory('TraderVaults', {
-    libraries: {
-      TraderVault: traderVault.address
-    },
-  })
-
-  const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore', {
-    libraries: {
-      Hedging: hedging.address,
-      TradeStateLib: tradeStateLib.address
-    },
-  })
-
-  const perpetualMarketCore = (await PerpetualMarketCore.deploy(aggregator.address, false)) as PerpetualMarketCore
-  const perpetualMarketCoreWithFunding = (await PerpetualMarketCore.deploy(
-    aggregator.address,
-    true,
-  )) as PerpetualMarketCore
-
-  const traderVaults = (await TraderVaults.deploy(perpetualMarketCore.address)) as TraderVaults
-
   const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
   const perpetualMarket = (await PerpetualMarket.deploy(
-    perpetualMarketCore.address,
-    traderVaults.address,
+    constants.AddressZero,
     liquidityPool.address,
   )) as PerpetualMarket
-  const perpetualMarketWithFunding = (await PerpetualMarket.deploy(
-    perpetualMarketCoreWithFunding.address,
-    traderVaults.address,
-    liquidityPool.address,
-  )) as PerpetualMarket
-
-  await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
-  await perpetualMarketCoreWithFunding.setPerpetualMarket(perpetualMarketWithFunding.address)
-  await traderVaults.setPerpetualMarket(perpetualMarket.address)
 
   return {
     weth,
     usdc,
     aggregator,
     liquidityPool,
-    perpetualMarketCore,
-    traderVaults,
     perpetualMarket,
-    perpetualMarketWithFunding,
   }
 }
 
