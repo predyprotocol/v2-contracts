@@ -11,9 +11,9 @@ import "./PerpetualMarketCore.sol";
  * @notice Perpetual Market Contract
  */
 contract PerpetualMarket is ERC20 {
-    uint256 private constant MAX_POOL_ID = 2;
-
     using TraderVaultLib for TraderVaultLib.TraderPosition;
+
+    uint256 private constant MAX_POOL_ID = 2;
 
     PerpetualMarketCore private immutable perpetualMarketCore;
     ILiquidityPool private immutable liquidityPool;
@@ -182,9 +182,35 @@ contract PerpetualMarket is ERC20 {
 
     /**
      * @notice Liquidate a vault by Pool
-     * @param _vaultId Id of target vault
+     * @param _vaultId The id of target vault
      */
     function liquidateByPool(uint256 _vaultId) external {
+        PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
+
+        for (uint256 poolId = 0; poolId < MAX_POOL_ID; poolId++) {
+            int128 size = traders[msg.sender][_vaultId].size[poolId];
+
+            if (size != 0) {
+                perpetualMarketCore.updatePoolPosition(poolId, -size);
+            }
+        }
+
+        uint128 reward = traders[msg.sender][_vaultId].liquidate(
+            poolState.spot,
+            TraderVaultLib.PoolParams(
+                poolState.markPrice0,
+                poolState.markPrice1,
+                poolState.cumFundingFeePerSizeGlobal0,
+                poolState.cumFundingFeePerSizeGlobal1
+            )
+        );
+
+        // Sends a half of reward to the pool
+        perpetualMarketCore.addLiquidity(reward / 2);
+
+        // Sends a half of reward to the liquidator
+        liquidityPool.sendLiquidity(msg.sender, reward / 2);
+
         emit Liquidated(msg.sender, _vaultId);
     }
 

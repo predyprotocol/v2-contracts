@@ -5,7 +5,6 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./lib/NettingLib.sol";
 import "./lib/Pricer.sol";
 import "./lib/SpreadLib.sol";
-import "./lib/TraderVaultLib.sol";
 import "hardhat/console.sol";
 
 /**
@@ -18,6 +17,7 @@ import "hardhat/console.sol";
 contract PerpetualMarketCore {
     using NettingLib for NettingLib.Info;
     using NettingLib for NettingLib.PoolInfo;
+    using SpreadLib for SpreadLib.Info;
 
     // risk parameter for sqeeth pool is 20 %
     int128 constant BETA_UR = 2 * 1e7;
@@ -57,6 +57,8 @@ contract PerpetualMarketCore {
 
     mapping(uint256 => Pool) public pools;
 
+    mapping(uint256 => SpreadLib.Info) public spreadInfos;
+
     PoolSnapshot private poolSnapshot;
 
     NettingLib.Info private nettingInfo;
@@ -65,6 +67,10 @@ contract PerpetualMarketCore {
 
     constructor(address _priceFeedAddress) {
         priceFeed = AggregatorV3Interface(_priceFeedAddress);
+
+        // initialize spread infos
+        spreadInfos[0].init();
+        spreadInfos[1].init();
     }
 
     /**
@@ -86,8 +92,6 @@ contract PerpetualMarketCore {
     function deposit(uint128 _depositAmount) external returns (uint128 mintAmount) {
         require(supply > 0);
 
-        console.log(1, liquidity, pools[0].lockedLiquidity, pools[1].lockedLiquidity);
-
         mintAmount = (1e6 * _depositAmount) / getLPTokenPrice();
 
         liquidity += _depositAmount;
@@ -100,12 +104,14 @@ contract PerpetualMarketCore {
     function withdraw(uint128 _withdrawnAmount) external returns (uint128 burnAmount) {
         burnAmount = (1e6 * _withdrawnAmount) / getLPTokenPrice();
 
-        console.log(2, liquidity, pools[0].lockedLiquidity, pools[1].lockedLiquidity);
-
         require(liquidity - pools[0].lockedLiquidity - pools[1].lockedLiquidity >= _withdrawnAmount, "PMC0");
 
         liquidity -= _withdrawnAmount;
         supply -= burnAmount;
+    }
+
+    function addLiquidity(uint128 _amount) external {
+        liquidity += _amount;
     }
 
     /**
@@ -128,32 +134,31 @@ contract PerpetualMarketCore {
         // Calculate trade price
         int128 tradePrice = int128(calculateTradePrice(_poolId, spot, deltaM));
 
-        // Calculate pool's new liquidity
-        int128 poolPofit;
+        // Manages spread
+        tradePrice = spreadInfos[_poolId].checkPrice(_size > 0, tradePrice);
 
-        if (_size < 0) {
-            poolPofit = (_size * (tradePrice - pools[_poolId].entry / (pools[_poolId].size - _size))) / 1e10;
+        // Calculate pool's new liquidity
+        int128 poolPofit = calculatePoolProfit(_poolId, _size, deltaM, tradePrice, hedgePositionValue);
+
+        if (deltaM > 0) {
+            require(liquidity - pools[_poolId].lockedLiquidity >= uint128(deltaM / 1e2), "PMC1");
+            pools[_poolId].lockedLiquidity += uint128(deltaM / 1e2);
+        } else if (deltaM < 0) {
+            pools[_poolId].lockedLiquidity =
+                (pools[_poolId].lockedLiquidity * uint128(hedgePositionValue + deltaM)) /
+                uint128(hedgePositionValue);
         }
 
         tradePrice = tradePrice * _size;
 
         pools[_poolId].entry += tradePrice;
 
-        if (deltaM > 0) {
-            require(liquidity - pools[_poolId].lockedLiquidity >= uint128(deltaM / 1e2), "PMC1");
-            pools[_poolId].lockedLiquidity += uint128(deltaM / 1e2);
-        } else if (deltaM < 0) {
-            poolPofit += (-deltaM * (1e6 - (int128(pools[_poolId].lockedLiquidity) * 1e8) / hedgePositionValue)) / 1e8;
-
-            pools[_poolId].lockedLiquidity =
-                (pools[_poolId].lockedLiquidity * uint128(hedgePositionValue + deltaM)) /
-                uint128(hedgePositionValue);
-        }
-
         liquidity = Math.addDelta(liquidity, poolPofit);
 
         // Update trade time
         pools[_poolId].lastTradeTime = uint128(block.timestamp);
+
+        // Update price
 
         return (tradePrice, pools[_poolId].cumulativeFundingFeePerSizeGlobal);
     }
@@ -191,6 +196,30 @@ contract PerpetualMarketCore {
         int128 gamma = (Pricer.calculateGamma(0) * pools[0].size) / 1e8;
 
         return nettingInfo.addCollateral(_poolId, NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot));
+    }
+
+    /**
+     * @notice Calculates pool's profit
+     * @return poolProfit scaled by 1e6
+     */
+    function calculatePoolProfit(
+        uint256 _poolId,
+        int128 _size,
+        int128 _deltaM,
+        int128 _tradePrice,
+        int128 _hedgePositionValue
+    ) internal view returns (int128 poolProfit) {
+        if (_size < 0) {
+            // Δsize * (Price - entry / size)
+            poolProfit = (_size * (_tradePrice - pools[_poolId].entry / (pools[_poolId].size - _size))) / 1e10;
+        }
+
+        if (_deltaM < 0) {
+            // |Δm| * (1 - LockedLiquidity / HedgePositionValue)
+            poolProfit +=
+                (-_deltaM * (1e6 - (int128(pools[_poolId].lockedLiquidity) * 1e8) / _hedgePositionValue)) /
+                1e8;
+        }
     }
 
     /**

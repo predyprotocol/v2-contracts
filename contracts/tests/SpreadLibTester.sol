@@ -13,9 +13,9 @@ contract SpreadLibTester {
     function getUpdatedPrice(
         SpreadLib.Info memory _info,
         bool _isLong,
-        uint128 _price,
+        int128 _price,
         uint128 _timestamp
-    ) external pure returns (uint128 updatedPrice) {
+    ) external pure returns (int128 updatedPrice) {
         return SpreadLib.getUpdatedPrice(_info, _isLong, _price, _timestamp);
     }
 }

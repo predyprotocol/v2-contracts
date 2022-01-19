@@ -10,6 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
+import { SAFETY_PERIOD } from './utils/constants'
 
 describe('PerpetualMarket', function () {
   let wallet: Wallet, other: Wallet
@@ -252,6 +253,8 @@ describe('PerpetualMarket', function () {
           sizes: [scaledBN(1, 6), 0],
           collateralRatio: scaledBN(1, 8),
         })
+
+        await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
         await perpetualMarket.openPositions({
@@ -321,7 +324,10 @@ describe('PerpetualMarket', function () {
           sizes: [0, scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
+
+        await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot(scaledBN(110, 8))
+
         await perpetualMarket.openPositions({
           vaultId,
           sizes: [0, scaledBN(-1, 6)],
@@ -428,7 +434,10 @@ describe('PerpetualMarket', function () {
           sizes: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
+
+        await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot(scaledBN(110, 8))
+
         await perpetualMarket.openPositions({
           vaultId,
           sizes: [scaledBN(-1, 6), scaledBN(-1, 6)],
@@ -439,6 +448,52 @@ describe('PerpetualMarket', function () {
 
         expect(after.sub(before)).to.be.eq('101955')
       })
+    })
+  })
+
+  describe('liquidate', () => {
+    const vaultId = 0
+
+    beforeEach(async () => {
+      const amount = scaledBN(200, 6)
+
+      await perpetualMarket.initialize(amount, scaledBN(2, 5))
+
+      await testContractHelper.updateSpot(scaledBN(100, 8))
+
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [scaledBN(1, 6), 0],
+        collateralRatio: scaledBN(1, 8),
+      })
+    })
+
+    it('liquidate a vault', async () => {
+      await testContractHelper.updateSpot(scaledBN(98, 8))
+
+      await perpetualMarket.liquidateByPool(vaultId)
+
+      await expect(
+        perpetualMarket.openPositions({
+          vaultId,
+          sizes: [scaledBN(-1, 6), 0],
+          collateralRatio: scaledBN(1, 8),
+        }),
+      ).to.be.reverted
+
+      const before = await usdc.balanceOf(wallet.address)
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [0, 0],
+        collateralRatio: scaledBN(1, 8),
+      })
+      const after = await usdc.balanceOf(wallet.address)
+
+      expect(after.sub(before)).to.be.gt(0)
+    })
+
+    it('reverts if the vault has enough collateral', async () => {
+      await expect(perpetualMarket.liquidateByPool(vaultId)).revertedWith('T1')
     })
   })
 })

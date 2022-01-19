@@ -11,8 +11,11 @@ import "./Math.sol";
  * T2: Vault is insolvent
  */
 library TraderVaultLib {
-    /// @dev 7.5%
+    /// @dev risk parameter for MinCollateral calculation is 7.5%
     uint128 constant RISK_PARAM_FOR_VAULT = 750;
+
+    /// @dev liquidation fee is 50%
+    int128 constant LIQUIDATION_FEE = 5000;
 
     struct PoolParams {
         int128 markPrice0;
@@ -104,10 +107,18 @@ library TraderVaultLib {
             positionValue = 0;
         }
 
-        // reduce collateral
-        _traderPosition.usdcPosition -= positionValue;
+        // clean positions
+        _traderPosition.size[0] = 0;
+        _traderPosition.size[1] = 0;
+        _traderPosition.entry[0] = 0;
+        _traderPosition.entry[1] = 0;
 
-        return uint128(positionValue);
+        int128 reward = (positionValue * LIQUIDATION_FEE) / 1e4;
+
+        // reduce collateral
+        _traderPosition.usdcPosition -= reward;
+
+        return uint128(reward);
     }
 
     /**

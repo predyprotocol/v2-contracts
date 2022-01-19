@@ -3,32 +3,41 @@ pragma solidity ^0.8.0;
 
 /**
  * @title SpreadLib
+ * @notice Spread Library has functions to controls spread for short-term volatility risk management
  */
 library SpreadLib {
     /// @dev 6 minutes
     uint128 constant SAFETY_PERIOD = 6 minutes;
     /// @dev 8 bps
-    uint128 constant SPREAD_DECREASE_PER_PERIOD = 8;
+    int128 constant SPREAD_DECREASE_PER_PERIOD = 8;
 
     struct Info {
         uint128 askTime;
-        uint128 minAskPrice;
+        int128 minAskPrice;
         uint128 bitTime;
-        uint128 maxBitPrice;
+        int128 maxBitPrice;
+    }
+
+    function init(Info storage _info) internal {
+        _info.minAskPrice = 1e16;
+        _info.maxBitPrice = 0;
     }
 
     /**
-     * check and update price to guarantee that
+     * @notice check and update price to guarantee that
      * max(bit) ≤ min(ask) from some point t to t-Safety Period.
+     * @param _isLong trade is long or short
+     * @param _price trade price
+     * @return adjustedPrice adjusted price
      */
     function checkPrice(
         Info storage _info,
         bool _isLong,
-        uint128 _price
-    ) internal returns (uint128 updatedPrice) {
+        int128 _price
+    ) internal returns (int128 adjustedPrice) {
         Info memory cache = Info(_info.askTime, _info.minAskPrice, _info.bitTime, _info.maxBitPrice);
 
-        updatedPrice = getUpdatedPrice(cache, _isLong, _price, uint128(block.timestamp));
+        adjustedPrice = getUpdatedPrice(cache, _isLong, _price, uint128(block.timestamp));
 
         _info.askTime = cache.askTime;
         _info.minAskPrice = cache.minAskPrice;
@@ -39,46 +48,46 @@ library SpreadLib {
     function getUpdatedPrice(
         Info memory _info,
         bool _isLong,
-        uint128 _price,
+        int128 _price,
         uint128 _timestamp
-    ) internal pure returns (uint128 updatedPrice) {
-        updatedPrice = _price;
+    ) internal pure returns (int128 adjustedPrice) {
+        adjustedPrice = _price;
         if (_isLong) {
             // if long
             if (_info.bitTime >= _timestamp - SAFETY_PERIOD) {
                 // Within safety period
-                if (updatedPrice < _info.maxBitPrice) {
+                if (adjustedPrice < _info.maxBitPrice) {
                     uint128 tt = (_timestamp - _info.bitTime) / 1 minutes;
-                    uint128 spreadClosing = SPREAD_DECREASE_PER_PERIOD * tt;
-                    if (updatedPrice <= (_info.maxBitPrice * (1e4 - spreadClosing)) / 1e4) {
+                    int128 spreadClosing = SPREAD_DECREASE_PER_PERIOD * int128(tt);
+                    if (adjustedPrice <= (_info.maxBitPrice * (1e4 - spreadClosing)) / 1e4) {
                         _info.maxBitPrice = (_info.maxBitPrice * (1e4 - spreadClosing)) / 1e4;
                     }
-                    updatedPrice = _info.maxBitPrice;
+                    adjustedPrice = _info.maxBitPrice;
                 }
             }
 
             // Update min ask
-            if (_info.minAskPrice > updatedPrice || _info.askTime + SPREAD_DECREASE_PER_PERIOD < _timestamp) {
-                _info.minAskPrice = updatedPrice;
+            if (_info.minAskPrice > adjustedPrice || _info.askTime + SAFETY_PERIOD < _timestamp) {
+                _info.minAskPrice = adjustedPrice;
             }
             _info.askTime = _timestamp;
         } else {
             // if short
             if (_info.askTime >= _timestamp - SAFETY_PERIOD) {
                 // Within safety period
-                if (updatedPrice > _info.minAskPrice) {
+                if (adjustedPrice > _info.minAskPrice) {
                     uint128 tt = (_timestamp - _info.askTime) / 1 minutes;
-                    uint128 spreadClosing = SPREAD_DECREASE_PER_PERIOD * tt;
-                    if (updatedPrice <= (_info.minAskPrice * (1e4 + spreadClosing)) / 1e4) {
+                    int128 spreadClosing = SPREAD_DECREASE_PER_PERIOD * int128(tt);
+                    if (adjustedPrice <= (_info.minAskPrice * (1e4 + spreadClosing)) / 1e4) {
                         _info.minAskPrice = (_info.minAskPrice * (1e4 + spreadClosing)) / 1e4;
                     }
-                    updatedPrice = _info.minAskPrice;
+                    adjustedPrice = _info.minAskPrice;
                 }
             }
 
             // Update max bit
-            if (_info.maxBitPrice < updatedPrice || _info.bitTime + SPREAD_DECREASE_PER_PERIOD < _timestamp) {
-                _info.maxBitPrice = updatedPrice;
+            if (_info.maxBitPrice < adjustedPrice || _info.bitTime + SAFETY_PERIOD < _timestamp) {
+                _info.maxBitPrice = adjustedPrice;
             }
             _info.bitTime = _timestamp;
         }
