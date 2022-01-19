@@ -29,4 +29,17 @@ library Pricer {
             revert("NP");
         }
     }
+
+    /**
+     * @return calculated gamma scaled by 1e8
+     */
+    function calculateGamma(uint256 _poolId) internal pure returns (int128) {
+        if (_poolId == 0) {
+            return 2 * 1e4;
+        } else if (_poolId == 1) {
+            return 0;
+        } else {
+            revert("NP");
+        }
+    }
 }

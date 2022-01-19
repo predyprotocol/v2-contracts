@@ -14,7 +14,10 @@ contract NettingLibTester {
         return info.pools[_poolId];
     }
 
-    function addCollateral(uint256 _poolId, NettingLib.AddCollateralParams memory _params) external returns (int128) {
+    function addCollateral(uint256 _poolId, NettingLib.AddCollateralParams memory _params)
+        external
+        returns (int128, int128)
+    {
         return NettingLib.addCollateral(info, _poolId, _params);
     }
 

@@ -3,19 +3,27 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/ILiquidityPool.sol";
-import "./interfaces/IPerpetualMarketCore.sol";
+import "./lib/TraderVaultLib.sol";
+import "./PerpetualMarketCore.sol";
 
 /**
  * @title Perpetual Market
  * @notice Perpetual Market Contract
  */
 contract PerpetualMarket is ERC20 {
-    IPerpetualMarketCore private immutable perpetualMarketCore;
+    uint256 private constant MAX_POOL_ID = 2;
+
+    using TraderVaultLib for TraderVaultLib.TraderPosition;
+
+    PerpetualMarketCore private immutable perpetualMarketCore;
     ILiquidityPool private immutable liquidityPool;
 
     struct TradeParams {
+        // Vault Id to hold positions
         uint256 vaultId;
+        // Position sizes
         int128[2] sizes;
+        // Target collateral ratio
         int128 collateralRatio;
     }
 
@@ -31,20 +39,29 @@ contract PerpetualMarket is ERC20 {
 
     int128 private constant IM_RATIO = 1e8;
 
+    mapping(address => mapping(uint256 => TraderVaultLib.TraderPosition)) private traders;
+
     /**
      * @notice initialize Perpetual Market
      */
-    constructor(IPerpetualMarketCore _perpetualMarketCore, ILiquidityPool _liquidityPool)
+    constructor(PerpetualMarketCore _perpetualMarketCore, ILiquidityPool _liquidityPool)
         ERC20("Predy V2 LP Token", "PREDY-V2-LP")
     {
         perpetualMarketCore = _perpetualMarketCore;
         liquidityPool = _liquidityPool;
     }
 
-    function initialize(uint256 _depositAmount, uint256 _fundingRate) external {
-        require(_depositAmount > 0 && _fundingRate > 0);
+    /**
+     * @notice initialize Perpetual Pool
+     * @param _depositAmount deposit amount
+     * @param _initialFundingRate initial funding rate
+     */
+    function initialize(uint128 _depositAmount, int128 _initialFundingRate) external {
+        require(_depositAmount > 0 && _initialFundingRate > 0);
 
-        uint256 lpTokenAmount;
+        uint256 lpTokenAmount = perpetualMarketCore.initialize(_depositAmount, _initialFundingRate);
+
+        ERC20(liquidityPool.collateral()).transferFrom(msg.sender, address(liquidityPool), uint128(_depositAmount));
 
         _mint(msg.sender, _depositAmount);
 
@@ -54,10 +71,10 @@ contract PerpetualMarket is ERC20 {
     /**
      * @notice Provides liquidity to the pool and mints LP tokens
      */
-    function deposit(uint256 _depositAmount) external {
+    function deposit(uint128 _depositAmount) external {
         require(_depositAmount > 0);
 
-        uint256 lpTokenAmount;
+        uint256 lpTokenAmount = perpetualMarketCore.deposit(_depositAmount);
 
         ERC20(liquidityPool.collateral()).transferFrom(msg.sender, address(liquidityPool), uint128(_depositAmount));
 
@@ -67,12 +84,12 @@ contract PerpetualMarket is ERC20 {
     }
 
     /**
-     * @notice withdraw liquidity from the range of fee levels
+     * @notice Withdraws liquidity from the pool and burn LP tokens
      */
-    function withdraw(uint256 _withdrawnAmount) external {
+    function withdraw(uint128 _withdrawnAmount) external {
         require(_withdrawnAmount > 0);
 
-        uint256 lpTokenAmount;
+        uint256 lpTokenAmount = perpetualMarketCore.withdraw(_withdrawnAmount);
 
         _burn(msg.sender, lpTokenAmount);
 
@@ -83,9 +100,53 @@ contract PerpetualMarket is ERC20 {
     }
 
     /**
-     * @notice Open new position of the perpetual contract
+     * @notice Opens new position of the perpetual contracts
+     * and manage collaterals in the vault
+     * @param _tradeParams trade parameters
      */
-    function openPositions(TradeParams memory _tradeParams) public {}
+    function openPositions(TradeParams memory _tradeParams) public {
+        for (uint256 poolId = 0; poolId < MAX_POOL_ID; poolId++) {
+            if (_tradeParams.sizes[poolId] != 0) {
+                (int128 totalPrice, int128 cumFundingGlobal) = perpetualMarketCore.updatePoolPosition(
+                    poolId,
+                    _tradeParams.sizes[poolId]
+                );
+
+                traders[msg.sender][_tradeParams.vaultId].updatePosition(
+                    poolId,
+                    _tradeParams.sizes[poolId],
+                    totalPrice,
+                    cumFundingGlobal
+                );
+            }
+        }
+
+        int128 finalDepositOrWithdrawAmount;
+
+        {
+            PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
+            finalDepositOrWithdrawAmount = traders[msg.sender][_tradeParams.vaultId].depositOrWithdraw(
+                _tradeParams.collateralRatio,
+                poolState.spot,
+                TraderVaultLib.PoolParams(
+                    poolState.markPrice0,
+                    poolState.markPrice1,
+                    poolState.cumFundingFeePerSizeGlobal0,
+                    poolState.cumFundingFeePerSizeGlobal1
+                )
+            );
+        }
+
+        if (finalDepositOrWithdrawAmount > 0) {
+            ERC20(liquidityPool.collateral()).transferFrom(
+                msg.sender,
+                address(liquidityPool),
+                uint128(finalDepositOrWithdrawAmount)
+            );
+        } else {
+            liquidityPool.sendLiquidity(msg.sender, uint128(-finalDepositOrWithdrawAmount));
+        }
+    }
 
     /**
      * @notice Open new long position of the perpetual contract
@@ -121,12 +182,9 @@ contract PerpetualMarket is ERC20 {
 
     /**
      * @notice Liquidate a vault by Pool
+     * @param _vaultId Id of target vault
      */
-    function liquidateByPool(
-        uint256 _poolId,
-        uint256 _vaultId,
-        int128 _size
-    ) external {
+    function liquidateByPool(uint256 _vaultId) external {
         emit Liquidated(msg.sender, _vaultId);
     }
 

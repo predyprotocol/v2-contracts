@@ -49,12 +49,12 @@ library NettingLib {
         Info storage _info,
         uint256 _poolId,
         AddCollateralParams memory _params
-    ) internal returns (int128 requiredCollateral) {
+    ) internal returns (int128 requiredCollateral, int128 hedgePositionValue) {
         int128 totalRequiredCollateral = getRequiredCollateral(_poolId, _params);
 
-        int128 hedgeNotional = getHedgePositionValue(_info.pools[_poolId], _params.spot);
+        hedgePositionValue = getHedgePositionValue(_info.pools[_poolId], _params.spot);
 
-        requiredCollateral = totalRequiredCollateral - hedgeNotional;
+        requiredCollateral = totalRequiredCollateral - hedgePositionValue;
 
         _info.pools[_poolId].usdcPosition += requiredCollateral;
     }

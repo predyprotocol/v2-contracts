@@ -1,10 +1,17 @@
 import { BigNumber, BigNumberish, constants, Wallet } from 'ethers'
 import { ethers } from 'hardhat'
-import { PerpetualMarket, LiquidityPool, MockERC20, MockWETH, MockChainlinkAggregator } from '../../typechain'
+import {
+  PerpetualMarket,
+  PerpetualMarketCore,
+  LiquidityPool,
+  MockERC20,
+  MockWETH,
+  MockChainlinkAggregator,
+} from '../../typechain'
 import { scaledBN } from './helpers'
 
 export type TestContractSet = {
-  aggregator: MockChainlinkAggregator
+  priceFeed: MockChainlinkAggregator
   perpetualMarket: PerpetualMarket
   liquidityPool: LiquidityPool
   usdc: MockERC20
@@ -22,7 +29,7 @@ export class TestContractHelper {
   }
 
   async updateRoundData(roundId: number, spot: BigNumberish) {
-    await this.testContractSet.aggregator.setLatestRoundData(roundId, spot)
+    await this.testContractSet.priceFeed.setLatestRoundData(roundId, spot)
   }
 
   async updateSpot(spot: BigNumberish) {
@@ -52,7 +59,7 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const usdc = (await MockERC20.deploy('USDC', 'USDC', 6)) as MockERC20
 
   const MockChainlinkAggregator = await ethers.getContractFactory('MockChainlinkAggregator')
-  const aggregator = (await MockChainlinkAggregator.deploy()) as MockChainlinkAggregator
+  const priceFeed = (await MockChainlinkAggregator.deploy()) as MockChainlinkAggregator
 
   const NettingLib = await ethers.getContractFactory('NettingLib')
   const nettingLib = await NettingLib.deploy()
@@ -64,16 +71,19 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
 
   const liquidityPool = (await LiquidityPool.deploy(usdc.address, weth.address)) as LiquidityPool
 
+  const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
+  const perpetualMarketCore = (await PerpetualMarketCore.deploy(priceFeed.address)) as PerpetualMarketCore
+
   const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
   const perpetualMarket = (await PerpetualMarket.deploy(
-    constants.AddressZero,
+    perpetualMarketCore.address,
     liquidityPool.address,
   )) as PerpetualMarket
 
   return {
     weth,
     usdc,
-    aggregator,
+    priceFeed,
     liquidityPool,
     perpetualMarket,
   }
