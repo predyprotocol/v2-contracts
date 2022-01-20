@@ -65,6 +65,8 @@ contract PerpetualMarketCore {
 
     AggregatorV3Interface private priceFeed;
 
+    uint128 private lastHedgeTime;
+
     constructor(address _priceFeedAddress) {
         priceFeed = AggregatorV3Interface(_priceFeedAddress);
 
@@ -140,6 +142,7 @@ contract PerpetualMarketCore {
         // Calculate pool's new liquidity
         int128 poolPofit = calculatePoolProfit(_poolId, _size, deltaM, tradePrice, hedgePositionValue);
 
+        // Updates locked liquidity
         if (deltaM > 0) {
             require(liquidity - pools[_poolId].lockedLiquidity >= uint128(deltaM / 1e2), "PMC1");
             pools[_poolId].lockedLiquidity += uint128(deltaM / 1e2);
@@ -149,19 +152,87 @@ contract PerpetualMarketCore {
                 uint128(hedgePositionValue);
         }
 
-        tradePrice = tradePrice * _size;
-
-        pools[_poolId].entry += tradePrice;
-
         liquidity = Math.addDelta(liquidity, poolPofit);
 
         // Update trade time
         pools[_poolId].lastTradeTime = uint128(block.timestamp);
 
-        // Update price
+        pools[_poolId].entry += tradePrice * _size;
 
-        return (tradePrice, pools[_poolId].cumulativeFundingFeePerSizeGlobal);
+        return (tradePrice * _size, pools[_poolId].cumulativeFundingFeePerSizeGlobal);
     }
+
+    /**
+     * @notice Calculates USDC amount and underlying amount for delta neutral
+     * and store entry price in netting info
+     */
+    function calculateEntryPriceForHedging()
+        external
+        returns (
+            bool isLong,
+            uint128 underlyingAmount,
+            uint128 usdcAmount
+        )
+    {
+        (uint128 spot, ) = getUnderlyingPrice();
+
+        (int128 sqeethPoolDelta, int128 futurePoolDelta) = getDeltas(int128(spot));
+
+        {
+            // 1. Calculate net delta
+            int128 netDelta = (sqeethPoolDelta + futurePoolDelta) + nettingInfo.underlyingPosition;
+
+            isLong = netDelta < 0;
+
+            console.log(1, uint128(netDelta), uint128(-netDelta));
+
+            // 2. Calculate USDC and ETH amounts.
+            underlyingAmount = Math.abs(netDelta) * 1e10;
+            usdcAmount = (Math.abs(netDelta) * spot) / 1e10;
+        }
+
+        {
+            uint128 c;
+            if (block.timestamp >= lastHedgeTime + 12 hours) {
+                c = (uint128(block.timestamp) - lastHedgeTime - 12 hours) / 20 minutes;
+                if (c > 70) c = 70;
+            }
+            if (isLong) {
+                usdcAmount = (usdcAmount * (10000 + c)) / 10000;
+            } else {
+                usdcAmount = (usdcAmount * (10000 - c)) / 10000;
+            }
+        }
+
+        // 3. Complete hedges for each pool
+        {
+            int128[2] memory deltas;
+            deltas[0] = sqeethPoolDelta;
+            deltas[1] = futurePoolDelta;
+            nettingInfo.complete(NettingLib.CompleteParams(int128(usdcAmount), int128(underlyingAmount), deltas, spot));
+        }
+    }
+
+    /////////////////////////
+    //  Getter Functions   //
+    /////////////////////////
+
+    function getPoolState() external view returns (PoolState memory) {
+        (uint128 spot, ) = getUnderlyingPrice();
+
+        return
+            PoolState(
+                spot,
+                int128(getMarkPrice(0, spot)),
+                int128(getMarkPrice(1, spot)),
+                pools[0].cumulativeFundingFeePerSizeGlobal,
+                pools[1].cumulativeFundingFeePerSizeGlobal
+            );
+    }
+
+    /////////////////////////
+    //  Private Functions  //
+    /////////////////////////
 
     /**
      * @notice Executes funding payment
@@ -191,8 +262,7 @@ contract PerpetualMarketCore {
      * @notice Adds collateral to Netting contract
      */
     function addCollateral(uint256 _poolId, uint128 _spot) internal returns (int128, int128) {
-        int128 delta0 = (Pricer.calculateDelta(0, int128(_spot)) * pools[0].size) / 1e8;
-        int128 delta1 = (Pricer.calculateDelta(1, int128(_spot)) * pools[1].size) / 1e8;
+        (int128 delta0, int128 delta1) = getDeltas(int128(_spot));
         int128 gamma = (Pricer.calculateGamma(0) * pools[0].size) / 1e8;
 
         return nettingInfo.addCollateral(_poolId, NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot));
@@ -209,7 +279,7 @@ contract PerpetualMarketCore {
         int128 _tradePrice,
         int128 _hedgePositionValue
     ) internal view returns (int128 poolProfit) {
-        if (_size < 0) {
+        if (_size < 0 && pools[_poolId].size != _size) {
             // Δsize * (Price - entry / size)
             poolProfit = (_size * (_tradePrice - pools[_poolId].entry / (pools[_poolId].size - _size))) / 1e10;
         }
@@ -241,17 +311,10 @@ contract PerpetualMarketCore {
         return (price * uint128(1e8 + currentFundingRate + deltaFundingRate / 2)) / 1e8;
     }
 
-    function getPoolState() external view returns (PoolState memory) {
-        (uint128 spot, ) = getUnderlyingPrice();
-
-        return
-            PoolState(
-                spot,
-                int128(getMarkPrice(0, spot)),
-                int128(getMarkPrice(1, spot)),
-                pools[0].cumulativeFundingFeePerSizeGlobal,
-                pools[1].cumulativeFundingFeePerSizeGlobal
-            );
+    function getDeltas(int128 _spot) internal view returns (int128, int128) {
+        int128 sqeethPoolDelta = -(Pricer.calculateDelta(0, _spot) * pools[0].size) / 1e8;
+        int128 futurePoolDelta = -(Pricer.calculateDelta(1, _spot) * pools[1].size) / 1e8;
+        return (sqeethPoolDelta, futurePoolDelta);
     }
 
     /**

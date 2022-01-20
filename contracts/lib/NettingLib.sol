@@ -69,7 +69,7 @@ library NettingLib {
 
         require(totalDelta > 0, "N2");
 
-        _info.underlyingPosition += netDelta;
+        _info.underlyingPosition -= netDelta;
 
         for (uint256 i = 0; i < 2; i++) {
             _info.pools[i].usdcPosition -= (_params.usdcAmount * _params.deltas[i]) / totalDelta;

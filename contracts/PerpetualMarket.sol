@@ -218,9 +218,7 @@ contract PerpetualMarket is ERC20 {
      * @notice execute hedging
      */
     function execHedge() external {
-        uint256 usdcAmount;
-        uint256 uAmount;
-        bool isLong;
+        (bool isLong, uint256 uAmount, uint256 usdcAmount) = perpetualMarketCore.calculateEntryPriceForHedging();
 
         if (isLong) {
             ERC20(liquidityPool.underlying()).transferFrom(msg.sender, address(liquidityPool), uAmount);

@@ -49,6 +49,8 @@ describe('PerpetualMarket', function () {
     await usdc.mint(wallet.address, testUsdcAmount)
     await usdc.mint(other.address, testUsdcAmount)
 
+    // approve
+    await weth.approve(perpetualMarket.address, MaxInt128)
     await usdc.approve(perpetualMarket.address, MaxInt128)
 
     // spot price is $1,000
@@ -473,14 +475,6 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.liquidateByPool(vaultId)
 
-      await expect(
-        perpetualMarket.openPositions({
-          vaultId,
-          sizes: [scaledBN(-1, 6), 0],
-          collateralRatio: scaledBN(1, 8),
-        }),
-      ).to.be.reverted
-
       const before = await usdc.balanceOf(wallet.address)
       await perpetualMarket.openPositions({
         vaultId,
@@ -494,6 +488,70 @@ describe('PerpetualMarket', function () {
 
     it('reverts if the vault has enough collateral', async () => {
       await expect(perpetualMarket.liquidateByPool(vaultId)).revertedWith('T1')
+    })
+  })
+
+  describe('execHedge', () => {
+    const vaultId = 0
+
+    beforeEach(async () => {
+      const amount = scaledBN(200, 6)
+
+      await perpetualMarket.initialize(amount, scaledBN(2, 5))
+
+      await testContractHelper.updateSpot(scaledBN(100, 8))
+    })
+
+    it('delta is low', async () => {
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [scaledBN(1, 7), 0],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      const before = await usdc.balanceOf(wallet.address)
+      await perpetualMarket.execHedge()
+      const after = await usdc.balanceOf(wallet.address)
+
+      expect(after.sub(before)).to.be.gt(0)
+    })
+
+    it('reverts if delta > 0', async () => {
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [scaledBN(1, 6), scaledBN(-1, 7)],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      await expect(perpetualMarket.execHedge()).to.be.reverted
+    })
+
+    describe('delta < 0', () => {
+      beforeEach(async () => {
+        await perpetualMarket.openPositions({
+          vaultId,
+          sizes: [scaledBN(1, 7), 0],
+          collateralRatio: scaledBN(1, 8),
+        })
+
+        await perpetualMarket.execHedge()
+
+        await increaseTime(60 * 60 * 12)
+      })
+
+      it('delta is high', async () => {
+        await perpetualMarket.openPositions({
+          vaultId,
+          sizes: [scaledBN(-2, 6), 0],
+          collateralRatio: scaledBN(1, 8),
+        })
+
+        const before = await weth.balanceOf(wallet.address)
+        await perpetualMarket.execHedge()
+        const after = await weth.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.gt(0)
+      })
     })
   })
 })
