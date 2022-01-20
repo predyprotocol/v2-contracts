@@ -33,7 +33,7 @@ contract PerpetualMarket is ERC20 {
 
     event PositionUpdated(address indexed trader, int256 size, int256 totalPrice);
 
-    event Liquidated(address liquidator, uint256 vaultId);
+    event Liquidated(address liquidator, address indexed vaultOwner, uint256 vaultId);
 
     event Hedged(address hedger, uint256 usdcAmount, uint256 underlyingAmount);
 
@@ -182,20 +182,21 @@ contract PerpetualMarket is ERC20 {
 
     /**
      * @notice Liquidate a vault by Pool
+     * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
      */
-    function liquidateByPool(uint256 _vaultId) external {
+    function liquidateByPool(address _vaultOwner, uint256 _vaultId) external {
         PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
 
         for (uint256 poolId = 0; poolId < MAX_POOL_ID; poolId++) {
-            int128 size = traders[msg.sender][_vaultId].size[poolId];
+            int128 size = traders[_vaultOwner][_vaultId].size[poolId];
 
             if (size != 0) {
                 perpetualMarketCore.updatePoolPosition(poolId, -size);
             }
         }
 
-        uint128 reward = traders[msg.sender][_vaultId].liquidate(
+        uint128 reward = traders[_vaultOwner][_vaultId].liquidate(
             poolState.spot,
             TraderVaultLib.PoolParams(
                 poolState.markPrice0,
@@ -211,7 +212,7 @@ contract PerpetualMarket is ERC20 {
         // Sends a half of reward to the liquidator
         liquidityPool.sendLiquidity(msg.sender, reward / 2);
 
-        emit Liquidated(msg.sender, _vaultId);
+        emit Liquidated(msg.sender, _vaultOwner, _vaultId);
     }
 
     /**

@@ -19,10 +19,11 @@ contract PerpetualMarketCore {
     using NettingLib for NettingLib.PoolInfo;
     using SpreadLib for SpreadLib.Info;
 
-    // risk parameter for sqeeth pool is 20 %
-    int128 private constant BETA_UR = 2 * 1e7;
+    // max ratio of (IV/RV)^2 for sqeeth pool is 20 %
+    int128 private constant BETA_UR = 20 * 1e6;
 
-    int128 private constant LAMBDA = 94;
+    // λ for exponentially weighted moving average is 94%
+    int128 private constant LAMBDA = 94 * 1e6;
 
     // max funding rate of future pool is 0.02 %
     int128 private constant MAX_FUNDING_RATE = 2 * 1e4;
@@ -238,6 +239,9 @@ contract PerpetualMarketCore {
         }
     }
 
+    /**
+     * @notice Calculates ETH variance under the Exponentially Weighted Moving Average Model.
+     */
     function updateVariance() external {
         (uint128 spot, ) = getUnderlyingPrice();
 
@@ -249,7 +253,7 @@ contract PerpetualMarketCore {
         u = (u * FUNDING_PERIOD) / int128(uint128(block.timestamp) - poolSnapshot.lastTimestamp);
 
         // Updates snapshot
-        poolSnapshot.variance = LAMBDA * poolSnapshot.variance + (100 - LAMBDA) * int128(Math.abs(u));
+        poolSnapshot.variance = (LAMBDA * poolSnapshot.variance + (1e8 - LAMBDA) * int128(Math.abs(u))) / 1e8;
         poolSnapshot.sqeethPrice = markPrice;
         poolSnapshot.rateOfReturn = rateOfReturn;
         poolSnapshot.lastTimestamp = uint128(block.timestamp);

@@ -523,7 +523,7 @@ describe('PerpetualMarket', function () {
     it('liquidate a vault', async () => {
       await testContractHelper.updateSpot(scaledBN(98, 8))
 
-      await perpetualMarket.liquidateByPool(vaultId)
+      await perpetualMarket.liquidateByPool(wallet.address, vaultId)
 
       const before = await usdc.balanceOf(wallet.address)
       await perpetualMarket.openPositions({
@@ -537,7 +537,7 @@ describe('PerpetualMarket', function () {
     })
 
     it('reverts if the vault has enough collateral', async () => {
-      await expect(perpetualMarket.liquidateByPool(vaultId)).revertedWith('T1')
+      await expect(perpetualMarket.liquidateByPool(wallet.address, vaultId)).revertedWith('T1')
     })
   })
 
