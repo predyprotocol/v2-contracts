@@ -419,6 +419,13 @@ describe('PerpetualMarket', function () {
           sizes: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
+
+        const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
+
+        expect(vaultStatus.minCollateral).to.be.gt(0)
+        expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
+        expect(vaultStatus.position.size[0]).to.be.eq(scaledBN(1, 6))
+        expect(vaultStatus.position.size[1]).to.be.eq(scaledBN(1, 6))
       })
 
       it('close positions', async () => {

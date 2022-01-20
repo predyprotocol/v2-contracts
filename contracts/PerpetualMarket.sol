@@ -27,6 +27,12 @@ contract PerpetualMarket is ERC20 {
         int128 collateralRatio;
     }
 
+    struct VaultStatus {
+        int128 positionValue;
+        int128 minCollateral;
+        TraderVaultLib.TraderPosition position;
+    }
+
     event Deposited(address indexed account, uint256 issued, uint256 amount);
 
     event Withdrawn(address indexed account, uint256 burned, uint256 amount);
@@ -237,6 +243,7 @@ contract PerpetualMarket is ERC20 {
 
     /**
      * @notice Gets current LP token price
+     * @return LP token price scaled by 1e6
      */
     function getLPTokenPrice() external view returns (uint128) {
         return perpetualMarketCore.getLPTokenPrice();
@@ -246,8 +253,32 @@ contract PerpetualMarket is ERC20 {
      * @notice Gets trade price
      * @param _poolId pool id
      * @param _size positive to get ask price and negatice to get bit price
+     * @return trade price scaled by 1e8
      */
     function getTradePrice(uint256 _poolId, int128 _size) external view returns (uint128) {
         return perpetualMarketCore.getTradePrice(_poolId, _size);
+    }
+
+    /**
+     * @notice Gets position value of a vault
+     * @param _vaultOwner The address of vault owner
+     * @param _vaultId The id of target vault
+     * @return vault status
+     */
+    function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view returns (VaultStatus memory) {
+        PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
+
+        int128 positionValue = traders[_vaultOwner][_vaultId].getPositionValue(
+            TraderVaultLib.PoolParams(
+                poolState.markPrice0,
+                poolState.markPrice1,
+                poolState.cumFundingFeePerSizeGlobal0,
+                poolState.cumFundingFeePerSizeGlobal1
+            )
+        );
+
+        int128 minCollateral = traders[_vaultOwner][_vaultId].getMinCollateral(poolState.spot);
+
+        return VaultStatus(positionValue, minCollateral, traders[_vaultOwner][_vaultId]);
     }
 }
