@@ -42,34 +42,13 @@ async function main() {
     return
   }
 
-  const Hedging = await ethers.getContractFactory('Hedging')
-  const hedging = await Hedging.deploy()
-  await hedging.deployed();
-  console.log(`Hedging deployed to ${hedging.address}`)
-
-  const TradeStateLib = await ethers.getContractFactory('TradeStateLib')
-  const tradeStateLib = await TradeStateLib.deploy()
-  await tradeStateLib.deployed();
-  console.log(`TradeStateLib deployed to ${tradeStateLib.address}`)
-
-  const TraderVault = await ethers.getContractFactory('TraderVault')
-  const traderVault = await TraderVault.deploy()
-  await traderVault.deployed();
-  console.log(`TraderVault deployed to ${traderVault.address}`)
 
   const LiquidityPool = await ethers.getContractFactory('LiquidityPool')
   const liquidityPool = await LiquidityPool.deploy(usdcAddress, wethAddress)
-  await tradeStateLib.deployed();
   console.log(`LiquidityPool deployed to ${liquidityPool.address}`)
 
-  const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore', {
-    libraries: {
-      Hedging: hedging.address,
-      TradeStateLib: tradeStateLib.address,
-      TraderVault: traderVault.address,
-    },
-  })
-  const perpetualMarketCore = await PerpetualMarketCore.deploy(aggregatorAddress, false)
+  const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
+  const perpetualMarketCore = await PerpetualMarketCore.deploy(aggregatorAddress)
   await perpetualMarketCore.deployed();
   console.log(`PerpetualMarketCore deployed to ${perpetualMarketCore.address}`)
 
@@ -82,6 +61,8 @@ async function main() {
   console.log(`PerpetualMarket deployed to ${perpetualMarket.address}`)
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
+
+  await liquidityPool.transferOwnership(perpetualMarket.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

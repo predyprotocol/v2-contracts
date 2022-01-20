@@ -80,6 +80,10 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     liquidityPool.address,
   )) as PerpetualMarket
 
+  await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
+
+  await liquidityPool.transferOwnership(perpetualMarket.address)
+
   return {
     weth,
     usdc,

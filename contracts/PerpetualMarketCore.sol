@@ -84,18 +84,35 @@ contract PerpetualMarketCore {
 
     uint128 private lastHedgeTime;
 
+    address private perpetualMarket;
+
+    modifier onlyPerpetualMarket() {
+        require(msg.sender == perpetualMarket);
+        _;
+    }
+
     constructor(address _priceFeedAddress) {
         priceFeed = AggregatorV3Interface(_priceFeedAddress);
 
         // initialize spread infos
         spreadInfos[0].init();
         spreadInfos[1].init();
+
+        perpetualMarket = msg.sender;
+    }
+
+    function setPerpetualMarket(address _perpetualMarket) external onlyPerpetualMarket {
+        perpetualMarket = _perpetualMarket;
     }
 
     /**
      * @notice initialize pool with initial liquidity and funding rate
      */
-    function initialize(uint128 _depositAmount, int128 _initialFundingRate) external returns (uint128 mintAmount) {
+    function initialize(uint128 _depositAmount, int128 _initialFundingRate)
+        external
+        onlyPerpetualMarket
+        returns (uint128 mintAmount)
+    {
         require(supply == 0);
         mintAmount = _depositAmount;
 
@@ -112,7 +129,7 @@ contract PerpetualMarketCore {
     /**
      * @notice provide liquidity
      */
-    function deposit(uint128 _depositAmount) external returns (uint128 mintAmount) {
+    function deposit(uint128 _depositAmount) external onlyPerpetualMarket returns (uint128 mintAmount) {
         require(supply > 0);
 
         mintAmount = (1e6 * _depositAmount) / getLPTokenPrice();
@@ -124,7 +141,7 @@ contract PerpetualMarketCore {
     /**
      * @notice withdraw liquidity
      */
-    function withdraw(uint128 _withdrawnAmount) external returns (uint128 burnAmount) {
+    function withdraw(uint128 _withdrawnAmount) external onlyPerpetualMarket returns (uint128 burnAmount) {
         burnAmount = (1e6 * _withdrawnAmount) / getLPTokenPrice();
 
         require(
@@ -136,7 +153,7 @@ contract PerpetualMarketCore {
         supply -= burnAmount;
     }
 
-    function addLiquidity(uint128 _amount) external {
+    function addLiquidity(uint128 _amount) external onlyPerpetualMarket {
         liquidityAmount += _amount;
     }
 
@@ -145,7 +162,7 @@ contract PerpetualMarketCore {
      * @param _poolId pool id
      * @param _size size to trade. positive for pool short and negative for pool long.
      */
-    function updatePoolPosition(uint256 _poolId, int128 _size) external returns (int128, int128) {
+    function updatePoolPosition(uint256 _poolId, int128 _size) external onlyPerpetualMarket returns (int128, int128) {
         (uint128 spot, ) = getUnderlyingPrice();
 
         // Funding payment
@@ -196,6 +213,7 @@ contract PerpetualMarketCore {
      */
     function calculateEntryPriceForHedging()
         external
+        onlyPerpetualMarket
         returns (
             bool isLong,
             uint128 underlyingAmount,
@@ -242,7 +260,7 @@ contract PerpetualMarketCore {
     /**
      * @notice Calculates ETH variance under the Exponentially Weighted Moving Average Model.
      */
-    function updateVariance() external {
+    function updateVariance() external onlyPerpetualMarket {
         (uint128 spot, ) = getUnderlyingPrice();
 
         int128 markPrice = int128(getMarkPrice(0, spot));
