@@ -201,12 +201,62 @@ describe('PerpetualMarket', function () {
       expect(perpetualMarket.withdraw(scaledBN(100, 6))).to.be.reverted
     })
 
-    it('unrealized pnl and realized pnl has not changed', async function () {
+    it('withdraw all', async function () {
       const before = await usdc.balanceOf(wallet.address)
       await perpetualMarket.withdraw(scaledBN(100, 6))
       const after = await usdc.balanceOf(wallet.address)
 
       expect(after.sub(before)).to.equal(scaledBN(100, 6))
+    })
+
+    describe('tokenPrice becomes high', () => {
+      const vaultId = 0
+
+      beforeEach(async () => {
+        await testContractHelper.updateSpot(scaledBN(100, 8))
+
+        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8))
+
+        await increaseTime(SAFETY_PERIOD)
+        await testContractHelper.updateSpot(scaledBN(94, 8))
+
+        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8))
+      })
+
+      it('withdraw all', async function () {
+        const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
+        const lpTokenPrice = await perpetualMarket.getLPTokenPrice()
+        const withdrawnAmount = lpTokenPrice.mul(tokenAmount).div(scaledBN(1, 6))
+
+        await perpetualMarket.withdraw(withdrawnAmount)
+
+        expect(withdrawnAmount).to.gt(scaledBN(100, 6))
+      })
+    })
+
+    describe('tokenPrice becomes low', () => {
+      const vaultId = 0
+
+      beforeEach(async () => {
+        await testContractHelper.updateSpot(scaledBN(100, 8))
+
+        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8))
+
+        await increaseTime(SAFETY_PERIOD)
+        await testContractHelper.updateSpot(scaledBN(106, 8))
+
+        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8))
+      })
+
+      it('withdraw all', async function () {
+        const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
+        const lpTokenPrice = await perpetualMarket.getLPTokenPrice()
+        const withdrawnAmount = lpTokenPrice.mul(tokenAmount).div(scaledBN(1, 6))
+
+        await perpetualMarket.withdraw(withdrawnAmount)
+
+        expect(withdrawnAmount).to.lt(scaledBN(100, 6))
+      })
     })
   })
 
@@ -546,11 +596,15 @@ describe('PerpetualMarket', function () {
           collateralRatio: scaledBN(1, 8),
         })
 
+        const beforeAskPrice = await perpetualMarket.getTradePrice(0, 1000)
+
         const before = await weth.balanceOf(wallet.address)
         await perpetualMarket.execHedge()
         const after = await weth.balanceOf(wallet.address)
 
         expect(after.sub(before)).to.be.gt(0)
+
+        expect(await perpetualMarket.getTradePrice(0, 1000)).to.be.gt(beforeAskPrice)
       })
     })
   })

@@ -192,7 +192,7 @@ describe('TraderVaultLib', function () {
         cumFundingFeePerSizeGlobal0: 0,
         cumFundingFeePerSizeGlobal1: 0,
       })
-      expect((await tester.traderPosition()).usdcPosition).to.be.eq(9750000)
+      expect((await tester.traderPosition()).usdcPosition).to.be.eq(12375000)
     })
 
     it('vault is insolvency', async function () {
@@ -214,7 +214,7 @@ describe('TraderVaultLib', function () {
         cumFundingFeePerSizeGlobal0: 100,
         cumFundingFeePerSizeGlobal1: 100,
       })
-      expect((await tester.traderPosition()).usdcPosition).to.be.eq(1)
+      expect((await tester.traderPosition()).usdcPosition).to.be.eq(7500001)
     })
   })
 })

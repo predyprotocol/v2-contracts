@@ -31,13 +31,11 @@ contract PerpetualMarket is ERC20 {
 
     event Withdrawn(address indexed account, uint256 burned, uint256 amount);
 
-    event PositionUpdated(address trader, int256 size, uint256 totalPrice);
+    event PositionUpdated(address indexed trader, int256 size, int256 totalPrice);
 
     event Liquidated(address liquidator, uint256 vaultId);
 
     event Hedged(address hedger, uint256 usdcAmount, uint256 underlyingAmount);
-
-    int128 private constant IM_RATIO = 1e8;
 
     mapping(address => mapping(uint256 => TraderVaultLib.TraderPosition)) private traders;
 
@@ -118,6 +116,8 @@ contract PerpetualMarket is ERC20 {
                     totalPrice,
                     cumFundingGlobal
                 );
+
+                emit PositionUpdated(msg.sender, _tradeParams.sizes[poolId], totalPrice);
             }
         }
 
@@ -218,6 +218,9 @@ contract PerpetualMarket is ERC20 {
      * @notice execute hedging
      */
     function execHedge() external {
+        /// Update variance before hedging
+        perpetualMarketCore.updateVariance();
+
         (bool isLong, uint256 uAmount, uint256 usdcAmount) = perpetualMarketCore.calculateEntryPriceForHedging();
 
         if (isLong) {
@@ -229,5 +232,21 @@ contract PerpetualMarket is ERC20 {
         }
 
         emit Hedged(msg.sender, usdcAmount, uAmount);
+    }
+
+    /**
+     * @notice Gets current LP token price
+     */
+    function getLPTokenPrice() external view returns (uint128) {
+        return perpetualMarketCore.getLPTokenPrice();
+    }
+
+    /**
+     * @notice Gets trade price
+     * @param _poolId pool id
+     * @param _size positive to get ask price and negatice to get bit price
+     */
+    function getTradePrice(uint256 _poolId, int128 _size) external view returns (uint128) {
+        return perpetualMarketCore.getTradePrice(_poolId, _size);
     }
 }

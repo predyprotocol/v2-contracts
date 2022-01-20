@@ -88,7 +88,7 @@ describe('NettingLib', function () {
 
       await tester.complete({ usdcAmount: 10000, underlyingAmount: 10, deltas: [-10, 0], spot: scaledBN(1000, 8) })
 
-      expect((await tester.info()).underlyingPosition).to.be.eq('-10')
+      expect((await tester.info()).underlyingPosition).to.be.eq('10')
 
       const poolInfo0 = await tester.getPoolInfo(0)
 
@@ -102,7 +102,7 @@ describe('NettingLib', function () {
 
       await tester.complete({ usdcAmount: 10000, underlyingAmount: 10, deltas: [0, -10], spot: scaledBN(1000, 8) })
 
-      expect((await tester.info()).underlyingPosition).to.be.eq('-10')
+      expect((await tester.info()).underlyingPosition).to.be.eq('10')
 
       const poolInfo0 = await tester.getPoolInfo(1)
 
@@ -116,7 +116,7 @@ describe('NettingLib', function () {
 
       await tester.complete({ usdcAmount: 5000, underlyingAmount: 5, deltas: [-10, 5], spot: scaledBN(1000, 8) })
 
-      expect((await tester.info()).underlyingPosition).to.be.eq('-5')
+      expect((await tester.info()).underlyingPosition).to.be.eq('5')
 
       const poolInfo0 = await tester.getPoolInfo(0)
 
