@@ -9,7 +9,26 @@ import "./Math.sol";
  * T0: PositionValue must be greater than MinCollateral
  * T1: PositionValue must be less than MinCollateral
  * T2: Vault is insolvent
+ アーキテクチャー上は、VaultとPoolがあって、TraderやLPはそこへの参加者（Address）なので、存在する単語はValutかPoolでいいと思います。（他のコントラクトでも同様）
  */
+ 
+ // Rule 
+ // Name of variable on Struct must be understood by name only. Most of case, it should have no explanation.
+ // Fefore Function, valuables must be wrote like opyn as follows:
+ 
+  /**
+     * @dev decrease the short oToken balance in a vault when an oToken is burned
+     * @param _vault vault to decrease short position in
+     * @param _shortOtoken address of the _shortOtoken being reduced in the user's vault
+     * @param _amount number of _shortOtoken being reduced in the user's vault
+     * @param _index index of _shortOtoken in the user's vault.shortOtokens array
+     */
+     
+ // Value must be Amount of Token(any asset) x value of Token at Time T.
+ // if library is named as TraderVaultLib, then, what this contract should have is
+ // value of Vault, amount of future and squeeth, and entry price and index only. should not use any other words.
+ // index is price at T
+ 
 library TraderVaultLib {
     /// @dev risk parameter for MinCollateral calculation is 7.5%
     uint128 constant RISK_PARAM_FOR_VAULT = 750;
@@ -17,19 +36,40 @@ library TraderVaultLib {
     /// @dev liquidation fee is 50%
     int128 constant LIQUIDATION_FEE = 5000;
 
+//　ここって、どうしてPoolParamsって別で置いたんですかね？　　getSqeethAndFutureValueを見る限り、markPrice0は、SqueethのPoolに対して売れる価格、markPrice1は、同様にFutureだと思います。
+// TraderPositionのようにするなら、int128[2]　markPriceにした方が、いいと思いますし、そうでないなら、TraderPositionも全部、分けずに変数定義した方がいいと思います。（これは些細な点ですが、）
+// 実際、markPriceと記載されているのは、この時点での、Predy上でのIndexに相当すると思うんですが、これを使って、Valueを計算するなら、これで計算しないといけない気がするんですが、いかがですか？
+
     struct PoolParams {
         int128 markPrice0;
         int128 markPrice1;
         int128 cumFundingFeePerSizeGlobal0;
         int128 cumFundingFeePerSizeGlobal1;
     }
+    
+    
+/**
+例えば TraderPositionですが、下記のように書いて、事前にVaultのイメージを共有しておくと、説明なくても、ある程度はいけるかなっと思います。
 
+struct Vault {
+        int128 amountSqueeth
+        int128 amountFuture
+        int128 amountUsdc
+        int128 entrySqueeth
+        int128 entryFuture
+        int128 amountFundingFeeSqueeth
+        int128 amountFundingFeeFuture
+        bool isInsolvent
+    }
+     
+     */
+     
     struct TraderPosition {
         // position sizes
         int128[2] size;
         // entry price scaled by 1e16
         int128[2] entryPrice;
-        // cumulative funding fee entry
+        // cumulative funding fee 
         int128[2] cumulativeFundingFeeEntry;
         // amount of USDC
         int128 usdcPosition;
@@ -41,6 +81,13 @@ library TraderVaultLib {
      * @notice Deposits or withdraw collateral
      * @param _targetMinCollateralPerPositionValueRatio target MinCollateral / PositionValue ratio.
      * @return finalDepositOrWithdrawAmount positive means required more collateral and negative means excess collateral.
+     ↓
+     PerpetualMarket.sol内の、function openPositions　内で呼び出される関数だと思いますが、関数ないなので、変数は簡易に名前をつけ説明をつける方がいいと思います。getAmountRequiredくらいにして、マイナスなら、担保を超えているでいいかと。
+     * @notice get amount of deposit required to add amount of Squees/Future
+     * @param　_ratio minCollateral / ratio returns RequiredValue of Vault. (ただ、式内に、1e8を置くなら、このRatioはどういう次元なのかとか説明がほしいです。）
+     * @param _index index of Squeeth/Future
+     * @return _amount, positive means required more collateral and negative means excess collateral.
+     
      */
     function depositOrWithdraw(
         TraderPosition storage _traderPosition,
@@ -62,6 +109,7 @@ library TraderVaultLib {
 
     /**
      * @notice Updates positions in a vault
+     ここもupdateVaultにするとスッキリすると思います。
      */
     function updatePosition(
         TraderPosition storage _traderPosition,
@@ -76,6 +124,11 @@ library TraderVaultLib {
         _traderPosition.entryPrice[_poolId] += _entry;
         _traderPosition.cumulativeFundingFeeEntry[_poolId] += _cumulativeFundingFeeEntry;
     }
+    
+     /**
+     * 以下も、同様な意図で修正いただけると、ありがたいです！
+     */
+    
 
     /**
      * @notice Checks PositionValue is greater than MinCollateral
