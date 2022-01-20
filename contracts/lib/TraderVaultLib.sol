@@ -28,7 +28,7 @@ library TraderVaultLib {
         // position sizes
         int128[2] size;
         // entry price scaled by 1e16
-        int128[2] entry;
+        int128[2] entryPrice;
         // cumulative funding fee entry
         int128[2] cumulativeFundingFeeEntry;
         // amount of USDC
@@ -73,7 +73,7 @@ library TraderVaultLib {
         require(!_traderPosition.isInsolvent, "T2");
 
         _traderPosition.size[_poolId] += _size;
-        _traderPosition.entry[_poolId] += _entry;
+        _traderPosition.entryPrice[_poolId] += _entry;
         _traderPosition.cumulativeFundingFeeEntry[_poolId] += _cumulativeFundingFeeEntry;
     }
 
@@ -110,8 +110,8 @@ library TraderVaultLib {
         // clean positions
         _traderPosition.size[0] = 0;
         _traderPosition.size[1] = 0;
-        _traderPosition.entry[0] = 0;
-        _traderPosition.entry[1] = 0;
+        _traderPosition.entryPrice[0] = 0;
+        _traderPosition.entryPrice[1] = 0;
 
         int128 reward = (positionValue * LIQUIDATION_FEE) / 1e4;
 
@@ -170,10 +170,10 @@ library TraderVaultLib {
     {
         int128 pnl = (_poolParams.markPrice0 *
             _traderPosition.size[0] -
-            _traderPosition.entry[0] +
+            _traderPosition.entryPrice[0] +
             _poolParams.markPrice1 *
             _traderPosition.size[1] -
-            _traderPosition.entry[1]);
+            _traderPosition.entryPrice[1]);
 
         return pnl / 1e10;
     }
