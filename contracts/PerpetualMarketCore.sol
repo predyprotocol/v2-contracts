@@ -19,8 +19,8 @@ contract PerpetualMarketCore {
     using NettingLib for NettingLib.PoolInfo;
     using SpreadLib for SpreadLib.Info;
 
-    // max ratio of (IV/RV)^2 for sqeeth pool is 20 %
-    int128 private constant BETA_UR = 20 * 1e6;
+    // max ratio of (IV/RV)^2 for sqeeth pool is 50 %
+    int128 private constant BETA_UR = 50 * 1e6;
 
     // λ for exponentially weighted moving average is 94%
     int128 private constant LAMBDA = 94 * 1e6;
@@ -52,10 +52,8 @@ contract PerpetualMarketCore {
         int128 deltaImpact;
         // estimated variance of ETH
         int128 variance;
-        // Sqeeth price
-        int128 sqeethPrice;
-        // unrealized PnL
-        int128 rateOfReturn;
+        // ETH price
+        int128 ethPrice;
         // timestamp of last variance calculation
         uint128 lastTimestamp;
     }
@@ -119,7 +117,7 @@ contract PerpetualMarketCore {
         (uint128 spot, ) = getUnderlyingPrice();
 
         poolSnapshot.variance = _initialFundingRate;
-        poolSnapshot.sqeethPrice = int128(getMarkPrice(0, spot));
+        poolSnapshot.ethPrice = int128(spot);
         poolSnapshot.lastTimestamp = uint128(block.timestamp);
 
         liquidityAmount += _depositAmount;
@@ -261,19 +259,18 @@ contract PerpetualMarketCore {
      * @notice Calculates ETH variance under the Exponentially Weighted Moving Average Model.
      */
     function updateVariance() external onlyPerpetualMarket {
+        if (uint128(block.timestamp) < poolSnapshot.lastTimestamp + 12 hours) {
+            return;
+        }
         (uint128 spot, ) = getUnderlyingPrice();
 
-        int128 markPrice = int128(getMarkPrice(0, spot));
-        int128 rateOfReturn = (1e8 * getUnrealizedPnL(0, spot)) / pools[0].size;
-
-        int128 u = ((rateOfReturn - poolSnapshot.rateOfReturn) * 1e8) / poolSnapshot.sqeethPrice;
+        int128 u = ((int128(spot) - poolSnapshot.ethPrice) * 1e8) / poolSnapshot.ethPrice;
 
         u = (u * FUNDING_PERIOD) / int128(uint128(block.timestamp) - poolSnapshot.lastTimestamp);
 
         // Updates snapshot
         poolSnapshot.variance = (LAMBDA * poolSnapshot.variance + (1e8 - LAMBDA) * int128(Math.abs(u))) / 1e8;
-        poolSnapshot.sqeethPrice = markPrice;
-        poolSnapshot.rateOfReturn = rateOfReturn;
+        poolSnapshot.ethPrice = int128(spot);
         poolSnapshot.lastTimestamp = uint128(block.timestamp);
     }
 

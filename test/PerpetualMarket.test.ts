@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
-import { SAFETY_PERIOD } from './utils/constants'
+import { SAFETY_PERIOD, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
 
 describe('PerpetualMarket', function () {
   let wallet: Wallet, other: Wallet
@@ -269,6 +269,40 @@ describe('PerpetualMarket', function () {
       await perpetualMarket.initialize(amount, scaledBN(2, 5))
 
       await testContractHelper.updateSpot(scaledBN(100, 8))
+    })
+
+    it('variance updated', async () => {
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [scaledBN(1, 6), 0],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      const before = await perpetualMarket.getTradePrice(0, 1000)
+
+      await testContractHelper.updateSpot(scaledBN(110, 8))
+
+      await increaseTime(VARIANCE_UPDATE_INTERVAL)
+
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [scaledBN(1, 6), 0],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      await testContractHelper.updateSpot(scaledBN(100, 8))
+
+      await increaseTime(VARIANCE_UPDATE_INTERVAL)
+
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [scaledBN(1, 6), 0],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      const after = await perpetualMarket.getTradePrice(0, 1000)
+
+      expect(after).to.be.gt(before)
     })
 
     describe('Sqeeth', () => {

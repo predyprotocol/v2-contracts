@@ -143,6 +143,8 @@ contract PerpetualMarket is ERC20 {
             );
         }
 
+        perpetualMarketCore.updateVariance();
+
         if (finalDepositOrWithdrawAmount > 0) {
             ERC20(liquidityPool.collateral()).transferFrom(
                 msg.sender,
