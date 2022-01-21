@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "./Math.sol";
 import "./Pricer.sol";
 
@@ -12,6 +13,9 @@ import "./Pricer.sol";
  * N2: Total delta must not be 0
  */
 library NettingLib {
+    using SafeCast for int256;
+    using SafeCast for uint128;
+
     /// @dev 40%
     int128 constant ALPHA = 4000;
 
@@ -19,14 +23,14 @@ library NettingLib {
         int128 delta0;
         int128 delta1;
         int128 gamma0;
-        uint128 spotPrice;
+        int128 spotPrice;
     }
 
     struct CompleteParams {
         int128 usdcAmount;
         int128 underlyingAmount;
         int128[2] deltas;
-        uint128 spotPrice;
+        int128 spotPrice;
     }
 
     struct Info {
@@ -77,7 +81,7 @@ library NettingLib {
             _info.pools[i].underlyingPosition = -_params.deltas[i];
 
             // entry += uPos * S - (usdc/underlying)*(|uPos||netDelta|/|totalDelta|)
-            int128 newEntry = (_info.pools[i].underlyingPosition * int128(_params.spotPrice)) / 1e8;
+            int128 newEntry = (_info.pools[i].underlyingPosition * _params.spotPrice) / 1e8;
 
             newEntry -=
                 (_params.usdcAmount * int128(Math.abs(_info.pools[i].underlyingPosition) * Math.abs(netDelta))) /
@@ -130,8 +134,10 @@ library NettingLib {
 
         return
             Math.max(
-                ((1e4 - ALPHA) * int128(_params.spotPrice * Math.abs(weightedDelta - deltaFromGamma))) / 1e12,
-                ((1e4 + ALPHA) * int128(_params.spotPrice * Math.abs(weightedDelta + deltaFromGamma))) / 1e12
+                ((1e4 - ALPHA) * _params.spotPrice * (Math.abs(weightedDelta - deltaFromGamma).toInt256().toInt128())) /
+                    1e12,
+                ((1e4 + ALPHA) * _params.spotPrice * (Math.abs(weightedDelta + deltaFromGamma).toInt256().toInt128())) /
+                    1e12
             );
     }
 
@@ -140,9 +146,9 @@ library NettingLib {
      * HedgePositionValue = USDCPosition+UnderlyingPosition*S-entry
      * @return HedgePositionValue scaled by 1e8
      */
-    function getHedgePositionValue(PoolInfo storage _poolState, uint128 _spot) internal view returns (int128) {
+    function getHedgePositionValue(PoolInfo storage _poolState, int128 _spot) internal view returns (int128) {
         int128 hedgeNotional = _poolState.usdcPosition +
-            (int128(_spot) * _poolState.underlyingPosition) /
+            (_spot * _poolState.underlyingPosition) /
             1e8 -
             _poolState.entry;
         return hedgeNotional;
@@ -159,7 +165,7 @@ library NettingLib {
         int128 _delta1
     ) internal pure returns (int128) {
         int128 netDelta = _delta0 + _delta1;
-        int128 totalDelta = int128(Math.abs(_delta0) + Math.abs(_delta1));
+        int128 totalDelta = (Math.abs(_delta0) + Math.abs(_delta1)).toInt256().toInt128();
 
         require(totalDelta >= 0, "N1");
 

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "./interfaces/IPerpetualMarketCore.sol";
 import "./lib/NettingLib.sol";
 import "./lib/Pricer.sol";
@@ -15,11 +16,16 @@ import "hardhat/console.sol";
  * PMC0: No available liquidity
  * PMC1: No available liquidity
  * PMC2: caller must be PerpetualMarket contract
+ * PMC3: underlying price must not be 0
  */
 contract PerpetualMarketCore is IPerpetualMarketCore {
     using NettingLib for NettingLib.Info;
     using NettingLib for NettingLib.PoolInfo;
     using SpreadLib for SpreadLib.Info;
+    using SafeCast for uint256;
+    using SafeCast for uint128;
+    using SafeCast for int256;
+    using SafeCast for int128;
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
@@ -110,11 +116,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         require(supply == 0);
         mintAmount = _depositAmount;
 
-        (uint128 spotPrice, ) = getUnderlyingPrice();
+        (int128 spotPrice, ) = getUnderlyingPrice();
 
         poolSnapshot.variance = _initialFundingRate;
-        poolSnapshot.ethPrice = int128(spotPrice);
-        poolSnapshot.lastTimestamp = uint128(block.timestamp);
+        poolSnapshot.ethPrice = spotPrice;
+        poolSnapshot.lastTimestamp = block.timestamp.toUint128();
 
         liquidityAmount += _depositAmount;
         supply += mintAmount;
@@ -163,7 +169,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     {
         require(liquidityAmount > 0, "PMC1");
 
-        (uint128 spotPrice, ) = getUnderlyingPrice();
+        (int128 spotPrice, ) = getUnderlyingPrice();
 
         // Funding payment
         executeFundingPayment(_productId, spotPrice);
@@ -175,7 +181,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         (int128 deltaM, int128 hedgePositionValue) = addCollateral(_productId, spotPrice);
 
         // Calculate trade price
-        int128 tradePrice = int128(calculateTradePrice(_productId, spotPrice, deltaM));
+        int128 tradePrice = calculateTradePrice(_productId, spotPrice, deltaM);
 
         // Manages spread
         tradePrice = spreadInfos[_productId].checkPrice(_size > 0, tradePrice);
@@ -220,9 +226,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             uint128 usdcAmount
         )
     {
-        (uint128 spotPrice, ) = getUnderlyingPrice();
+        (int128 spotPrice, ) = getUnderlyingPrice();
 
-        (int128 sqeethPoolDelta, int128 futurePoolDelta) = getDeltas(int128(spotPrice), pools[0].size, pools[1].size);
+        (int128 sqeethPoolDelta, int128 futurePoolDelta) = getDeltas(spotPrice, pools[0].size, pools[1].size);
 
         {
             // 1. Calculate net delta
@@ -232,7 +238,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
             // 2. Calculate USDC and ETH amounts.
             underlyingAmount = Math.abs(netDelta) * 1e10;
-            usdcAmount = (Math.abs(netDelta) * spotPrice) / 1e10;
+            usdcAmount = (Math.abs(netDelta) * uint128(spotPrice)) / 1e10;
         }
 
         {
@@ -266,18 +272,18 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         if (block.timestamp < poolSnapshot.lastTimestamp + 12 hours) {
             return;
         }
-        (uint128 spotPrice, ) = getUnderlyingPrice();
+        (int128 spotPrice, ) = getUnderlyingPrice();
 
         // u_{t-1} = (S_t - S_{t-1}) / S_{t-1}
-        int128 u = ((int128(spotPrice) - poolSnapshot.ethPrice) * 1e8) / poolSnapshot.ethPrice;
+        int128 u = ((spotPrice - poolSnapshot.ethPrice) * 1e8) / poolSnapshot.ethPrice;
 
-        u = (u * FUNDING_PERIOD) / int128(uint128(block.timestamp) - poolSnapshot.lastTimestamp);
+        u = (u * FUNDING_PERIOD) / (block.timestamp - poolSnapshot.lastTimestamp).toInt256().toInt128();
 
         // Updates snapshot
         // variance_{t} = λ * variance_{t-1} + (1 - λ) * u_{t-1}^2
         poolSnapshot.variance = (LAMBDA * poolSnapshot.variance + ((1e8 - LAMBDA) * (u * u)) / 1e8) / 1e8;
-        poolSnapshot.ethPrice = int128(spotPrice);
-        poolSnapshot.lastTimestamp = uint128(block.timestamp);
+        poolSnapshot.ethPrice = spotPrice;
+        poolSnapshot.lastTimestamp = block.timestamp.toUint128();
     }
 
     /////////////////////////
@@ -289,8 +295,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * @param _productId product id
      * @param _size size to trade. positive for pool short and negative for pool long.
      */
-    function getTradePrice(uint256 _productId, int128 _size) external view returns (uint128) {
-        (uint128 spotPrice, ) = getUnderlyingPrice();
+    function getTradePrice(uint256 _productId, int128 _size) external view returns (int128) {
+        (int128 spotPrice, ) = getUnderlyingPrice();
 
         int128 deltaM = getReqiredCollateral(_productId, spotPrice, _size);
 
@@ -298,17 +304,17 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     function getPoolState() external view returns (PoolState memory) {
-        (uint128 spotPrice, ) = getUnderlyingPrice();
+        (int128 spotPrice, ) = getUnderlyingPrice();
 
         int128[2] memory markPrices;
         int128[2] memory cumFundingFeePerSizeGlobals;
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
-            markPrices[i] = int128(getMarkPrice(i, spotPrice));
+            markPrices[i] = getMarkPrice(i, spotPrice);
             cumFundingFeePerSizeGlobals[i] = pools[i].cumulativeFundingFeePerSizeGlobal;
         }
 
-        return PoolState(spotPrice, markPrices, cumFundingFeePerSizeGlobals);
+        return PoolState(uint128(spotPrice), markPrices, cumFundingFeePerSizeGlobals);
     }
 
     /////////////////////////
@@ -319,16 +325,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * @notice Executes funding payment
      * FundingPerSize = Price * FundingRate * (T-t) / 1 days
      */
-    function executeFundingPayment(uint256 _productId, uint128 _spot) internal {
+    function executeFundingPayment(uint256 _productId, int128 _spotPrice) internal {
         if (pools[_productId].lastTradeTime == 0) {
             return;
         }
 
-        uint128 indexPrice = Pricer.calculateIndexPrice(_productId, _spot);
+        int128 indexPrice = Pricer.calculateIndexPrice(_productId, _spotPrice);
 
-        int128 currentFundingRate = getFundingRate(_productId);
+        int256 currentFundingRate = getFundingRate(_productId);
 
-        int128 fundingFeePerSize = (int128(indexPrice) * currentFundingRate) / 1e8;
+        int128 fundingFeePerSize = ((indexPrice * currentFundingRate) / 1e8).toInt128();
 
         fundingFeePerSize =
             (fundingFeePerSize * int128(uint128(block.timestamp) - pools[_productId].lastTradeTime)) /
@@ -342,8 +348,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     /**
      * @notice Adds collateral to Netting contract
      */
-    function addCollateral(uint256 _productId, uint128 _spot) internal returns (int128, int128) {
-        (int128 delta0, int128 delta1) = getDeltas(int128(_spot), pools[0].size, pools[1].size);
+    function addCollateral(uint256 _productId, int128 _spot) internal returns (int128, int128) {
+        (int128 delta0, int128 delta1) = getDeltas(_spot, pools[0].size, pools[1].size);
         int128 gamma = (Pricer.calculateGamma(0) * pools[0].size) / 1e8;
 
         return nettingInfo.addCollateral(_productId, NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot));
@@ -354,7 +360,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      */
     function getReqiredCollateral(
         uint256 _productId,
-        uint128 _spot,
+        int128 _spot,
         int128 _size
     ) internal view returns (int128) {
         int128 delta0;
@@ -372,7 +378,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
                 size1 += _size;
             }
 
-            (delta0, delta1) = getDeltas(int128(_spot), size0, size1);
+            (delta0, delta1) = getDeltas(_spot, size0, size1);
             gamma = (Pricer.calculateGamma(0) * size0) / 1e8;
         }
 
@@ -418,25 +424,25 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      */
     function calculateTradePrice(
         uint256 _productId,
-        uint128 _spot,
+        int128 _spotPrice,
         int128 _deltaM
-    ) internal view returns (uint128) {
-        uint128 indexPrice = Pricer.calculateIndexPrice(_productId, _spot);
+    ) internal view returns (int128) {
+        int128 indexPrice = Pricer.calculateIndexPrice(_productId, _spotPrice);
 
-        int128 currentFundingRate = getFundingRate(_productId);
+        int256 currentFundingRate = getFundingRate(_productId);
 
-        int128 deltaFundingRate = getDeltaFundingRate(_productId, _deltaM);
+        int256 deltaFundingRate = getDeltaFundingRate(_productId, _deltaM);
 
-        return (indexPrice * uint128(1e8 + currentFundingRate + deltaFundingRate / 2)) / 1e8;
+        return ((indexPrice * (1e8 + currentFundingRate + deltaFundingRate / 2)) / 1e8).toInt128();
     }
 
     function getDeltas(
-        int128 _spot,
+        int128 _spotPrice,
         int128 _size0,
         int128 _size1
     ) internal pure returns (int128, int128) {
-        int128 sqeethPoolDelta = -(Pricer.calculateDelta(0, _spot) * _size0) / 1e8;
-        int128 futurePoolDelta = -(Pricer.calculateDelta(1, _spot) * _size1) / 1e8;
+        int128 sqeethPoolDelta = -(Pricer.calculateDelta(0, _spotPrice) * _size0) / 1e8;
+        int128 futurePoolDelta = -(Pricer.calculateDelta(1, _spotPrice) * _size1) / 1e8;
         return (sqeethPoolDelta, futurePoolDelta);
     }
 
@@ -446,11 +452,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * @return LPTokenPrice scaled by 1e6
      */
     function getLPTokenPrice() public view returns (uint128) {
-        (uint128 spotPrice, ) = getUnderlyingPrice();
+        (int128 spotPrice, ) = getUnderlyingPrice();
 
         return
             ((uint128(
-                int128(liquidityAmount) + (getUnrealizedPnL(0, spotPrice) + getUnrealizedPnL(1, spotPrice)) / 1e2
+                liquidityAmount.toInt256().toInt128() +
+                    (getUnrealizedPnL(0, spotPrice) + getUnrealizedPnL(1, spotPrice)) /
+                    1e2
             ) -
                 pools[0].lockedLiquidityAmount -
                 pools[1].lockedLiquidityAmount) * 1e6) / supply;
@@ -461,12 +469,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * UnrealizedPnL = MarkPrice * size - entryPrice + HedgePositionValue
      * @return UnrealizedPnL scaled by 1e8
      */
-    function getUnrealizedPnL(uint256 _productId, uint128 _spot) internal view returns (int128) {
-        uint128 markPrice = getMarkPrice(_productId, _spot);
+    function getUnrealizedPnL(uint256 _productId, int128 _spot) internal view returns (int128) {
+        int128 markPrice = getMarkPrice(_productId, _spot);
         return
             pools[_productId].entryPrice /
             1e8 -
-            (int128(markPrice) * pools[_productId].size) /
+            (markPrice * pools[_productId].size) /
             1e8 +
             nettingInfo.pools[_productId].getHedgePositionValue(_spot);
     }
@@ -476,12 +484,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * MarkPrice = IndexPrice * (1 + FundingRate)
      * @return mark price scaled by 1e8
      */
-    function getMarkPrice(uint256 _productId, uint128 _spot) internal view returns (uint128) {
-        uint128 indexPrice = Pricer.calculateIndexPrice(_productId, _spot);
+    function getMarkPrice(uint256 _productId, int128 _spot) internal view returns (int128) {
+        int128 indexPrice = Pricer.calculateIndexPrice(_productId, _spot);
 
-        int128 currentFundingRate = getFundingRate(_productId);
+        int256 currentFundingRate = getFundingRate(_productId);
 
-        return (indexPrice * uint128(1e8 + currentFundingRate)) / 1e8;
+        return ((indexPrice * (1e8 + currentFundingRate)) / 1e8).toInt128();
     }
 
     /**
@@ -490,21 +498,23 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * Future: FundingRate = (m / L)
      * @return FundingRate scaled by 1e8 (1e8 = 100%)
      */
-    function getFundingRate(uint256 _productId) internal view returns (int128) {
-        int128 m = int128(pools[_productId].lockedLiquidityAmount);
+    function getFundingRate(uint256 _productId) internal view returns (int256) {
+        int128 m = pools[_productId].lockedLiquidityAmount.toInt256().toInt128();
         // int128 m = NettingLib.getRequiredCollateral(_productId, NettingLib.AddCollateralParams()) / 1e2;
 
+        int256 liquidityAmountInt256 = liquidityAmount.toInt256();
+
         if (_productId == 0) {
-            if (liquidityAmount == 0) {
+            if (liquidityAmountInt256 == 0) {
                 return poolSnapshot.variance;
             } else {
-                return (poolSnapshot.variance * (1e8 + (BETA_UR * m) / int128(liquidityAmount))) / 1e8;
+                return ((poolSnapshot.variance * (1e8 + (BETA_UR * m) / liquidityAmountInt256)) / 1e8).toInt128();
             }
         } else if (_productId == 1) {
             if (pools[_productId].size > 0) {
-                return (MAX_FUNDING_RATE * m) / int128(liquidityAmount);
+                return ((MAX_FUNDING_RATE * m) / liquidityAmountInt256).toInt128();
             } else {
-                return -(MAX_FUNDING_RATE * m) / int128(liquidityAmount);
+                return -((MAX_FUNDING_RATE * m) / liquidityAmountInt256).toInt128();
             }
         }
         return 0;
@@ -516,11 +526,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * Future: ΔFundingRate = (m / L)
      * @return ΔFundingRate scaled by 1e8 (1e8 = 100%)
      */
-    function getDeltaFundingRate(uint256 _productId, int128 _deltaM) internal view returns (int128) {
+    function getDeltaFundingRate(uint256 _productId, int128 _deltaM) internal view returns (int256) {
+        int256 liquidityAmountInt256 = liquidityAmount.toInt256();
+
         if (_productId == 0) {
-            return (poolSnapshot.variance * BETA_UR * _deltaM) / int128(liquidityAmount * 1e8);
+            return ((poolSnapshot.variance * BETA_UR * _deltaM) / (liquidityAmountInt256 * 1e8));
         } else if (_productId == 1) {
-            return (MAX_FUNDING_RATE * _deltaM) / int128(liquidityAmount);
+            return ((MAX_FUNDING_RATE * _deltaM) / liquidityAmountInt256);
         }
         return 0;
     }
@@ -528,11 +540,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     /**
      * @notice get underlying price scaled by 1e8
      */
-    function getUnderlyingPrice() internal view returns (uint128, uint256) {
+    function getUnderlyingPrice() internal view returns (int128, uint256) {
         (, int256 answer, , uint256 roundTimestamp, ) = priceFeed.latestRoundData();
 
-        require(answer > 0, "AN0");
+        require(answer > 0, "PMC3");
 
-        return (uint128(int128(answer)), roundTimestamp);
+        return (answer.toInt128(), roundTimestamp);
     }
 }

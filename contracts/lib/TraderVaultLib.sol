@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "../interfaces/IPerpetualMarketCore.sol";
 import "./Math.sol";
 
@@ -12,6 +13,9 @@ import "./Math.sol";
  * T2: Vault is insolvent
  */
 library TraderVaultLib {
+    using SafeCast for int256;
+    using SafeCast for uint128;
+
     uint256 private constant MAX_PRODUCT_ID = 2;
 
     /// @dev risk parameter for MinCollateral calculation is 7.5%
@@ -111,14 +115,18 @@ library TraderVaultLib {
      * MinCollateral = 0.075 * S * (|2*S*a_{sqeeth}+a_{future}| + 0.15*S*|a_{sqeeth}|)
      * @return MinCollateral scaled by 1e6
      */
-    function getMinCollateral(TraderPosition memory _traderPosition, uint128 _spot) internal pure returns (int128) {
+    function getMinCollateral(TraderPosition memory _traderPosition, uint128 _spotPrice)
+        internal
+        pure
+        returns (int128)
+    {
         uint128 maxDelta = Math.abs(
-            (2 * int128(_spot) * _traderPosition.amountAsset[0]) / 1e12 + _traderPosition.amountAsset[1]
-        ) + (2 * RISK_PARAM_FOR_VAULT * _spot * Math.abs(_traderPosition.amountAsset[0] / 1e12)) / 1e4;
+            (2 * int128(_spotPrice) * _traderPosition.amountAsset[0]) / 1e12 + _traderPosition.amountAsset[1]
+        ) + (2 * RISK_PARAM_FOR_VAULT * _spotPrice * Math.abs(_traderPosition.amountAsset[0] / 1e12)) / 1e4;
 
-        uint128 minCollateral = (RISK_PARAM_FOR_VAULT * _spot * maxDelta) / (1e4 * 1e8);
+        uint128 minCollateral = (RISK_PARAM_FOR_VAULT * _spotPrice * maxDelta) / (1e4 * 1e8);
 
-        return int128(minCollateral / 1e2);
+        return (minCollateral / 1e2).toInt256().toInt128();
     }
 
     /**
