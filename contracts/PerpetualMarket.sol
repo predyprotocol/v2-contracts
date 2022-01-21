@@ -116,7 +116,7 @@ contract PerpetualMarket is ERC20 {
                     _tradeParams.sizes[poolId]
                 );
 
-                traders[msg.sender][_tradeParams.vaultId].updatePosition(
+                traders[msg.sender][_tradeParams.vaultId].updateVault(
                     poolId,
                     _tradeParams.sizes[poolId],
                     totalPrice,
@@ -130,17 +130,11 @@ contract PerpetualMarket is ERC20 {
         int128 finalDepositOrWithdrawAmount;
 
         {
-            PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
-            finalDepositOrWithdrawAmount = traders[msg.sender][_tradeParams.vaultId].depositOrWithdraw(
+            finalDepositOrWithdrawAmount = traders[msg.sender][_tradeParams.vaultId].getAmountRequired(
                 _tradeParams.collateralRatio,
-                poolState.spot,
-                TraderVaultLib.PoolParams(
-                    poolState.markPrice0,
-                    poolState.markPrice1,
-                    poolState.cumFundingFeePerSizeGlobal0,
-                    poolState.cumFundingFeePerSizeGlobal1
-                )
+                perpetualMarketCore.getPoolState()
             );
+            traders[msg.sender][_tradeParams.vaultId].updateUsdcAmount(finalDepositOrWithdrawAmount);
         }
 
         perpetualMarketCore.updateVariance();
@@ -197,22 +191,14 @@ contract PerpetualMarket is ERC20 {
         PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
 
         for (uint256 poolId = 0; poolId < MAX_POOL_ID; poolId++) {
-            int128 size = traders[_vaultOwner][_vaultId].size[poolId];
+            int128 size = traders[_vaultOwner][_vaultId].amountAsset[poolId];
 
             if (size != 0) {
                 perpetualMarketCore.updatePoolPosition(poolId, -size);
             }
         }
 
-        uint128 reward = traders[_vaultOwner][_vaultId].liquidate(
-            poolState.spot,
-            TraderVaultLib.PoolParams(
-                poolState.markPrice0,
-                poolState.markPrice1,
-                poolState.cumFundingFeePerSizeGlobal0,
-                poolState.cumFundingFeePerSizeGlobal1
-            )
-        );
+        uint128 reward = traders[_vaultOwner][_vaultId].liquidate(poolState);
 
         // Sends a half of reward to the pool
         perpetualMarketCore.addLiquidity(reward / 2);
@@ -270,14 +256,7 @@ contract PerpetualMarket is ERC20 {
     function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view returns (VaultStatus memory) {
         PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
 
-        int128 positionValue = traders[_vaultOwner][_vaultId].getPositionValue(
-            TraderVaultLib.PoolParams(
-                poolState.markPrice0,
-                poolState.markPrice1,
-                poolState.cumFundingFeePerSizeGlobal0,
-                poolState.cumFundingFeePerSizeGlobal1
-            )
-        );
+        int128 positionValue = traders[_vaultOwner][_vaultId].getPositionValue(poolState);
 
         int128 minCollateral = traders[_vaultOwner][_vaultId].getMinCollateral(poolState.spot);
 

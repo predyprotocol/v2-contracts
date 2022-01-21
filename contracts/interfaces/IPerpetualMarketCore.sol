@@ -2,7 +2,11 @@
 pragma solidity ^0.8.0;
 
 interface IPerpetualMarketCore {
-    function getUnderlyingPrice() external view returns (uint128, uint256);
+    struct PoolState {
+        uint128 spot;
+        int128[2] markPrices;
+        int128[2] cumFundingFeePerSizeGlobals;
+    }
 
-    function getMarkPrice(uint256 _poolId, uint128 _spot) external view returns (uint128);
+    function getPoolState() external view returns (PoolState memory);
 }

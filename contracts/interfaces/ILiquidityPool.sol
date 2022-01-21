@@ -1,8 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "./IFeeLevel.sol";
-
 interface ILiquidityPool {
     function collateral() external view returns (address);
 
