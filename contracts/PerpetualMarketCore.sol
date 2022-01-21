@@ -259,17 +259,19 @@ contract PerpetualMarketCore {
      * @notice Calculates ETH variance under the Exponentially Weighted Moving Average Model.
      */
     function updateVariance() external onlyPerpetualMarket {
-        if (uint128(block.timestamp) < poolSnapshot.lastTimestamp + 12 hours) {
+        if (block.timestamp < poolSnapshot.lastTimestamp + 12 hours) {
             return;
         }
         (uint128 spot, ) = getUnderlyingPrice();
 
+        // u_{t-1} = (S_t - S_{t-1}) / S_{t-1}
         int128 u = ((int128(spot) - poolSnapshot.ethPrice) * 1e8) / poolSnapshot.ethPrice;
 
         u = (u * FUNDING_PERIOD) / int128(uint128(block.timestamp) - poolSnapshot.lastTimestamp);
 
         // Updates snapshot
-        poolSnapshot.variance = (LAMBDA * poolSnapshot.variance + (1e8 - LAMBDA) * int128(Math.abs(u))) / 1e8;
+        // variance_{t} = λ * variance_{t-1} + (1 - λ) * u_{t-1}^2
+        poolSnapshot.variance = (LAMBDA * poolSnapshot.variance + ((1e8 - LAMBDA) * (u * u)) / 1e8) / 1e8;
         poolSnapshot.ethPrice = int128(spot);
         poolSnapshot.lastTimestamp = uint128(block.timestamp);
     }
