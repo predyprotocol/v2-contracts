@@ -41,7 +41,7 @@ library TraderVaultLib {
         require(!_traderPosition.isInsolvent, "T2");
 
         int128 positionValue = getPositionValue(_traderPosition, _poolParams);
-        int128 minCollateral = getMinCollateral(_traderPosition, _poolParams.spot);
+        int128 minCollateral = getMinCollateral(_traderPosition, _poolParams.spotPrice);
 
         int128 requiredPositionValue = ((1e8 * minCollateral) / _ratio);
 
@@ -85,7 +85,7 @@ library TraderVaultLib {
     {
         int128 positionValue = getPositionValue(_traderPosition, _poolParams);
 
-        require(positionValue < getMinCollateral(_traderPosition, _poolParams.spot), "T1");
+        require(positionValue < getMinCollateral(_traderPosition, _poolParams.spotPrice), "T1");
 
         if (positionValue < 0) {
             _traderPosition.isInsolvent = true;

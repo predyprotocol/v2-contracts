@@ -19,14 +19,14 @@ library NettingLib {
         int128 delta0;
         int128 delta1;
         int128 gamma0;
-        uint128 spot;
+        uint128 spotPrice;
     }
 
     struct CompleteParams {
         int128 usdcAmount;
         int128 underlyingAmount;
         int128[2] deltas;
-        uint128 spot;
+        uint128 spotPrice;
     }
 
     struct Info {
@@ -52,7 +52,7 @@ library NettingLib {
     ) internal returns (int128 requiredCollateral, int128 hedgePositionValue) {
         int128 totalRequiredCollateral = getRequiredCollateral(_poolId, _params);
 
-        hedgePositionValue = getHedgePositionValue(_info.pools[_poolId], _params.spot);
+        hedgePositionValue = getHedgePositionValue(_info.pools[_poolId], _params.spotPrice);
 
         requiredCollateral = totalRequiredCollateral - hedgePositionValue;
 
@@ -77,7 +77,7 @@ library NettingLib {
             _info.pools[i].underlyingPosition = -_params.deltas[i];
 
             // entry += uPos * S - (usdc/underlying)*(|uPos||netDelta|/|totalDelta|)
-            int128 newEntry = (_info.pools[i].underlyingPosition * int128(_params.spot)) / 1e8;
+            int128 newEntry = (_info.pools[i].underlyingPosition * int128(_params.spotPrice)) / 1e8;
 
             newEntry -=
                 (_params.usdcAmount * int128(Math.abs(_info.pools[i].underlyingPosition) * Math.abs(netDelta))) /
@@ -109,7 +109,7 @@ library NettingLib {
      * @return RequiredCollateral scaled by 1e8
      */
     function getRequiredCollateralOfFuture(AddCollateralParams memory _params) internal pure returns (int128) {
-        int128 requiredCollateral = (int128(_params.spot) *
+        int128 requiredCollateral = (int128(_params.spotPrice) *
             int128(Math.abs(calculateWeightedDelta(1, _params.delta0, _params.delta1)))) / 1e8;
         return ((1e4 + ALPHA) * requiredCollateral) / 1e4;
     }
@@ -122,7 +122,7 @@ library NettingLib {
      */
     function getRequiredCollateralOfSqeeth(AddCollateralParams memory _params) internal pure returns (int128) {
         int128 weightedDelta = calculateWeightedDelta(0, _params.delta0, _params.delta1);
-        int128 deltaFromGamma = (ALPHA * int128(_params.spot) * _params.gamma0) / 1e12;
+        int128 deltaFromGamma = (ALPHA * int128(_params.spotPrice) * _params.gamma0) / 1e12;
 
         return
             Math.max(

@@ -258,7 +258,7 @@ contract PerpetualMarket is ERC20 {
 
         int128 positionValue = traders[_vaultOwner][_vaultId].getPositionValue(poolState);
 
-        int128 minCollateral = traders[_vaultOwner][_vaultId].getMinCollateral(poolState.spot);
+        int128 minCollateral = traders[_vaultOwner][_vaultId].getMinCollateral(poolState.spotPrice);
 
         return VaultStatus(positionValue, minCollateral, traders[_vaultOwner][_vaultId]);
     }

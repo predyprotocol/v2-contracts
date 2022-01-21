@@ -7,7 +7,7 @@ library Pricer {
     /**
      * @return calculated price scaled by 1e8
      */
-    function calculatePrice(uint256 _poolId, uint256 _spot) internal pure returns (uint128) {
+    function calculateIndexPrice(uint256 _poolId, uint256 _spot) internal pure returns (uint128) {
         if (_poolId == 0) {
             return uint128((_spot * _spot) / (1e12));
         } else if (_poolId == 1) {

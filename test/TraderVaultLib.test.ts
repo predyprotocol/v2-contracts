@@ -57,7 +57,7 @@ describe('TraderVaultLib', function () {
         await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
-          spot: '11000000000',
+          spotPrice: '11000000000',
           markPrices: ['12100000000', '110000000000'],
           cumFundingFeePerSizeGlobals: [0, 0],
         })
@@ -68,7 +68,7 @@ describe('TraderVaultLib', function () {
         await tester.testUpdateVault(0, '-100000000', '-1000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
-          spot: '110000000000',
+          spotPrice: '110000000000',
           markPrices: ['12100000000', '110000000000'],
           cumFundingFeePerSizeGlobals: [0, 0],
         })
@@ -79,7 +79,7 @@ describe('TraderVaultLib', function () {
         await tester.testUpdateVault(1, '100000000', '10000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
-          spot: '110000000000',
+          spotPrice: '110000000000',
           markPrices: ['12100000000', '110000000000'],
           cumFundingFeePerSizeGlobals: [0, 0],
         })
@@ -90,7 +90,7 @@ describe('TraderVaultLib', function () {
         await tester.testUpdateVault(1, '-100000000', '-10000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
-          spot: '110000000000',
+          spotPrice: '110000000000',
           markPrices: ['12100000000', '110000000000'],
           cumFundingFeePerSizeGlobals: [0, 0],
         })
@@ -102,7 +102,7 @@ describe('TraderVaultLib', function () {
         await tester.testUpdateVault(1, '-20000000', '-2000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
-          spot: '110000000000',
+          spotPrice: '110000000000',
           markPrices: ['12100000000', '110000000000'],
           cumFundingFeePerSizeGlobals: [0, 0],
         })
@@ -114,7 +114,7 @@ describe('TraderVaultLib', function () {
         await tester.testUpdateVault(1, '-100000000', '10000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
-          spot: '110000000000',
+          spotPrice: '110000000000',
           markPrices: ['12100000000', '110000000000'],
           cumFundingFeePerSizeGlobals: [0, 0],
         })
@@ -127,7 +127,7 @@ describe('TraderVaultLib', function () {
     it('more collateral required', async function () {
       await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
       const usdcAmount = await tester.testGetAmountRequired('100000000', {
-        spot: '100000000000',
+        spotPrice: '100000000000',
         markPrices: ['10000000000', '100000000000'],
         cumFundingFeePerSizeGlobals: [0, 0],
       })
@@ -137,13 +137,13 @@ describe('TraderVaultLib', function () {
     it('there is excess collateral', async function () {
       await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
       const usdcAmount = await tester.testGetAmountRequired('100000000', {
-        spot: '100000000000',
+        spotPrice: '100000000000',
         markPrices: ['10000000000', '100000000000'],
         cumFundingFeePerSizeGlobals: [0, 0],
       })
       await tester.testUpdateUsdcAmount(usdcAmount)
       const usdcAmount2 = await tester.testGetAmountRequired('100000000', {
-        spot: '110000000000',
+        spotPrice: '110000000000',
         markPrices: ['12100000000', '110000000000'],
         cumFundingFeePerSizeGlobals: [0, 0],
       })
@@ -155,7 +155,7 @@ describe('TraderVaultLib', function () {
     beforeEach(async () => {
       await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
       const usdcAmount = await tester.testGetAmountRequired('100000000', {
-        spot: '100000000000',
+        spotPrice: '100000000000',
         markPrices: ['10000000000', '100000000000'],
         cumFundingFeePerSizeGlobals: [0, 0],
       })
@@ -165,7 +165,7 @@ describe('TraderVaultLib', function () {
     it('reverts if position value is greater than min collateral', async function () {
       await expect(
         tester.testLiquidate({
-          spot: '100000000000',
+          spotPrice: '100000000000',
           markPrices: ['10000000000', '100000000000'],
           cumFundingFeePerSizeGlobals: [0, 0],
         }),
@@ -176,7 +176,7 @@ describe('TraderVaultLib', function () {
 
     it('liquidate a vault', async function () {
       await tester.testLiquidate({
-        spot: '95000000000',
+        spotPrice: '95000000000',
         markPrices: ['9025000000', '95000000000'],
         cumFundingFeePerSizeGlobals: [0, 0],
       })
@@ -185,7 +185,7 @@ describe('TraderVaultLib', function () {
 
     it('vault is insolvency', async function () {
       await tester.testLiquidate({
-        spot: '90000000000',
+        spotPrice: '90000000000',
         markPrices: ['8100000000', '90000000000'],
         cumFundingFeePerSizeGlobals: [0, 0],
       })
@@ -196,7 +196,7 @@ describe('TraderVaultLib', function () {
 
     it('position value is decreased by funding fee', async function () {
       await tester.testLiquidate({
-        spot: '100000000000',
+        spotPrice: '100000000000',
         markPrices: ['10000000000', '100000000000'],
         cumFundingFeePerSizeGlobals: [100, 100],
       })
