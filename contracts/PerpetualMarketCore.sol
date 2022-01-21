@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "./interfaces/IPerpetualMarketCore.sol";
 import "./lib/NettingLib.sol";
 import "./lib/Pricer.sol";
 import "./lib/SpreadLib.sol";
@@ -14,10 +15,12 @@ import "hardhat/console.sol";
  * PMC0: No available liquidity
  * PMC1: No available liquidity
  */
-contract PerpetualMarketCore {
+contract PerpetualMarketCore is IPerpetualMarketCore {
     using NettingLib for NettingLib.Info;
     using NettingLib for NettingLib.PoolInfo;
     using SpreadLib for SpreadLib.Info;
+
+    uint256 private constant MAX_POOL_ID = 2;
 
     // max ratio of (IV/RV)^2 for sqeeth pool is 50 %
     int128 private constant BETA_UR = 50 * 1e6;
@@ -58,21 +61,13 @@ contract PerpetualMarketCore {
         uint128 lastTimestamp;
     }
 
-    struct PoolState {
-        uint128 spot;
-        int128 markPrice0;
-        int128 markPrice1;
-        int128 cumFundingFeePerSizeGlobal0;
-        int128 cumFundingFeePerSizeGlobal1;
-    }
-
     uint128 public supply;
 
     uint128 public liquidityAmount;
 
     mapping(uint256 => Pool) public pools;
 
-    mapping(uint256 => SpreadLib.Info) public spreadInfos;
+    mapping(uint256 => SpreadLib.Info) private spreadInfos;
 
     PoolSnapshot private poolSnapshot;
 
@@ -80,7 +75,7 @@ contract PerpetualMarketCore {
 
     AggregatorV3Interface private priceFeed;
 
-    uint128 private lastHedgeTime;
+    uint128 public lastHedgeTime;
 
     address private perpetualMarket;
 
@@ -294,14 +289,15 @@ contract PerpetualMarketCore {
     function getPoolState() external view returns (PoolState memory) {
         (uint128 spot, ) = getUnderlyingPrice();
 
-        return
-            PoolState(
-                spot,
-                int128(getMarkPrice(0, spot)),
-                int128(getMarkPrice(1, spot)),
-                pools[0].cumulativeFundingFeePerSizeGlobal,
-                pools[1].cumulativeFundingFeePerSizeGlobal
-            );
+        int128[2] memory markPrices;
+        int128[2] memory cumFundingFeePerSizeGlobals;
+
+        for (uint256 i = 0; i < MAX_POOL_ID; i++) {
+            markPrices[i] = int128(getMarkPrice(i, spot));
+            cumFundingFeePerSizeGlobals[i] = pools[i].cumulativeFundingFeePerSizeGlobal;
+        }
+
+        return PoolState(spot, markPrices, cumFundingFeePerSizeGlobals);
     }
 
     /////////////////////////

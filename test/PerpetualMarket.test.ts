@@ -458,8 +458,8 @@ describe('PerpetualMarket', function () {
 
         expect(vaultStatus.minCollateral).to.be.gt(0)
         expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
-        expect(vaultStatus.position.size[0]).to.be.eq(scaledBN(1, 6))
-        expect(vaultStatus.position.size[1]).to.be.eq(scaledBN(1, 6))
+        expect(vaultStatus.position.amountAsset[0]).to.be.eq(scaledBN(1, 6))
+        expect(vaultStatus.position.amountAsset[1]).to.be.eq(scaledBN(1, 6))
       })
 
       it('close positions', async () => {

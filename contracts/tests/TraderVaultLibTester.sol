@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "../interfaces/IPerpetualMarketCore.sol";
 import "../lib/TraderVaultLib.sol";
 
 /**
@@ -11,37 +12,36 @@ contract TraderVaultLibTester {
     TraderVaultLib.TraderPosition public traderPosition;
     int128 public r;
 
-    function testUpdatePosition(
+    function testUpdateVault(
         uint256 _poolId,
-        int128 _size,
-        int128 _entry,
-        int128 _cumulativeFundingFeeEntry
+        int128 _amountAsset,
+        int128 _valueEntry,
+        int128 _valueFundingFeeEntry
     ) external {
-        TraderVaultLib.updatePosition(traderPosition, _poolId, _size, _entry, _cumulativeFundingFeeEntry);
+        TraderVaultLib.updateVault(traderPosition, _poolId, _amountAsset, _valueEntry, _valueFundingFeeEntry);
     }
 
-    function testDepositOrWithdraw(
-        int128 _targetMinCollateralPerPositionValueRatio,
-        uint128 _spot,
-        TraderVaultLib.PoolParams memory _poolParams
-    ) external {
-        r = TraderVaultLib.depositOrWithdraw(
-            traderPosition,
-            _targetMinCollateralPerPositionValueRatio,
-            _spot,
-            _poolParams
-        );
+    function testGetAmountRequired(int128 _ratio, IPerpetualMarketCore.PoolState memory _poolParams)
+        external
+        view
+        returns (int128)
+    {
+        return TraderVaultLib.getAmountRequired(traderPosition, _ratio, _poolParams);
     }
 
-    function testLiquidate(uint128 _spot, TraderVaultLib.PoolParams memory _poolParams) external {
-        r = int128(TraderVaultLib.liquidate(traderPosition, _spot, _poolParams));
+    function testUpdateUsdcAmount(int128 _amount) external {
+        TraderVaultLib.updateUsdcAmount(traderPosition, _amount);
+    }
+
+    function testLiquidate(IPerpetualMarketCore.PoolState memory _poolParams) external {
+        r = int128(TraderVaultLib.liquidate(traderPosition, _poolParams));
     }
 
     function getMinCollateral(uint128 _spot) external view returns (int128) {
         return TraderVaultLib.getMinCollateral(traderPosition, _spot);
     }
 
-    function getPositionValue(TraderVaultLib.PoolParams memory _poolParams) external view returns (int128) {
+    function getPositionValue(IPerpetualMarketCore.PoolState memory _poolParams) external view returns (int128) {
         return TraderVaultLib.getPositionValue(traderPosition, _poolParams);
     }
 }
