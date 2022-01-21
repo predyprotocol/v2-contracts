@@ -7,7 +7,7 @@ import "./Pricer.sol";
 /**
  * @title NettingLib
  * Error codes
- * N0: unknown pool id
+ * N0: unknown product id
  * N1: Total delta must be greater than 0
  * N2: Total delta must not be 0
  */
@@ -47,16 +47,16 @@ library NettingLib {
      */
     function addCollateral(
         Info storage _info,
-        uint256 _poolId,
+        uint256 _productId,
         AddCollateralParams memory _params
     ) internal returns (int128 requiredCollateral, int128 hedgePositionValue) {
-        int128 totalRequiredCollateral = getRequiredCollateral(_poolId, _params);
+        int128 totalRequiredCollateral = getRequiredCollateral(_productId, _params);
 
-        hedgePositionValue = getHedgePositionValue(_info.pools[_poolId], _params.spotPrice);
+        hedgePositionValue = getHedgePositionValue(_info.pools[_productId], _params.spotPrice);
 
         requiredCollateral = totalRequiredCollateral - hedgePositionValue;
 
-        _info.pools[_poolId].usdcPosition += requiredCollateral;
+        _info.pools[_productId].usdcPosition += requiredCollateral;
     }
 
     /**
@@ -89,14 +89,18 @@ library NettingLib {
 
     /**
      * @notice Gets required collateral for future
-     * @param _poolId ID of pool to get required collateral
+     * @param _productId Id of product to get required collateral
      * @param _params parameters to calculate required collateral
      * @return RequiredCollateral scaled by 1e8
      */
-    function getRequiredCollateral(uint256 _poolId, AddCollateralParams memory _params) internal pure returns (int128) {
-        if (_poolId == 0) {
+    function getRequiredCollateral(uint256 _productId, AddCollateralParams memory _params)
+        internal
+        pure
+        returns (int128)
+    {
+        if (_productId == 0) {
             return getRequiredCollateralOfSqeeth(_params);
-        } else if (_poolId == 1) {
+        } else if (_productId == 1) {
             return getRequiredCollateralOfFuture(_params);
         } else {
             revert("N0");
@@ -150,7 +154,7 @@ library NettingLib {
      * @return weighted delta scaled by 1e8
      */
     function calculateWeightedDelta(
-        uint256 _poolId,
+        uint256 _productId,
         int128 _delta0,
         int128 _delta1
     ) internal pure returns (int128) {
@@ -163,9 +167,9 @@ library NettingLib {
             return 0;
         }
 
-        if (_poolId == 0) {
+        if (_productId == 0) {
             return (int128(Math.abs(_delta0)) * netDelta) / totalDelta;
-        } else if (_poolId == 1) {
+        } else if (_productId == 1) {
             return (int128(Math.abs(_delta1)) * netDelta) / totalDelta;
         } else {
             revert("N0");

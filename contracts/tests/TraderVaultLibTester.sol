@@ -13,12 +13,12 @@ contract TraderVaultLibTester {
     int128 public r;
 
     function testUpdateVault(
-        uint256 _poolId,
+        uint256 _productId,
         int128 _amountAsset,
         int128 _valueEntry,
         int128 _valueFundingFeeEntry
     ) external {
-        TraderVaultLib.updateVault(traderPosition, _poolId, _amountAsset, _valueEntry, _valueFundingFeeEntry);
+        TraderVaultLib.updateVault(traderPosition, _productId, _amountAsset, _valueEntry, _valueFundingFeeEntry);
     }
 
     function testGetAmountRequired(int128 _ratio, IPerpetualMarketCore.PoolState memory _poolParams)

@@ -12,7 +12,7 @@ import "./Math.sol";
  * T2: Vault is insolvent
  */
 library TraderVaultLib {
-    uint256 private constant MAX_POOL_ID = 2;
+    uint256 private constant MAX_PRODUCT_ID = 2;
 
     /// @dev risk parameter for MinCollateral calculation is 7.5%
     uint128 private constant RISK_PARAM_FOR_VAULT = 750;
@@ -64,16 +64,16 @@ library TraderVaultLib {
      */
     function updateVault(
         TraderPosition storage _traderPosition,
-        uint256 _poolId,
+        uint256 _productId,
         int128 _amountAsset,
         int128 _valueEntry,
         int128 _valueFundingFeeEntry
     ) internal {
         require(!_traderPosition.isInsolvent, "T2");
 
-        _traderPosition.amountAsset[_poolId] += _amountAsset;
-        _traderPosition.valueEntry[_poolId] += _valueEntry;
-        _traderPosition.valueFundingFeeEntry[_poolId] += _valueFundingFeeEntry;
+        _traderPosition.amountAsset[_productId] += _amountAsset;
+        _traderPosition.valueEntry[_productId] += _valueEntry;
+        _traderPosition.valueFundingFeeEntry[_productId] += _valueFundingFeeEntry;
     }
 
     /**
@@ -93,7 +93,7 @@ library TraderVaultLib {
         }
 
         // clean positions
-        for (uint128 i = 0; i < MAX_POOL_ID; i++) {
+        for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
             _traderPosition.amountAsset[i] = 0;
             _traderPosition.valueEntry[i] = 0;
         }
@@ -148,7 +148,7 @@ library TraderVaultLib {
     ) internal pure returns (int128) {
         int128 pnl;
 
-        for (uint128 i = 0; i < MAX_POOL_ID; i++) {
+        for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
             pnl += _poolParams.markPrices[i] * _traderPosition.amountAsset[i] - _traderPosition.valueEntry[i];
         }
 
@@ -167,7 +167,7 @@ library TraderVaultLib {
     {
         int128 fundingFee;
 
-        for (uint128 i = 0; i < MAX_POOL_ID; i++) {
+        for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
             fundingFee +=
                 _traderPosition.valueFundingFeeEntry[i] -
                 _cumFundingFeePerSizeGlobal[i] *
