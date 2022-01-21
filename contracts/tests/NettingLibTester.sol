@@ -10,34 +10,34 @@ import "../lib/NettingLib.sol";
 contract NettingLibTester {
     NettingLib.Info public info;
 
-    function getPoolInfo(uint256 _poolId) external view returns (NettingLib.PoolInfo memory) {
-        return info.pools[_poolId];
+    function getPoolInfo(uint256 _productId) external view returns (NettingLib.PoolInfo memory) {
+        return info.pools[_productId];
     }
 
-    function addCollateral(uint256 _poolId, NettingLib.AddCollateralParams memory _params)
+    function addCollateral(uint256 _productId, NettingLib.AddCollateralParams memory _params)
         external
         returns (int128, int128)
     {
-        return NettingLib.addCollateral(info, _poolId, _params);
+        return NettingLib.addCollateral(info, _productId, _params);
     }
 
     function complete(NettingLib.CompleteParams memory _params) external {
         NettingLib.complete(info, _params);
     }
 
-    function getRequiredCollateral(uint256 _poolId, NettingLib.AddCollateralParams memory _params)
+    function getRequiredCollateral(uint256 _productId, NettingLib.AddCollateralParams memory _params)
         external
         pure
         returns (int128)
     {
-        return NettingLib.getRequiredCollateral(_poolId, _params);
+        return NettingLib.getRequiredCollateral(_productId, _params);
     }
 
     function calculateWeightedDelta(
-        uint256 _poolId,
+        uint256 _productId,
         int128 _delta0,
         int128 _delta1
     ) external pure returns (int128) {
-        return NettingLib.calculateWeightedDelta(_poolId, _delta0, _delta1);
+        return NettingLib.calculateWeightedDelta(_productId, _delta0, _delta1);
     }
 }

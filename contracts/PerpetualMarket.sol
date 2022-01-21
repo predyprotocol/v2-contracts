@@ -13,7 +13,7 @@ import "./PerpetualMarketCore.sol";
 contract PerpetualMarket is ERC20 {
     using TraderVaultLib for TraderVaultLib.TraderPosition;
 
-    uint256 private constant MAX_POOL_ID = 2;
+    uint256 private constant MAX_PRODUCT_ID = 2;
 
     PerpetualMarketCore private immutable perpetualMarketCore;
     ILiquidityPool private immutable liquidityPool;
@@ -109,7 +109,7 @@ contract PerpetualMarket is ERC20 {
      * @param _tradeParams trade parameters
      */
     function openPositions(TradeParams memory _tradeParams) public {
-        for (uint256 poolId = 0; poolId < MAX_POOL_ID; poolId++) {
+        for (uint256 poolId = 0; poolId < MAX_PRODUCT_ID; poolId++) {
             if (_tradeParams.sizes[poolId] != 0) {
                 (int128 totalPrice, int128 cumFundingGlobal) = perpetualMarketCore.updatePoolPosition(
                     poolId,
@@ -154,14 +154,14 @@ contract PerpetualMarket is ERC20 {
      * @notice Open new long position of the perpetual contract
      */
     function openLongPosition(
-        uint256 _poolId,
+        uint256 _productId,
         uint256 _vaultId,
         uint128 _size,
         int128 _depositOrWithdrawAmount
     ) external {
         int128[2] memory sizes;
 
-        sizes[_poolId] = int128(_size);
+        sizes[_productId] = int128(_size);
 
         openPositions(TradeParams(_vaultId, sizes, _depositOrWithdrawAmount));
     }
@@ -170,14 +170,14 @@ contract PerpetualMarket is ERC20 {
      * @notice Open new short position of the perpetual contract
      */
     function openShortPosition(
-        uint256 _poolId,
+        uint256 _productId,
         uint256 _vaultId,
         uint128 _size,
         int128 _depositOrWithdrawAmount
     ) external {
         int128[2] memory sizes;
 
-        sizes[_poolId] = -int128(_size);
+        sizes[_productId] = -int128(_size);
 
         openPositions(TradeParams(_vaultId, sizes, _depositOrWithdrawAmount));
     }
@@ -190,7 +190,7 @@ contract PerpetualMarket is ERC20 {
     function liquidateByPool(address _vaultOwner, uint256 _vaultId) external {
         PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
 
-        for (uint256 poolId = 0; poolId < MAX_POOL_ID; poolId++) {
+        for (uint256 poolId = 0; poolId < MAX_PRODUCT_ID; poolId++) {
             int128 size = traders[_vaultOwner][_vaultId].amountAsset[poolId];
 
             if (size != 0) {
@@ -239,12 +239,12 @@ contract PerpetualMarket is ERC20 {
 
     /**
      * @notice Gets trade price
-     * @param _poolId pool id
+     * @param _productId product id
      * @param _size positive to get ask price and negatice to get bit price
      * @return trade price scaled by 1e8
      */
-    function getTradePrice(uint256 _poolId, int128 _size) external view returns (uint128) {
-        return perpetualMarketCore.getTradePrice(_poolId, _size);
+    function getTradePrice(uint256 _productId, int128 _size) external view returns (uint128) {
+        return perpetualMarketCore.getTradePrice(_productId, _size);
     }
 
     /**
