@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { MockERC20, PerpetualMarket } from '../typechain'
-import { BigNumber, Wallet } from 'ethers'
+import { BigNumber, BigNumberish, Wallet } from 'ethers'
 import {
   deployTestContractSet,
   restoreSnapshot,
@@ -11,6 +11,11 @@ import {
 } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
 import { SAFETY_PERIOD, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
+
+function checkEqRoughly(a: BigNumberish, b: BigNumberish) {
+  expect(a).to.be.lte(BigNumber.from(b).add(1))
+  expect(a).to.be.gte(BigNumber.from(b).sub(1))
+}
 
 describe('PerpetualMarket', function () {
   let wallet: Wallet, other: Wallet
@@ -232,6 +237,20 @@ describe('PerpetualMarket', function () {
 
         expect(withdrawnAmount).to.gt(scaledBN(100, 6))
       })
+
+      it('LP token price is not changed', async function () {
+        const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
+        const lpTokenPrice = await perpetualMarket.getLPTokenPrice()
+        const withdrawnAmount = lpTokenPrice.mul(tokenAmount).div(scaledBN(2, 6))
+
+        const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+
+        await perpetualMarket.withdraw(withdrawnAmount)
+
+        const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+
+        checkEqRoughly(beforeLPTokenPrice, afterLPTokenPrice)
+      })
     })
 
     describe('tokenPrice becomes low', () => {
@@ -256,6 +275,20 @@ describe('PerpetualMarket', function () {
         await perpetualMarket.withdraw(withdrawnAmount)
 
         expect(withdrawnAmount).to.lt(scaledBN(100, 6))
+      })
+
+      it('LP token price is not changed', async function () {
+        const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
+        const lpTokenPrice = await perpetualMarket.getLPTokenPrice()
+        const withdrawnAmount = lpTokenPrice.mul(tokenAmount).div(scaledBN(2, 6))
+
+        const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+
+        await perpetualMarket.withdraw(withdrawnAmount)
+
+        const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+
+        checkEqRoughly(beforeLPTokenPrice, afterLPTokenPrice)
       })
     })
   })
