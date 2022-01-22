@@ -123,6 +123,28 @@ describe('TraderVaultLib', function () {
     })
 
     describe('funding fee', () => {
+      it('1 long sqeeth and positive funding fee', async function () {
+        await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
+
+        const positionValue = await tester.getPositionValue({
+          spotPrice: '100000000000',
+          markPrices: ['10000000000', '100000000000'],
+          cumFundingFeePerSizeGlobals: [1000000, 0],
+        })
+        expect(positionValue).to.be.eq(-10000)
+      })
+
+      it('1 short sqeeth and positive funding fee', async function () {
+        await tester.testUpdateVault(0, '-100000000', '-1000000000000000000', '0')
+
+        const positionValue = await tester.getPositionValue({
+          spotPrice: '100000000000',
+          markPrices: ['10000000000', '100000000000'],
+          cumFundingFeePerSizeGlobals: [1000000, 0],
+        })
+        expect(positionValue).to.be.eq(10000)
+      })
+
       it('1 long future and positive funding fee', async function () {
         await tester.testUpdateVault(1, '100000000', '10000000000000000000', '0')
 
