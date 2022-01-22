@@ -682,4 +682,82 @@ describe('PerpetualMarket', function () {
       })
     })
   })
+
+  describe('funding payment', () => {
+    const vaultId = 0
+
+    beforeEach(async () => {
+      const amount = scaledBN(5000, 6)
+
+      await perpetualMarket.initialize(amount, scaledBN(2, 5))
+
+      await testContractHelper.updateSpot(scaledBN(1000, 8))
+    })
+
+    it('pool receives funding fee from sqeeth positions', async () => {
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [scaledBN(1, 8), 0],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      await increaseTime(24 * 60 * 60)
+
+      const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [scaledBN(1, 8), 0],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+
+      expect(afterLPTokenPrice).to.be.gt(beforeLPTokenPrice)
+    })
+
+    it('pool receives funding fee from future positions', async () => {
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [0, scaledBN(1, 8)],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      await increaseTime(24 * 60 * 60)
+
+      const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [0, scaledBN(1, 8)],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+
+      expect(afterLPTokenPrice).to.be.gt(beforeLPTokenPrice)
+    })
+
+    it('pool pays funding fee for future positions', async () => {
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [0, scaledBN(-1, 8)],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      await increaseTime(24 * 60 * 60)
+
+      const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+
+      await perpetualMarket.openPositions({
+        vaultId,
+        sizes: [0, scaledBN(-1, 8)],
+        collateralRatio: scaledBN(1, 8),
+      })
+
+      const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+
+      expect(afterLPTokenPrice).to.be.lt(beforeLPTokenPrice)
+    })
+  })
 })
