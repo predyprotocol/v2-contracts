@@ -191,7 +191,7 @@ describe('TraderVaultLib', function () {
     })
   })
 
-  describe('depositOtWithdraw', () => {
+  describe('getAmountRequired', () => {
     it('more collateral required', async function () {
       await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
       const usdcAmount = await tester.testGetAmountRequired('100000000', {
