@@ -121,6 +121,52 @@ describe('TraderVaultLib', function () {
         expect(positionValue).to.be.eq(-2121000000)
       })
     })
+
+    describe('funding fee', () => {
+      it('1 long future and positive funding fee', async function () {
+        await tester.testUpdateVault(1, '100000000', '10000000000000000000', '0')
+
+        const positionValue = await tester.getPositionValue({
+          spotPrice: '100000000000',
+          markPrices: ['10000000000', '100000000000'],
+          cumFundingFeePerSizeGlobals: [0, 1000000],
+        })
+        expect(positionValue).to.be.eq(-10000)
+      })
+
+      it('1 short future and positive funding fee', async function () {
+        await tester.testUpdateVault(1, '-100000000', '-10000000000000000000', '0')
+
+        const positionValue = await tester.getPositionValue({
+          spotPrice: '100000000000',
+          markPrices: ['10000000000', '100000000000'],
+          cumFundingFeePerSizeGlobals: [0, 1000000],
+        })
+        expect(positionValue).to.be.eq(10000)
+      })
+
+      it('1 long future and negative funding fee', async function () {
+        await tester.testUpdateVault(1, '100000000', '10000000000000000000', '0')
+
+        const positionValue = await tester.getPositionValue({
+          spotPrice: '100000000000',
+          markPrices: ['10000000000', '100000000000'],
+          cumFundingFeePerSizeGlobals: [0, -1000000],
+        })
+        expect(positionValue).to.be.eq(10000)
+      })
+
+      it('1 short future and negative funding fee', async function () {
+        await tester.testUpdateVault(1, '-100000000', '-10000000000000000000', '0')
+
+        const positionValue = await tester.getPositionValue({
+          spotPrice: '100000000000',
+          markPrices: ['10000000000', '100000000000'],
+          cumFundingFeePerSizeGlobals: [0, -1000000],
+        })
+        expect(positionValue).to.be.eq(-10000)
+      })
+    })
   })
 
   describe('depositOtWithdraw', () => {
