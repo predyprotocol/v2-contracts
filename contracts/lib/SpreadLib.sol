@@ -24,7 +24,7 @@ library SpreadLib {
     }
 
     function init(Info storage _info) internal {
-        _info.minAskPrice = 1e16;
+        _info.minAskPrice = type(int128).max;
         _info.maxBitPrice = 0;
     }
 
