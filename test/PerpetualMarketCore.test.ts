@@ -58,7 +58,7 @@ describe('PerpetualMarketCore', function () {
 
   describe('deposit', () => {
     beforeEach(async () => {
-      await perpetualMarketCore.initialize(1000, scaledBN(5, 5))
+      await perpetualMarketCore.initialize(1000000, scaledBN(5, 5))
     })
 
     it('reverts if caller is not PerpetualMarket', async () => {
@@ -66,93 +66,93 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('suceed to deposit', async () => {
-      await perpetualMarketCore.deposit(1000)
+      await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(2000)
+      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000000)
+      expect(await perpetualMarketCore.supply()).to.be.eq(2000000)
     })
 
-    it('position increased', async () => {
+    it('deposits after that pool position increased', async () => {
       await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
 
-      await perpetualMarketCore.deposit(1000)
+      await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1999)
+      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000000)
+      expect(await perpetualMarketCore.supply()).to.be.eq(2000000)
     })
 
-    it('pool gets profit', async () => {
+    it('deposits after pool gets profit', async () => {
       await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
 
       await updateSpot(scaledBN(995, 8))
 
-      await perpetualMarketCore.deposit(1000)
+      await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1989)
+      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000000)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1999990)
     })
 
-    it('pool gets loss', async () => {
+    it('deposits after pool gets loss', async () => {
       await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
 
       await updateSpot(scaledBN(1005, 8))
 
-      await perpetualMarketCore.deposit(1000)
+      await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(2008)
+      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000000)
+      expect(await perpetualMarketCore.supply()).to.be.eq(2000010)
     })
   })
 
   describe('withdraw', () => {
     beforeEach(async () => {
-      await perpetualMarketCore.initialize(1000, scaledBN(5, 5))
+      await perpetualMarketCore.initialize(1000000, scaledBN(5, 5))
     })
 
     it('reverts if caller is not PerpetualMarket', async () => {
       await expect(perpetualMarketCore.connect(other).withdraw(1000)).to.be.revertedWith('PMC2')
     })
 
-    it('withdraw a half of liquidity', async () => {
-      await perpetualMarketCore.withdraw(500)
+    it('withdraws a half of liquidity', async () => {
+      await perpetualMarketCore.withdraw(500000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(500)
-      expect(await perpetualMarketCore.supply()).to.be.eq(500)
+      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(500000)
+      expect(await perpetualMarketCore.supply()).to.be.eq(500000)
     })
 
-    it('withdraw all', async () => {
-      await perpetualMarketCore.withdraw(1000)
+    it('withdraws all', async () => {
+      await perpetualMarketCore.withdraw(1000000)
 
       expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(0)
       expect(await perpetualMarketCore.supply()).to.be.eq(0)
     })
 
-    it('position increased', async () => {
+    it('withdraws after that pool position increased', async () => {
       await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
 
-      await expect(perpetualMarketCore.withdraw(1000)).to.be.revertedWith('PMC0')
+      await expect(perpetualMarketCore.withdraw(1000000)).to.be.revertedWith('PMC0')
     })
 
-    it('pool gets profit', async () => {
+    it('withdraws after the pool gets profit', async () => {
       await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
 
       await updateSpot(scaledBN(995, 8))
 
-      await perpetualMarketCore.withdraw(500)
+      await perpetualMarketCore.withdraw(500000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(500)
-      expect(await perpetualMarketCore.supply()).to.be.eq(506)
+      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(500000)
+      expect(await perpetualMarketCore.supply()).to.be.eq(500005)
     })
 
-    it('pool gets loss', async () => {
+    it('withdraws after thepool gets loss', async () => {
       await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
 
       await updateSpot(scaledBN(1005, 8))
 
-      await perpetualMarketCore.withdraw(500)
+      await perpetualMarketCore.withdraw(500000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(500)
-      expect(await perpetualMarketCore.supply()).to.be.eq(496)
+      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(500000)
+      expect(await perpetualMarketCore.supply()).to.be.eq(499995)
     })
   })
 

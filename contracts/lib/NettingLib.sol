@@ -72,7 +72,7 @@ library NettingLib {
         _info.underlyingPosition -= netDelta;
 
         for (uint256 i = 0; i < 2; i++) {
-            _info.pools[i].usdcPosition -= (_params.usdcAmount * _params.deltas[i]) / totalDelta;
+            _info.pools[i].usdcPosition -= (_params.usdcAmount * int128(Math.abs(_params.deltas[i]))) / totalDelta;
 
             _info.pools[i].underlyingPosition = -_params.deltas[i];
 
@@ -130,8 +130,8 @@ library NettingLib {
 
         return
             Math.max(
-                ((1e4 - ALPHA) * int128(Math.abs(weightedDelta - deltaFromGamma))) / 1e4,
-                ((1e4 + ALPHA) * int128(Math.abs(weightedDelta + deltaFromGamma))) / 1e4
+                ((1e4 - ALPHA) * int128(_params.spotPrice * Math.abs(weightedDelta - deltaFromGamma))) / 1e12,
+                ((1e4 + ALPHA) * int128(_params.spotPrice * Math.abs(weightedDelta + deltaFromGamma))) / 1e12
             );
     }
 
