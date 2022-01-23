@@ -1,15 +1,20 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+
 /**
  * @title SpreadLib
  * @notice Spread Library has functions to controls spread for short-term volatility risk management
  */
 library SpreadLib {
+    using SafeCast for int256;
+    using SafeCast for uint128;
+
     /// @dev 6 minutes
-    uint128 constant SAFETY_PERIOD = 6 minutes;
+    uint256 private constant SAFETY_PERIOD = 6 minutes;
     /// @dev 8 bps
-    int128 constant SPREAD_DECREASE_PER_PERIOD = 8;
+    uint256 private constant SPREAD_DECREASE_PER_PERIOD = 8;
 
     struct Info {
         uint128 askTime;
@@ -19,7 +24,7 @@ library SpreadLib {
     }
 
     function init(Info storage _info) internal {
-        _info.minAskPrice = 1e16;
+        _info.minAskPrice = type(int128).max;
         _info.maxBitPrice = 0;
     }
 
@@ -37,7 +42,7 @@ library SpreadLib {
     ) internal returns (int128 adjustedPrice) {
         Info memory cache = Info(_info.askTime, _info.minAskPrice, _info.bitTime, _info.maxBitPrice);
 
-        adjustedPrice = getUpdatedPrice(cache, _isLong, _price, uint128(block.timestamp));
+        adjustedPrice = getUpdatedPrice(cache, _isLong, _price, block.timestamp);
 
         _info.askTime = cache.askTime;
         _info.minAskPrice = cache.minAskPrice;
@@ -49,7 +54,7 @@ library SpreadLib {
         Info memory _info,
         bool _isLong,
         int128 _price,
-        uint128 _timestamp
+        uint256 _timestamp
     ) internal pure returns (int128 adjustedPrice) {
         adjustedPrice = _price;
         if (_isLong) {
@@ -57,10 +62,10 @@ library SpreadLib {
             if (_info.bitTime >= _timestamp - SAFETY_PERIOD) {
                 // Within safety period
                 if (adjustedPrice < _info.maxBitPrice) {
-                    uint128 tt = (_timestamp - _info.bitTime) / 1 minutes;
-                    int128 spreadClosing = SPREAD_DECREASE_PER_PERIOD * int128(tt);
+                    uint256 tt = (_timestamp - _info.bitTime) / 1 minutes;
+                    int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD * tt);
                     if (adjustedPrice <= (_info.maxBitPrice * (1e4 - spreadClosing)) / 1e4) {
-                        _info.maxBitPrice = (_info.maxBitPrice * (1e4 - spreadClosing)) / 1e4;
+                        _info.maxBitPrice = ((_info.maxBitPrice * (1e4 - spreadClosing)) / 1e4).toInt128();
                     }
                     adjustedPrice = _info.maxBitPrice;
                 }
@@ -70,16 +75,16 @@ library SpreadLib {
             if (_info.minAskPrice > adjustedPrice || _info.askTime + SAFETY_PERIOD < _timestamp) {
                 _info.minAskPrice = adjustedPrice;
             }
-            _info.askTime = _timestamp;
+            _info.askTime = uint128(_timestamp);
         } else {
             // if short
             if (_info.askTime >= _timestamp - SAFETY_PERIOD) {
                 // Within safety period
                 if (adjustedPrice > _info.minAskPrice) {
-                    uint128 tt = (_timestamp - _info.askTime) / 1 minutes;
-                    int128 spreadClosing = SPREAD_DECREASE_PER_PERIOD * int128(tt);
+                    uint256 tt = (_timestamp - _info.askTime) / 1 minutes;
+                    int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD * tt);
                     if (adjustedPrice <= (_info.minAskPrice * (1e4 + spreadClosing)) / 1e4) {
-                        _info.minAskPrice = (_info.minAskPrice * (1e4 + spreadClosing)) / 1e4;
+                        _info.minAskPrice = ((_info.minAskPrice * (1e4 + spreadClosing)) / 1e4).toInt128();
                     }
                     adjustedPrice = _info.minAskPrice;
                 }
@@ -89,7 +94,7 @@ library SpreadLib {
             if (_info.maxBitPrice < adjustedPrice || _info.bitTime + SAFETY_PERIOD < _timestamp) {
                 _info.maxBitPrice = adjustedPrice;
             }
-            _info.bitTime = _timestamp;
+            _info.bitTime = uint128(_timestamp);
         }
     }
 }

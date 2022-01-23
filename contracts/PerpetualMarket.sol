@@ -243,7 +243,7 @@ contract PerpetualMarket is ERC20 {
      * @param _size positive to get ask price and negatice to get bit price
      * @return trade price scaled by 1e8
      */
-    function getTradePrice(uint256 _productId, int128 _size) external view returns (uint128) {
+    function getTradePrice(uint256 _productId, int128 _size) external view returns (int128) {
         return perpetualMarketCore.getTradePrice(_productId, _size);
     }
 
