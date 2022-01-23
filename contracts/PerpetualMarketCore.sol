@@ -161,6 +161,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         onlyPerpetualMarket
         returns (int128, int128)
     {
+        require(liquidityAmount > 0, "PMC1");
+
         (uint128 spotPrice, ) = getUnderlyingPrice();
 
         // Funding payment
