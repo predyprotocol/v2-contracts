@@ -12,9 +12,9 @@ library SpreadLib {
     using SafeCast for uint128;
 
     /// @dev 6 minutes
-    uint256 constant SAFETY_PERIOD = 6 minutes;
+    uint256 private constant SAFETY_PERIOD = 6 minutes;
     /// @dev 8 bps
-    uint256 constant SPREAD_DECREASE_PER_PERIOD = 8;
+    uint256 private constant SPREAD_DECREASE_PER_PERIOD = 8;
 
     struct Info {
         uint128 askTime;
