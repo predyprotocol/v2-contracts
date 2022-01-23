@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { TraderVaultLibTester } from '../typechain'
+import { FUTURE_PRODUCT_ID, SQEETH_PRODUCT_ID } from './utils/constants'
 
 describe('TraderVaultLib', function () {
   let tester: TraderVaultLibTester
@@ -13,39 +14,39 @@ describe('TraderVaultLib', function () {
 
   describe('getMinCollateral', () => {
     it('1 long sqeeth', async function () {
-      await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
+      await tester.testUpdateVault(SQEETH_PRODUCT_ID, '100000000', '1000000000000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
       expect(minCollateral).to.be.eq(15000000)
     })
 
     it('1 short sqeeth', async function () {
-      await tester.testUpdateVault(0, '-100000000', '-1000000000000000000', '0')
+      await tester.testUpdateVault(SQEETH_PRODUCT_ID, '-100000000', '-1000000000000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
       expect(minCollateral).to.be.eq(15000000)
     })
 
     it('1 long future', async function () {
-      await tester.testUpdateVault(1, '100000000', '10000000000000000000', '0')
+      await tester.testUpdateVault(FUTURE_PRODUCT_ID, '100000000', '10000000000000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
       expect(minCollateral).to.be.eq(75000000)
     })
 
     it('1 short future', async function () {
-      await tester.testUpdateVault(1, '-100000000', '-10000000000000000000', '0')
+      await tester.testUpdateVault(FUTURE_PRODUCT_ID, '-100000000', '-10000000000000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
       expect(minCollateral).to.be.eq(75000000)
     })
 
     it('1 long sqeeth and 1 short future', async function () {
-      await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
-      await tester.testUpdateVault(1, '-100000000', '-10000000000000000000', '0')
+      await tester.testUpdateVault(SQEETH_PRODUCT_ID, '100000000', '1000000000000000000', '0')
+      await tester.testUpdateVault(FUTURE_PRODUCT_ID, '-100000000', '-10000000000000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
       expect(minCollateral).to.be.eq(60000000)
     })
 
     it('1 short sqeeth and 1 long future', async function () {
-      await tester.testUpdateVault(0, '-100000000', '-1000000000000000000', '0')
-      await tester.testUpdateVault(1, '-100000000', '10000000000000000000', '0')
+      await tester.testUpdateVault(SQEETH_PRODUCT_ID, '-100000000', '-1000000000000000000', '0')
+      await tester.testUpdateVault(FUTURE_PRODUCT_ID, '-100000000', '10000000000000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
       expect(minCollateral).to.be.eq(90000000)
     })
@@ -54,7 +55,7 @@ describe('TraderVaultLib', function () {
   describe('getPositionValue', () => {
     describe('ETH price becomes high', () => {
       it('1 long sqeeth', async function () {
-        await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
+        await tester.testUpdateVault(SQEETH_PRODUCT_ID, '100000000', '1000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '11000000000',
@@ -65,7 +66,7 @@ describe('TraderVaultLib', function () {
       })
 
       it('1 short sqeeth', async function () {
-        await tester.testUpdateVault(0, '-100000000', '-1000000000000000000', '0')
+        await tester.testUpdateVault(SQEETH_PRODUCT_ID, '-100000000', '-1000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
@@ -76,7 +77,7 @@ describe('TraderVaultLib', function () {
       })
 
       it('1 long future', async function () {
-        await tester.testUpdateVault(1, '100000000', '10000000000000000000', '0')
+        await tester.testUpdateVault(FUTURE_PRODUCT_ID, '100000000', '10000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
@@ -87,7 +88,7 @@ describe('TraderVaultLib', function () {
       })
 
       it('1 short future', async function () {
-        await tester.testUpdateVault(1, '-100000000', '-10000000000000000000', '0')
+        await tester.testUpdateVault(FUTURE_PRODUCT_ID, '-100000000', '-10000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
@@ -98,8 +99,8 @@ describe('TraderVaultLib', function () {
       })
 
       it('1 long sqeeth and 0.2 short future', async function () {
-        await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
-        await tester.testUpdateVault(1, '-20000000', '-2000000000000000000', '0')
+        await tester.testUpdateVault(SQEETH_PRODUCT_ID, '100000000', '1000000000000000000', '0')
+        await tester.testUpdateVault(FUTURE_PRODUCT_ID, '-20000000', '-2000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
@@ -110,8 +111,8 @@ describe('TraderVaultLib', function () {
       })
 
       it('1 short sqeeth and 1 long future', async function () {
-        await tester.testUpdateVault(0, '-100000000', '-1000000000000000000', '0')
-        await tester.testUpdateVault(1, '-100000000', '10000000000000000000', '0')
+        await tester.testUpdateVault(SQEETH_PRODUCT_ID, '-100000000', '-1000000000000000000', '0')
+        await tester.testUpdateVault(FUTURE_PRODUCT_ID, '-100000000', '10000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
@@ -124,7 +125,7 @@ describe('TraderVaultLib', function () {
 
     describe('funding fee', () => {
       it('1 long sqeeth and positive funding fee', async function () {
-        await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
+        await tester.testUpdateVault(SQEETH_PRODUCT_ID, '100000000', '1000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
@@ -135,7 +136,7 @@ describe('TraderVaultLib', function () {
       })
 
       it('1 short sqeeth and positive funding fee', async function () {
-        await tester.testUpdateVault(0, '-100000000', '-1000000000000000000', '0')
+        await tester.testUpdateVault(SQEETH_PRODUCT_ID, '-100000000', '-1000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
@@ -146,7 +147,7 @@ describe('TraderVaultLib', function () {
       })
 
       it('1 long future and positive funding fee', async function () {
-        await tester.testUpdateVault(1, '100000000', '10000000000000000000', '0')
+        await tester.testUpdateVault(FUTURE_PRODUCT_ID, '100000000', '10000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
@@ -157,7 +158,7 @@ describe('TraderVaultLib', function () {
       })
 
       it('1 short future and positive funding fee', async function () {
-        await tester.testUpdateVault(1, '-100000000', '-10000000000000000000', '0')
+        await tester.testUpdateVault(FUTURE_PRODUCT_ID, '-100000000', '-10000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
@@ -168,7 +169,7 @@ describe('TraderVaultLib', function () {
       })
 
       it('1 long future and negative funding fee', async function () {
-        await tester.testUpdateVault(1, '100000000', '10000000000000000000', '0')
+        await tester.testUpdateVault(FUTURE_PRODUCT_ID, '100000000', '10000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
@@ -179,7 +180,7 @@ describe('TraderVaultLib', function () {
       })
 
       it('1 short future and negative funding fee', async function () {
-        await tester.testUpdateVault(1, '-100000000', '-10000000000000000000', '0')
+        await tester.testUpdateVault(FUTURE_PRODUCT_ID, '-100000000', '-10000000000000000000', '0')
 
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
@@ -193,7 +194,7 @@ describe('TraderVaultLib', function () {
 
   describe('getAmountRequired', () => {
     it('more collateral required', async function () {
-      await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
+      await tester.testUpdateVault(SQEETH_PRODUCT_ID, '100000000', '1000000000000000000', '0')
       const usdcAmount = await tester.testGetAmountRequired('100000000', {
         spotPrice: '100000000000',
         markPrices: ['10000000000', '100000000000'],
@@ -203,7 +204,7 @@ describe('TraderVaultLib', function () {
     })
 
     it('there is excess collateral', async function () {
-      await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
+      await tester.testUpdateVault(SQEETH_PRODUCT_ID, '100000000', '1000000000000000000', '0')
       const usdcAmount = await tester.testGetAmountRequired('100000000', {
         spotPrice: '100000000000',
         markPrices: ['10000000000', '100000000000'],
@@ -221,7 +222,7 @@ describe('TraderVaultLib', function () {
 
   describe('liquidate', () => {
     beforeEach(async () => {
-      await tester.testUpdateVault(0, '100000000', '1000000000000000000', '0')
+      await tester.testUpdateVault(SQEETH_PRODUCT_ID, '100000000', '1000000000000000000', '0')
       const usdcAmount = await tester.testGetAmountRequired('100000000', {
         spotPrice: '100000000000',
         markPrices: ['10000000000', '100000000000'],

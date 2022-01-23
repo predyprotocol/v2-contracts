@@ -14,6 +14,7 @@ import "hardhat/console.sol";
  * Error Code
  * PMC0: No available liquidity
  * PMC1: No available liquidity
+ * PMC2: caller must be PerpetualMarket contract
  */
 contract PerpetualMarketCore is IPerpetualMarketCore {
     using NettingLib for NettingLib.Info;
@@ -80,7 +81,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     address private perpetualMarket;
 
     modifier onlyPerpetualMarket() {
-        require(msg.sender == perpetualMarket);
+        require(msg.sender == perpetualMarket, "PMC2");
         _;
     }
 
@@ -160,6 +161,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         onlyPerpetualMarket
         returns (int128, int128)
     {
+        require(liquidityAmount > 0, "PMC1");
+
         (uint128 spotPrice, ) = getUnderlyingPrice();
 
         // Funding payment

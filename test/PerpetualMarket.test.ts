@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
-import { SAFETY_PERIOD, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
+import { FUTURE_PRODUCT_ID, SAFETY_PERIOD, SQEETH_PRODUCT_ID, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
 
 function checkEqRoughly(a: BigNumberish, b: BigNumberish) {
   expect(a).to.be.lte(BigNumber.from(b).add(1))
@@ -311,7 +311,7 @@ describe('PerpetualMarket', function () {
         collateralRatio: scaledBN(1, 8),
       })
 
-      const before = await perpetualMarket.getTradePrice(0, 1000)
+      const before = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)
 
       await testContractHelper.updateSpot(scaledBN(110, 8))
 
@@ -333,7 +333,7 @@ describe('PerpetualMarket', function () {
         collateralRatio: scaledBN(1, 8),
       })
 
-      const after = await perpetualMarket.getTradePrice(0, 1000)
+      const after = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)
 
       expect(after).to.be.gt(before)
     })
@@ -491,8 +491,8 @@ describe('PerpetualMarket', function () {
 
         expect(vaultStatus.minCollateral).to.be.gt(0)
         expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
-        expect(vaultStatus.position.amountAsset[0]).to.be.eq(scaledBN(1, 6))
-        expect(vaultStatus.position.amountAsset[1]).to.be.eq(scaledBN(1, 6))
+        expect(vaultStatus.position.amountAsset[SQEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
+        expect(vaultStatus.position.amountAsset[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
       })
 
       it('close positions', async () => {
@@ -670,7 +670,7 @@ describe('PerpetualMarket', function () {
           collateralRatio: scaledBN(1, 8),
         })
 
-        const beforeAskPrice = await perpetualMarket.getTradePrice(0, 1000)
+        const beforeAskPrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)
 
         const before = await weth.balanceOf(wallet.address)
         await perpetualMarket.execHedge()
@@ -678,7 +678,7 @@ describe('PerpetualMarket', function () {
 
         expect(after.sub(before)).to.be.gt(0)
 
-        expect(await perpetualMarket.getTradePrice(0, 1000)).to.be.gt(beforeAskPrice)
+        expect(await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)).to.be.gt(beforeAskPrice)
       })
     })
   })
