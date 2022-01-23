@@ -17,7 +17,7 @@ library NettingLib {
     using SafeCast for uint128;
 
     /// @dev 40%
-    int128 constant ALPHA = 4000;
+    int128 private constant ALPHA = 4000;
 
     struct AddCollateralParams {
         int128 delta0;
@@ -27,10 +27,11 @@ library NettingLib {
     }
 
     struct CompleteParams {
-        int128 usdcAmount;
-        int128 underlyingAmount;
+        uint128 usdcAmount;
+        uint128 underlyingAmount;
         int128[2] deltas;
         int128 spotPrice;
+        bool isLong;
     }
 
     struct Info {
@@ -60,6 +61,10 @@ library NettingLib {
 
         requiredCollateral = totalRequiredCollateral - hedgePositionValue;
 
+        if (_info.pools[_productId].usdcPosition + requiredCollateral < 0) {
+            requiredCollateral = -_info.pools[_productId].usdcPosition;
+        }
+
         _info.pools[_productId].usdcPosition += requiredCollateral;
     }
 
@@ -69,23 +74,29 @@ library NettingLib {
      */
     function complete(Info storage _info, CompleteParams memory _params) internal {
         int128 netDelta = _params.deltas[0] + _params.deltas[1];
-        int128 totalDelta = int128(Math.abs(_params.deltas[0]) + Math.abs(_params.deltas[1]));
+        uint128 totalDelta = Math.abs(_params.deltas[0]) + Math.abs(_params.deltas[1]);
 
         require(totalDelta > 0, "N2");
 
-        _info.underlyingPosition -= netDelta;
+        _info.underlyingPosition = -netDelta;
 
         for (uint256 i = 0; i < 2; i++) {
-            _info.pools[i].usdcPosition -= (_params.usdcAmount * int128(Math.abs(_params.deltas[i]))) / totalDelta;
+            {
+                uint128 deltaUsdcAmount = (_params.usdcAmount * Math.abs(_params.deltas[i])) / totalDelta;
+                if (_params.isLong) {
+                    _info.pools[i].usdcPosition -= int128(deltaUsdcAmount);
+                } else {
+                    _info.pools[i].usdcPosition += int128(deltaUsdcAmount);
+                }
+            }
 
             _info.pools[i].underlyingPosition = -_params.deltas[i];
 
-            // entry += uPos * S - (usdc/underlying)*(|uPos||netDelta|/|totalDelta|)
+            // entry += uPos * S - (usdc/underlying)*(|uPos|*|netDelta|/|totalDelta|)
             int128 newEntry = (_info.pools[i].underlyingPosition * _params.spotPrice) / 1e8;
 
-            newEntry -=
-                (_params.usdcAmount * int128(Math.abs(_info.pools[i].underlyingPosition) * Math.abs(netDelta))) /
-                (_params.underlyingAmount * totalDelta);
+            newEntry -= ((_params.usdcAmount * (Math.abs(_info.pools[i].underlyingPosition) * Math.abs(netDelta))) /
+                (_params.underlyingAmount * totalDelta)).toInt256().toInt128();
 
             _info.pools[i].entry += newEntry;
         }

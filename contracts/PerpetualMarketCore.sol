@@ -259,9 +259,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             int128[2] memory deltas;
             deltas[0] = sqeethPoolDelta;
             deltas[1] = futurePoolDelta;
-            nettingInfo.complete(
-                NettingLib.CompleteParams(int128(usdcAmount), int128(underlyingAmount), deltas, spotPrice)
-            );
+            nettingInfo.complete(NettingLib.CompleteParams(usdcAmount, underlyingAmount, deltas, spotPrice, isLong));
         }
     }
 
