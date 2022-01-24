@@ -591,8 +591,6 @@ describe('PerpetualMarket', function () {
         // 100B USDC
         await perpetualMarket.deposit(scaledBN(100, 15))
 
-        const before = await usdc.balanceOf(wallet.address)
-
         // 1M Sqeeth and 1M ETH future
         await perpetualMarket.openPositions({
           vaultId,
@@ -608,10 +606,6 @@ describe('PerpetualMarket', function () {
           tradeAmounts: [scaledBN(-1, 14), scaledBN(-1, 14)],
           collateralRatio: scaledBN(1, 8),
         })
-
-        const after = await usdc.balanceOf(wallet.address)
-
-        expect(after.sub(before)).to.be.eq('10207438120000')
       })
     })
 

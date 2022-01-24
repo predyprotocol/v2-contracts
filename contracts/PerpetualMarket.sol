@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./interfaces/IPerpetualMarket.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./lib/TraderVaultLib.sol";
 import "./PerpetualMarketCore.sol";
@@ -10,28 +11,13 @@ import "./PerpetualMarketCore.sol";
  * @title Perpetual Market
  * @notice Perpetual Market Contract
  */
-contract PerpetualMarket is ERC20 {
-    using TraderVaultLib for TraderVaultLib.TraderPosition;
+contract PerpetualMarket is IPerpetualMarket, ERC20 {
+    using TraderVaultLib for TraderVaultLib.TraderVault;
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
     PerpetualMarketCore private immutable perpetualMarketCore;
     ILiquidityPool private immutable liquidityPool;
-
-    struct TradeParams {
-        // Vault Id to hold positions
-        uint256 vaultId;
-        // Position tradeAmounts
-        int128[2] tradeAmounts;
-        // Target collateral ratio
-        int128 collateralRatio;
-    }
-
-    struct VaultStatus {
-        int128 positionValue;
-        int128 minCollateral;
-        TraderVaultLib.TraderPosition position;
-    }
 
     event Deposited(address indexed account, uint256 issued, uint256 amount);
 
@@ -43,7 +29,8 @@ contract PerpetualMarket is ERC20 {
 
     event Hedged(address hedger, uint256 usdcAmount, uint256 underlyingAmount);
 
-    mapping(address => mapping(uint256 => TraderVaultLib.TraderPosition)) private traders;
+    // trader's vaults storage
+    mapping(address => mapping(uint256 => TraderVaultLib.TraderVault)) private traderVaults;
 
     /**
      * @notice initialize Perpetual Market
@@ -60,7 +47,7 @@ contract PerpetualMarket is ERC20 {
      * @param _depositAmount deposit amount
      * @param _initialFundingRate initial funding rate
      */
-    function initialize(uint128 _depositAmount, int128 _initialFundingRate) external {
+    function initialize(uint128 _depositAmount, int128 _initialFundingRate) external override {
         require(_depositAmount > 0 && _initialFundingRate > 0);
 
         uint256 lpTokenAmount = perpetualMarketCore.initialize(_depositAmount, _initialFundingRate);
@@ -75,7 +62,7 @@ contract PerpetualMarket is ERC20 {
     /**
      * @notice Provides liquidity to the pool and mints LP tokens
      */
-    function deposit(uint128 _depositAmount) external {
+    function deposit(uint128 _depositAmount) external override {
         require(_depositAmount > 0);
 
         uint256 lpTokenAmount = perpetualMarketCore.deposit(_depositAmount);
@@ -90,7 +77,7 @@ contract PerpetualMarket is ERC20 {
     /**
      * @notice Withdraws liquidity from the pool and burn LP tokens
      */
-    function withdraw(uint128 _withdrawnAmount) external {
+    function withdraw(uint128 _withdrawnAmount) external override {
         require(_withdrawnAmount > 0);
 
         uint256 lpTokenAmount = perpetualMarketCore.withdraw(_withdrawnAmount);
@@ -108,7 +95,7 @@ contract PerpetualMarket is ERC20 {
      * and manage collaterals in the vault
      * @param _tradeParams trade parameters
      */
-    function openPositions(TradeParams memory _tradeParams) public {
+    function openPositions(TradeParams memory _tradeParams) public override {
         for (uint256 poolId = 0; poolId < MAX_PRODUCT_ID; poolId++) {
             if (_tradeParams.tradeAmounts[poolId] != 0) {
                 (int128 totalPrice, int128 valueFundingFeeEntry) = perpetualMarketCore.updatePoolPosition(
@@ -116,7 +103,7 @@ contract PerpetualMarket is ERC20 {
                     _tradeParams.tradeAmounts[poolId]
                 );
 
-                traders[msg.sender][_tradeParams.vaultId].updateVault(
+                traderVaults[msg.sender][_tradeParams.vaultId].updateVault(
                     poolId,
                     _tradeParams.tradeAmounts[poolId],
                     totalPrice,
@@ -130,11 +117,11 @@ contract PerpetualMarket is ERC20 {
         int128 finalDepositOrWithdrawAmount;
 
         {
-            finalDepositOrWithdrawAmount = traders[msg.sender][_tradeParams.vaultId].getAmountRequired(
+            finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].getAmountRequired(
                 _tradeParams.collateralRatio,
                 perpetualMarketCore.getPoolState()
             );
-            traders[msg.sender][_tradeParams.vaultId].updateUsdcAmount(finalDepositOrWithdrawAmount);
+            traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcAmount(finalDepositOrWithdrawAmount);
         }
 
         perpetualMarketCore.updateVariance();
@@ -158,7 +145,7 @@ contract PerpetualMarket is ERC20 {
         uint256 _vaultId,
         uint128 _size,
         int128 _depositOrWithdrawAmount
-    ) external {
+    ) external override {
         int128[2] memory tradeAmounts;
 
         tradeAmounts[_productId] = int128(_size);
@@ -174,7 +161,7 @@ contract PerpetualMarket is ERC20 {
         uint256 _vaultId,
         uint128 _size,
         int128 _depositOrWithdrawAmount
-    ) external {
+    ) external override {
         int128[2] memory tradeAmounts;
 
         tradeAmounts[_productId] = -int128(_size);
@@ -187,18 +174,18 @@ contract PerpetualMarket is ERC20 {
      * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
      */
-    function liquidateByPool(address _vaultOwner, uint256 _vaultId) external {
+    function liquidateByPool(address _vaultOwner, uint256 _vaultId) external override {
         PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
 
         for (uint256 poolId = 0; poolId < MAX_PRODUCT_ID; poolId++) {
-            int128 amountAssetInVault = traders[_vaultOwner][_vaultId].amountAsset[poolId];
+            int128 amountAssetInVault = traderVaults[_vaultOwner][_vaultId].amountAsset[poolId];
 
             if (amountAssetInVault != 0) {
                 perpetualMarketCore.updatePoolPosition(poolId, -amountAssetInVault);
             }
         }
 
-        uint128 reward = traders[_vaultOwner][_vaultId].liquidate(poolState);
+        uint128 reward = traderVaults[_vaultOwner][_vaultId].liquidate(poolState);
 
         // Sends a half of reward to the pool
         perpetualMarketCore.addLiquidity(reward / 2);
@@ -212,7 +199,7 @@ contract PerpetualMarket is ERC20 {
     /**
      * @notice execute hedging
      */
-    function execHedge() external {
+    function execHedge() external override {
         /// Update variance before hedging
         perpetualMarketCore.updateVariance();
 
@@ -233,7 +220,7 @@ contract PerpetualMarket is ERC20 {
      * @notice Gets current LP token price
      * @return LP token price scaled by 1e6
      */
-    function getLPTokenPrice() external view returns (uint128) {
+    function getLPTokenPrice() external view override returns (uint128) {
         return perpetualMarketCore.getLPTokenPrice();
     }
 
@@ -243,7 +230,7 @@ contract PerpetualMarket is ERC20 {
      * @param _size positive to get ask price and negatice to get bit price
      * @return trade price scaled by 1e8
      */
-    function getTradePrice(uint256 _productId, int128 _size) external view returns (int128) {
+    function getTradePrice(uint256 _productId, int128 _size) external view override returns (int128) {
         return perpetualMarketCore.getTradePrice(_productId, _size);
     }
 
@@ -253,13 +240,13 @@ contract PerpetualMarket is ERC20 {
      * @param _vaultId The id of target vault
      * @return vault status
      */
-    function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view returns (VaultStatus memory) {
+    function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view override returns (VaultStatus memory) {
         PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
 
-        int128 positionValue = traders[_vaultOwner][_vaultId].getPositionValue(poolState);
+        int128 positionValue = traderVaults[_vaultOwner][_vaultId].getPositionValue(poolState);
 
-        int128 minCollateral = traders[_vaultOwner][_vaultId].getMinCollateral(poolState.spotPrice);
+        int128 minCollateral = traderVaults[_vaultOwner][_vaultId].getMinCollateral(poolState.spotPrice);
 
-        return VaultStatus(positionValue, minCollateral, traders[_vaultOwner][_vaultId]);
+        return VaultStatus(positionValue, minCollateral, traderVaults[_vaultOwner][_vaultId]);
     }
 }

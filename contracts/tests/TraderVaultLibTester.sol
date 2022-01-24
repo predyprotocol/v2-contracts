@@ -9,7 +9,7 @@ import "../lib/TraderVaultLib.sol";
  * @notice Tester contract for TraderVault library
  */
 contract TraderVaultLibTester {
-    TraderVaultLib.TraderPosition public traderPosition;
+    TraderVaultLib.TraderVault public traderPosition;
     int128 public r;
 
     function testUpdateVault(
