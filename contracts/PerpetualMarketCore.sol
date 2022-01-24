@@ -298,14 +298,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         // u_{t-1} = (S_t - S_{t-1}) / S_{t-1}
-        int256 u = ((spotPrice - poolSnapshot.ethPrice) * 1e8) / poolSnapshot.ethPrice;
+        int256 u = spotPrice.sub(poolSnapshot.ethPrice).mul(1e8).div(poolSnapshot.ethPrice);
 
-        u = (u * FUNDING_PERIOD) / (block.timestamp - poolSnapshot.lastSnapshotTime).toInt256().toInt128();
+        u = (u.mul(FUNDING_PERIOD)).div((block.timestamp - poolSnapshot.lastSnapshotTime).toInt256());
 
         // Updates snapshot
         // variance_{t} = λ * variance_{t-1} + (1 - λ) * u_{t-1}^2
-        poolSnapshot.ethVariance = ((LAMBDA.mul(poolSnapshot.ethVariance) + ((1e8 - LAMBDA).mul(u.mul(u))) / 1e8) / 1e8)
-            .toInt128();
+        poolSnapshot.ethVariance = ((LAMBDA.mul(poolSnapshot.ethVariance).add(((1e8 - LAMBDA).mul(u.mul(u))) / 1e8)) /
+            1e8).toInt128();
         poolSnapshot.ethPrice = spotPrice.toInt128();
         poolSnapshot.lastSnapshotTime = block.timestamp.toUint128();
     }
