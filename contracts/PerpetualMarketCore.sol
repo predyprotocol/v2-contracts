@@ -52,7 +52,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         uint128 lastTradeTime;
     }
 
-    // snapshot of pool state at last ETH variance calculation
     struct PoolSnapshot {
         int128 deltaImpact;
         int128 ethVariance;
@@ -60,22 +59,31 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         uint128 lastSnapshotTime;
     }
 
+    // Total supply of the LP token
     uint128 public supply;
 
+    // Total amount of liquidity provided by LPs
     uint128 public amountLiquidity;
 
+    // Pools information storage
     mapping(uint256 => Pool) public pools;
 
+    // Infos for spread calculation
     mapping(uint256 => SpreadLib.Info) private spreadInfos;
 
+    // Snapshot of pool state at last ETH variance calculation
     PoolSnapshot private poolSnapshot;
 
+    // Infos for collateral calculation
     NettingLib.Info private nettingInfo;
 
+    // Chainlink price feed address
     AggregatorV3Interface private priceFeed;
 
+    // The last timestamp of hedging
     uint128 public lastHedgeTime;
 
+    // The address of Perpetual Market Contract
     address private perpetualMarket;
 
     modifier onlyPerpetualMarket() {
