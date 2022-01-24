@@ -1,7 +1,9 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity =0.7.6;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/utils/SafeCast.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/IPerpetualMarketCore.sol";
 import "./Math.sol";
 
@@ -14,12 +16,16 @@ import "./Math.sol";
  */
 library TraderVaultLib {
     using SafeCast for int256;
+    using SafeCast for uint256;
     using SafeCast for uint128;
+    using SafeMath for uint256;
+    using SignedSafeMath for int256;
+    using SignedSafeMath for int128;
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
     /// @dev risk parameter for MinCollateral calculation is 7.5%
-    uint128 private constant RISK_PARAM_FOR_VAULT = 750;
+    uint256 private constant RISK_PARAM_FOR_VAULT = 750;
 
     /// @dev liquidation fee is 50%
     int128 private constant LIQUIDATION_FEE = 5000;
@@ -41,13 +47,13 @@ library TraderVaultLib {
         TraderVault storage _traderPosition,
         int128 _ratio,
         IPerpetualMarketCore.PoolState memory _poolParams
-    ) internal view returns (int128 amount) {
+    ) internal view returns (int256 amount) {
         require(!_traderPosition.isInsolvent, "T2");
 
-        int128 positionValue = getPositionValue(_traderPosition, _poolParams);
-        int128 minCollateral = getMinCollateral(_traderPosition, _poolParams.spotPrice);
+        int256 positionValue = getPositionValue(_traderPosition, _poolParams);
+        int256 minCollateral = getMinCollateral(_traderPosition, _poolParams.spotPrice);
 
-        int128 requiredPositionValue = ((1e8 * minCollateral) / _ratio);
+        int256 requiredPositionValue = minCollateral.mul(1e8).div(_ratio);
 
         amount = requiredPositionValue - positionValue;
     }
@@ -56,8 +62,8 @@ library TraderVaultLib {
      * @notice update USDC amount
      * @param _amount amount to add. if positive then increase amount, if negative then decrease amount.
      */
-    function updateUsdcAmount(TraderVault storage _traderPosition, int128 _amount) internal {
-        _traderPosition.amountUsdc += _amount;
+    function updateUsdcAmount(TraderVault storage _traderPosition, int256 _amount) internal {
+        _traderPosition.amountUsdc = _traderPosition.amountUsdc.add(_amount).toInt128();
     }
 
     /**
@@ -70,14 +76,17 @@ library TraderVaultLib {
         TraderVault storage _traderPosition,
         uint256 _productId,
         int128 _amountAsset,
-        int128 _valueEntry,
-        int128 _valueFundingFeeEntry
+        int256 _valueEntry,
+        int256 _valueFundingFeeEntry
     ) internal {
         require(!_traderPosition.isInsolvent, "T2");
 
-        _traderPosition.amountAsset[_productId] += _amountAsset;
-        _traderPosition.valueEntry[_productId] += _valueEntry;
-        _traderPosition.valueFundingFeeEntry[_productId] += _valueFundingFeeEntry;
+        _traderPosition.amountAsset[_productId] = _traderPosition.amountAsset[_productId].add(_amountAsset).toInt128();
+        _traderPosition.valueEntry[_productId] = _traderPosition.valueEntry[_productId].add(_valueEntry).toInt128();
+        _traderPosition.valueFundingFeeEntry[_productId] = _traderPosition
+            .valueFundingFeeEntry[_productId]
+            .add(_valueFundingFeeEntry)
+            .toInt128();
     }
 
     /**
@@ -87,7 +96,7 @@ library TraderVaultLib {
         internal
         returns (uint128)
     {
-        int128 positionValue = getPositionValue(_traderPosition, _poolParams);
+        int256 positionValue = getPositionValue(_traderPosition, _poolParams);
 
         require(positionValue < getMinCollateral(_traderPosition, _poolParams.spotPrice), "T1");
 
@@ -102,9 +111,10 @@ library TraderVaultLib {
             _traderPosition.valueEntry[i] = 0;
         }
 
-        int128 reward = (positionValue * LIQUIDATION_FEE) / 1e4;
+        int128 reward = (positionValue.mul(LIQUIDATION_FEE) / 1e4).toInt128();
 
         // reduce collateral
+        // sub is safe because we know reward is less than amountUsdc
         _traderPosition.amountUsdc -= reward;
 
         return uint128(reward);
@@ -115,14 +125,14 @@ library TraderVaultLib {
      * MinCollateral = 0.075 * S * (|2*S*a_{sqeeth}+a_{future}| + 0.15*S*|a_{sqeeth}|)
      * @return MinCollateral scaled by 1e6
      */
-    function getMinCollateral(TraderVault memory _traderPosition, uint128 _spotPrice) internal pure returns (int128) {
-        uint128 maxDelta = Math.abs(
-            (2 * int128(_spotPrice) * _traderPosition.amountAsset[0]) / 1e12 + _traderPosition.amountAsset[1]
-        ) + (2 * RISK_PARAM_FOR_VAULT * _spotPrice * Math.abs(_traderPosition.amountAsset[0] / 1e12)) / 1e4;
+    function getMinCollateral(TraderVault memory _traderPosition, uint256 _spotPrice) internal pure returns (int256) {
+        uint256 maxDelta = Math.abs(
+            ((2 * int256(_spotPrice).mul(_traderPosition.amountAsset[0])) / 1e12).add(_traderPosition.amountAsset[1])
+        ) + (2 * RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(Math.abs(_traderPosition.amountAsset[0] / 1e12))) / 1e4;
 
-        uint128 minCollateral = (RISK_PARAM_FOR_VAULT * _spotPrice * maxDelta) / (1e4 * 1e8);
+        uint256 minCollateral = (RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(maxDelta)) / (1e12);
 
-        return (minCollateral / 1e2).toInt256().toInt128();
+        return (minCollateral / 1e2).toInt256();
     }
 
     /**
@@ -133,11 +143,14 @@ library TraderVaultLib {
     function getPositionValue(TraderVault memory _traderPosition, IPerpetualMarketCore.PoolState memory _poolParams)
         internal
         pure
-        returns (int128)
+        returns (int256)
     {
-        int128 pnl = getSqeethAndFutureValue(_traderPosition, _poolParams);
+        int256 pnl = getSqeethAndFutureValue(_traderPosition, _poolParams);
 
-        return pnl + _traderPosition.amountUsdc + getFundingFee(_traderPosition, _poolParams.amountFundingFeesPerSize);
+        return
+            pnl.add(_traderPosition.amountUsdc).add(
+                getFundingFee(_traderPosition, _poolParams.amountFundingFeesPerSize)
+            );
     }
 
     /**
@@ -148,11 +161,13 @@ library TraderVaultLib {
     function getSqeethAndFutureValue(
         TraderVault memory _traderPosition,
         IPerpetualMarketCore.PoolState memory _poolParams
-    ) internal pure returns (int128) {
-        int128 pnl;
+    ) internal pure returns (int256) {
+        int256 pnl;
 
         for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
-            pnl += _poolParams.markPrices[i] * _traderPosition.amountAsset[i] - _traderPosition.valueEntry[i];
+            pnl = pnl.add(
+                _poolParams.markPrices[i].mul(_traderPosition.amountAsset[i]).sub(_traderPosition.valueEntry[i])
+            );
         }
 
         return pnl / 1e10;
@@ -166,15 +181,16 @@ library TraderVaultLib {
     function getFundingFee(TraderVault memory _traderPosition, int128[2] memory _amountFundingFeesPerSize)
         internal
         pure
-        returns (int128)
+        returns (int256)
     {
-        int128 fundingFee;
+        int256 fundingFee;
 
-        for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
-            fundingFee +=
-                _traderPosition.valueFundingFeeEntry[i] -
-                _amountFundingFeesPerSize[i] *
-                _traderPosition.amountAsset[i];
+        for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
+            fundingFee = fundingFee.add(
+                _traderPosition.valueFundingFeeEntry[i].sub(
+                    _amountFundingFeesPerSize[i].mul(_traderPosition.amountAsset[i])
+                )
+            );
         }
 
         return fundingFee / 1e10;

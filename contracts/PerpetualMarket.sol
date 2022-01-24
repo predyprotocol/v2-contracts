@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity =0.7.6;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IPerpetualMarket.sol";
@@ -98,7 +99,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
     function openPositions(TradeParams memory _tradeParams) public override {
         for (uint256 poolId = 0; poolId < MAX_PRODUCT_ID; poolId++) {
             if (_tradeParams.tradeAmounts[poolId] != 0) {
-                (int128 totalPrice, int128 valueFundingFeeEntry) = perpetualMarketCore.updatePoolPosition(
+                (int256 totalPrice, int256 valueFundingFeeEntry) = perpetualMarketCore.updatePoolPosition(
                     poolId,
                     _tradeParams.tradeAmounts[poolId]
                 );
@@ -114,7 +115,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
             }
         }
 
-        int128 finalDepositOrWithdrawAmount;
+        int256 finalDepositOrWithdrawAmount;
 
         {
             finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].getAmountRequired(
@@ -130,10 +131,10 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
             ERC20(liquidityPool.collateral()).transferFrom(
                 msg.sender,
                 address(liquidityPool),
-                uint128(finalDepositOrWithdrawAmount)
+                uint256(finalDepositOrWithdrawAmount)
             );
         } else {
-            liquidityPool.sendLiquidity(msg.sender, uint128(-finalDepositOrWithdrawAmount));
+            liquidityPool.sendLiquidity(msg.sender, uint256(-finalDepositOrWithdrawAmount));
         }
     }
 
@@ -220,7 +221,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
      * @notice Gets current LP token price
      * @return LP token price scaled by 1e6
      */
-    function getLPTokenPrice() external view override returns (uint128) {
+    function getLPTokenPrice() external view override returns (uint256) {
         return perpetualMarketCore.getLPTokenPrice();
     }
 
@@ -230,7 +231,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
      * @param _size positive to get ask price and negatice to get bit price
      * @return trade price scaled by 1e8
      */
-    function getTradePrice(uint256 _productId, int128 _size) external view override returns (int128) {
+    function getTradePrice(uint256 _productId, int128 _size) external view override returns (int256) {
         return perpetualMarketCore.getTradePrice(_productId, _size);
     }
 
@@ -243,9 +244,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
     function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view override returns (VaultStatus memory) {
         PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
 
-        int128 positionValue = traderVaults[_vaultOwner][_vaultId].getPositionValue(poolState);
+        int256 positionValue = traderVaults[_vaultOwner][_vaultId].getPositionValue(poolState);
 
-        int128 minCollateral = traderVaults[_vaultOwner][_vaultId].getMinCollateral(poolState.spotPrice);
+        int256 minCollateral = traderVaults[_vaultOwner][_vaultId].getMinCollateral(poolState.spotPrice);
 
         return VaultStatus(positionValue, minCollateral, traderVaults[_vaultOwner][_vaultId]);
     }
