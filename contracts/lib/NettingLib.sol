@@ -11,6 +11,7 @@ import "./Pricer.sol";
  * N0: unknown product id
  * N1: Total delta must be greater than 0
  * N2: Total delta must not be 0
+ * N3: Net delta must be negative
  */
 library NettingLib {
     using SafeCast for int256;
@@ -77,6 +78,7 @@ library NettingLib {
         uint128 totalDelta = Math.abs(_params.deltas[0]) + Math.abs(_params.deltas[1]);
 
         require(totalDelta > 0, "N2");
+        require(netDelta <= 0, "N3");
 
         _info.underlyingPosition = -netDelta;
 
