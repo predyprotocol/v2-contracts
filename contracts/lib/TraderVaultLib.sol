@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity =0.7.6;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "../interfaces/IPerpetualMarketCore.sol";
 import "./Math.sol";
 

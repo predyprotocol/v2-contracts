@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",
-    "test": "hardhat test",
+    "test": "hardhat test --network hardhat",
     "coverage": "hardhat coverage",
     "lint:check": "prettier --check \"contracts/**/*.sol\" \"test/**/*.ts\"",
     "lint:write": "prettier --write \"contracts/**/*.sol\" \"test/**/*.ts\""
@@ -13,10 +13,12 @@
   "author": "predy",
   "license": "ISC",
   "dependencies": {
-    "@chainlink/contracts": "^0.3.0",
-    "@openzeppelin/contracts": "^4.4.0",
-    "hardhat": "^2.7.0",
-    "hardhat-contract-sizer": "^2.1.1"
+    "@chainlink/contracts": "^0.3.1",
+    "@eth-optimism/hardhat-ovm": "^0.2.4",
+    "@openzeppelin/contracts": "v3.4.2-solc-0.7",
+    "hardhat": "2.4.3",
+    "hardhat-contract-sizer": "^2.1.1",
+    "hardhat-deploy": "^0.8.6"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.3",

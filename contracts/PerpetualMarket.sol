@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity =0.7.6;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IPerpetualMarket.sol";
@@ -220,7 +221,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
      * @notice Gets current LP token price
      * @return LP token price scaled by 1e6
      */
-    function getLPTokenPrice() external view override returns (uint128) {
+    function getLPTokenPrice() external view override returns (uint256) {
         return perpetualMarketCore.getLPTokenPrice();
     }
 

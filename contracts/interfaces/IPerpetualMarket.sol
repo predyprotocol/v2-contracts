@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity =0.7.6;
+pragma abicoder v2;
 
 import "../lib/TraderVaultLib.sol";
 
@@ -42,7 +43,7 @@ interface IPerpetualMarket {
 
     function execHedge() external;
 
-    function getLPTokenPrice() external view returns (uint128);
+    function getLPTokenPrice() external view returns (uint256);
 
     function getTradePrice(uint256 _productId, int128 _size) external view returns (int128);
 

@@ -1,8 +1,10 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity =0.7.6;
+pragma abicoder v2;
 
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@chainlink/contracts/src/v0.7/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/utils/SafeCast.sol";
+import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interfaces/IPerpetualMarketCore.sol";
 import "./lib/NettingLib.sol";
 import "./lib/Pricer.sol";
@@ -26,6 +28,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     using SafeCast for uint128;
     using SafeCast for int256;
     using SafeCast for int128;
+    using SafeMath for uint256;
+    using SafeMath for uint128;
+    using SafeMath for int128;
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
@@ -60,10 +65,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     // Total supply of the LP token
-    uint128 public supply;
+    uint256 public supply;
 
     // Total amount of liquidity provided by LPs
-    uint128 public amountLiquidity;
+    uint256 public amountLiquidity;
 
     // Pools information storage
     mapping(uint256 => Pool) public pools;
@@ -122,39 +127,39 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         poolSnapshot.ethPrice = spotPrice;
         poolSnapshot.lastSnapshotTime = block.timestamp.toUint128();
 
-        amountLiquidity += _depositAmount;
-        supply += mintAmount;
+        amountLiquidity = amountLiquidity.add(_depositAmount);
+        supply = supply.add(mintAmount);
     }
 
     /**
      * @notice provide liquidity
      */
-    function deposit(uint128 _depositAmount) external onlyPerpetualMarket returns (uint128 mintAmount) {
+    function deposit(uint128 _depositAmount) external onlyPerpetualMarket returns (uint256 mintAmount) {
         require(supply > 0);
 
-        mintAmount = (1e6 * _depositAmount) / getLPTokenPrice();
+        mintAmount = _depositAmount.mul(1e6).div(getLPTokenPrice());
 
-        amountLiquidity += _depositAmount;
-        supply += mintAmount;
+        amountLiquidity = amountLiquidity.add(_depositAmount);
+        supply = supply.add(mintAmount);
     }
 
     /**
      * @notice withdraw liquidity
      */
-    function withdraw(uint128 _withdrawnAmount) external onlyPerpetualMarket returns (uint128 burnAmount) {
-        burnAmount = (1e6 * _withdrawnAmount) / getLPTokenPrice();
+    function withdraw(uint128 _withdrawnAmount) external onlyPerpetualMarket returns (uint256 burnAmount) {
+        burnAmount = _withdrawnAmount.mul(1e6).div(getLPTokenPrice());
 
         require(
             amountLiquidity - pools[0].amountLockedLiquidity - pools[1].amountLockedLiquidity >= _withdrawnAmount,
             "PMC0"
         );
 
-        amountLiquidity -= _withdrawnAmount;
-        supply -= burnAmount;
+        amountLiquidity = amountLiquidity.sub(_withdrawnAmount);
+        supply = supply.sub(burnAmount);
     }
 
     function addLiquidity(uint128 _amount) external onlyPerpetualMarket {
-        amountLiquidity += _amount;
+        amountLiquidity = amountLiquidity.add(_amount);
     }
 
     /**
@@ -310,7 +315,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         return calculateTradePrice(_productId, spotPrice, deltaM);
     }
 
-    function getPoolState() external view returns (PoolState memory) {
+    function getPoolState() external view override returns (PoolState memory) {
         (int128 spotPrice, ) = getUnderlyingPrice();
 
         int128[2] memory markPrices;
@@ -462,14 +467,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * LPTokenPrice = (UnrealizedPnL_sqeeth + UnrealizedPnL_future + L - lockedLiquidity_sqeeth - lockedLiquidity_future) / Supply
      * @return LPTokenPrice scaled by 1e6
      */
-    function getLPTokenPrice() public view returns (uint128) {
+    function getLPTokenPrice() public view returns (uint256) {
         (int128 spotPrice, ) = getUnderlyingPrice();
 
         return
-            ((uint128(
-                amountLiquidity.toInt256().toInt128() +
-                    (getUnrealizedPnL(0, spotPrice) + getUnrealizedPnL(1, spotPrice)) /
-                    1e2
+            ((uint256(
+                amountLiquidity.toInt256() + (getUnrealizedPnL(0, spotPrice) + getUnrealizedPnL(1, spotPrice)) / 1e2
             ) -
                 pools[0].amountLockedLiquidity -
                 pools[1].amountLockedLiquidity) * 1e6) / supply;

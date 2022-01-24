@@ -3,7 +3,10 @@ node_modules
 coverage
 coverage.json
 typechain
+typechain-ovm
 
 #Hardhat files
 cache
+cache-ovm
 artifacts
+artifacts-ovm
