@@ -319,7 +319,7 @@ describe('PerpetualMarket', function () {
     it('variance updated', async () => {
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [scaledBN(1, 6), 0],
+        tradeAmounts: [scaledBN(1, 6), 0],
         collateralRatio: scaledBN(1, 8),
       })
 
@@ -331,7 +331,7 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [scaledBN(1, 6), 0],
+        tradeAmounts: [scaledBN(1, 6), 0],
         collateralRatio: scaledBN(1, 8),
       })
 
@@ -341,7 +341,7 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [scaledBN(1, 6), 0],
+        tradeAmounts: [scaledBN(1, 6), 0],
         collateralRatio: scaledBN(1, 8),
       })
 
@@ -354,7 +354,7 @@ describe('PerpetualMarket', function () {
       it('open', async () => {
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), 0],
+          tradeAmounts: [scaledBN(1, 6), 0],
           collateralRatio: scaledBN(1, 8),
         })
       })
@@ -363,12 +363,12 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), 0],
+          tradeAmounts: [scaledBN(1, 6), 0],
           collateralRatio: scaledBN(1, 8),
         })
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-1, 6), 0],
+          tradeAmounts: [scaledBN(-1, 6), 0],
           collateralRatio: scaledBN(1, 8),
         })
         const after = await usdc.balanceOf(wallet.address)
@@ -381,7 +381,7 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), 0],
+          tradeAmounts: [scaledBN(1, 6), 0],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -390,7 +390,7 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-1, 6), 0],
+          tradeAmounts: [scaledBN(-1, 6), 0],
           collateralRatio: scaledBN(1, 8),
         })
         const after = await usdc.balanceOf(wallet.address)
@@ -403,14 +403,14 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), 0],
+          tradeAmounts: [scaledBN(1, 6), 0],
           collateralRatio: scaledBN(1, 8),
         })
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-1, 6), 0],
+          tradeAmounts: [scaledBN(-1, 6), 0],
           collateralRatio: scaledBN(1, 8),
         })
         const after = await usdc.balanceOf(wallet.address)
@@ -423,7 +423,7 @@ describe('PerpetualMarket', function () {
       it('open', async () => {
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [0, scaledBN(1, 6)],
+          tradeAmounts: [0, scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
       })
@@ -433,12 +433,12 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [0, scaledBN(1, 6)],
+          tradeAmounts: [0, scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [0, scaledBN(-1, 6)],
+          tradeAmounts: [0, scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -452,7 +452,7 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [0, scaledBN(1, 6)],
+          tradeAmounts: [0, scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -461,7 +461,7 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [0, scaledBN(-1, 6)],
+          tradeAmounts: [0, scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -475,13 +475,13 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [0, scaledBN(1, 6)],
+          tradeAmounts: [0, scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
         await testContractHelper.updateSpot(scaledBN(90, 8))
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [0, scaledBN(-1, 6)],
+          tradeAmounts: [0, scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -495,7 +495,7 @@ describe('PerpetualMarket', function () {
       it('open Sqeeth and Future contracts', async () => {
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), scaledBN(1, 6)],
+          tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -512,12 +512,12 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), scaledBN(1, 6)],
+          tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-1, 6), scaledBN(-1, 6)],
+          tradeAmounts: [scaledBN(-1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -531,12 +531,12 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), scaledBN(1, 6)],
+          tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-1, 6), 0],
+          tradeAmounts: [scaledBN(-1, 6), 0],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -550,12 +550,12 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), scaledBN(1, 6)],
+          tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [0, scaledBN(-1, 6)],
+          tradeAmounts: [0, scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -569,7 +569,7 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), scaledBN(1, 6)],
+          tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -578,7 +578,7 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-1, 6), scaledBN(-1, 6)],
+          tradeAmounts: [scaledBN(-1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -591,12 +591,10 @@ describe('PerpetualMarket', function () {
         // 100B USDC
         await perpetualMarket.deposit(scaledBN(100, 15))
 
-        const before = await usdc.balanceOf(wallet.address)
-
         // 1M Sqeeth and 1M ETH future
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 14), scaledBN(1, 14)],
+          tradeAmounts: [scaledBN(1, 14), scaledBN(1, 14)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -605,13 +603,9 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-1, 14), scaledBN(-1, 14)],
+          tradeAmounts: [scaledBN(-1, 14), scaledBN(-1, 14)],
           collateralRatio: scaledBN(1, 8),
         })
-
-        const after = await usdc.balanceOf(wallet.address)
-
-        expect(after.sub(before)).to.be.eq('10207448370000')
       })
     })
 
@@ -619,7 +613,7 @@ describe('PerpetualMarket', function () {
       it('open long sqeeths and short futures', async () => {
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), scaledBN(-1, 6)],
+          tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -636,12 +630,12 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), scaledBN(-1, 6)],
+          tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-1, 6), scaledBN(1, 6)],
+          tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -655,7 +649,7 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), scaledBN(-1, 6)],
+          tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -664,7 +658,7 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-1, 6), scaledBN(1, 6)],
+          tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -678,7 +672,7 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 6), scaledBN(-1, 6)],
+          tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -687,7 +681,7 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-1, 6), scaledBN(1, 6)],
+          tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -710,7 +704,7 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [scaledBN(1, 6), 0],
+        tradeAmounts: [scaledBN(1, 6), 0],
         collateralRatio: scaledBN(1, 8),
       })
     })
@@ -723,7 +717,7 @@ describe('PerpetualMarket', function () {
       const before = await usdc.balanceOf(wallet.address)
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [0, 0],
+        tradeAmounts: [0, 0],
         collateralRatio: scaledBN(1, 8),
       })
       const after = await usdc.balanceOf(wallet.address)
@@ -739,7 +733,7 @@ describe('PerpetualMarket', function () {
       await expect(
         perpetualMarket.openPositions({
           vaultId,
-          sizes: [0, 0],
+          tradeAmounts: [0, 0],
           collateralRatio: scaledBN(1, 8),
         }),
       ).to.be.revertedWith('T2')
@@ -767,7 +761,7 @@ describe('PerpetualMarket', function () {
     it('net delta is decreased', async () => {
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [scaledBN(1, 7), 0],
+        tradeAmounts: [scaledBN(1, 7), 0],
         collateralRatio: scaledBN(1, 8),
       })
 
@@ -781,7 +775,7 @@ describe('PerpetualMarket', function () {
     it('reverts if net delta is positive', async () => {
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [scaledBN(1, 6), scaledBN(-1, 7)],
+        tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 7)],
         collateralRatio: scaledBN(1, 8),
       })
 
@@ -792,7 +786,7 @@ describe('PerpetualMarket', function () {
       beforeEach(async () => {
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(1, 7), 0],
+          tradeAmounts: [scaledBN(1, 7), 0],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -804,7 +798,7 @@ describe('PerpetualMarket', function () {
       it('net delta is increased', async () => {
         await perpetualMarket.openPositions({
           vaultId,
-          sizes: [scaledBN(-2, 6), 0],
+          tradeAmounts: [scaledBN(-2, 6), 0],
           collateralRatio: scaledBN(1, 8),
         })
 
@@ -835,7 +829,7 @@ describe('PerpetualMarket', function () {
     it('pool receives funding fee from sqeeth positions', async () => {
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [scaledBN(1, 8), 0],
+        tradeAmounts: [scaledBN(1, 8), 0],
         collateralRatio: scaledBN(1, 8),
       })
 
@@ -845,7 +839,7 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [scaledBN(1, 8), 0],
+        tradeAmounts: [scaledBN(1, 8), 0],
         collateralRatio: scaledBN(1, 8),
       })
 
@@ -857,7 +851,7 @@ describe('PerpetualMarket', function () {
     it('pool receives funding fee from future positions', async () => {
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [0, scaledBN(1, 8)],
+        tradeAmounts: [0, scaledBN(1, 8)],
         collateralRatio: scaledBN(1, 8),
       })
 
@@ -867,7 +861,7 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [0, scaledBN(1, 8)],
+        tradeAmounts: [0, scaledBN(1, 8)],
         collateralRatio: scaledBN(1, 8),
       })
 
@@ -879,7 +873,7 @@ describe('PerpetualMarket', function () {
     it('pool pays funding fee for future positions', async () => {
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [0, scaledBN(-1, 8)],
+        tradeAmounts: [0, scaledBN(-1, 8)],
         collateralRatio: scaledBN(1, 8),
       })
 
@@ -889,7 +883,7 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.openPositions({
         vaultId,
-        sizes: [0, scaledBN(-1, 8)],
+        tradeAmounts: [0, scaledBN(-1, 8)],
         collateralRatio: scaledBN(1, 8),
       })
 

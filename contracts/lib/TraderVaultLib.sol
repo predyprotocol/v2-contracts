@@ -24,7 +24,7 @@ library TraderVaultLib {
     /// @dev liquidation fee is 50%
     int128 private constant LIQUIDATION_FEE = 5000;
 
-    struct TraderPosition {
+    struct TraderVault {
         int128[2] amountAsset;
         int128 amountUsdc;
         int128[2] valueEntry;
@@ -38,7 +38,7 @@ library TraderVaultLib {
      * @return amount positive means required more collateral and negative means excess collateral.
      */
     function getAmountRequired(
-        TraderPosition storage _traderPosition,
+        TraderVault storage _traderPosition,
         int128 _ratio,
         IPerpetualMarketCore.PoolState memory _poolParams
     ) internal view returns (int128 amount) {
@@ -56,7 +56,7 @@ library TraderVaultLib {
      * @notice update USDC amount
      * @param _amount amount to add. if positive then increase amount, if negative then decrease amount.
      */
-    function updateUsdcAmount(TraderPosition storage _traderPosition, int128 _amount) internal {
+    function updateUsdcAmount(TraderVault storage _traderPosition, int128 _amount) internal {
         _traderPosition.amountUsdc += _amount;
     }
 
@@ -67,7 +67,7 @@ library TraderVaultLib {
      * @param _valueFundingFeeEntry entry value of funding fee
      */
     function updateVault(
-        TraderPosition storage _traderPosition,
+        TraderVault storage _traderPosition,
         uint256 _productId,
         int128 _amountAsset,
         int128 _valueEntry,
@@ -83,7 +83,7 @@ library TraderVaultLib {
     /**
      * @notice liquidate a vault whose PositionValue is less than MinCollateral
      */
-    function liquidate(TraderPosition storage _traderPosition, IPerpetualMarketCore.PoolState memory _poolParams)
+    function liquidate(TraderVault storage _traderPosition, IPerpetualMarketCore.PoolState memory _poolParams)
         internal
         returns (uint128)
     {
@@ -115,11 +115,7 @@ library TraderVaultLib {
      * MinCollateral = 0.075 * S * (|2*S*a_{sqeeth}+a_{future}| + 0.15*S*|a_{sqeeth}|)
      * @return MinCollateral scaled by 1e6
      */
-    function getMinCollateral(TraderPosition memory _traderPosition, uint128 _spotPrice)
-        internal
-        pure
-        returns (int128)
-    {
+    function getMinCollateral(TraderVault memory _traderPosition, uint128 _spotPrice) internal pure returns (int128) {
         uint128 maxDelta = Math.abs(
             (2 * int128(_spotPrice) * _traderPosition.amountAsset[0]) / 1e12 + _traderPosition.amountAsset[1]
         ) + (2 * RISK_PARAM_FOR_VAULT * _spotPrice * Math.abs(_traderPosition.amountAsset[0] / 1e12)) / 1e4;
@@ -134,15 +130,14 @@ library TraderVaultLib {
      * PositionValue = Σ(Price_{i} * a_{i} - entry_{i}) + USDC + FundingFee
      * @return PositionValue scaled by 1e6
      */
-    function getPositionValue(TraderPosition memory _traderPosition, IPerpetualMarketCore.PoolState memory _poolParams)
+    function getPositionValue(TraderVault memory _traderPosition, IPerpetualMarketCore.PoolState memory _poolParams)
         internal
         pure
         returns (int128)
     {
         int128 pnl = getSqeethAndFutureValue(_traderPosition, _poolParams);
 
-        return
-            pnl + _traderPosition.amountUsdc + getFundingFee(_traderPosition, _poolParams.cumFundingFeePerSizeGlobals);
+        return pnl + _traderPosition.amountUsdc + getFundingFee(_traderPosition, _poolParams.amountFundingFeesPerSize);
     }
 
     /**
@@ -151,7 +146,7 @@ library TraderVaultLib {
      * @return SqeethAndFutureValue scaled by 1e6
      */
     function getSqeethAndFutureValue(
-        TraderPosition memory _traderPosition,
+        TraderVault memory _traderPosition,
         IPerpetualMarketCore.PoolState memory _poolParams
     ) internal pure returns (int128) {
         int128 pnl;
@@ -168,7 +163,7 @@ library TraderVaultLib {
      * FundingFee = Σ(FundingEntry_i - a_i*cumFundingGlobal_i)
      * @return FundingFee scaled by 1e6
      */
-    function getFundingFee(TraderPosition memory _traderPosition, int128[2] memory _cumFundingFeePerSizeGlobal)
+    function getFundingFee(TraderVault memory _traderPosition, int128[2] memory _amountFundingFeesPerSize)
         internal
         pure
         returns (int128)
@@ -178,7 +173,7 @@ library TraderVaultLib {
         for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
             fundingFee +=
                 _traderPosition.valueFundingFeeEntry[i] -
-                _cumFundingFeePerSizeGlobal[i] *
+                _amountFundingFeesPerSize[i] *
                 _traderPosition.amountAsset[i];
         }
 
