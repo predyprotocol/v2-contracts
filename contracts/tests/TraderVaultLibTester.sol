@@ -25,12 +25,12 @@ contract TraderVaultLibTester {
     function testGetAmountRequired(int128 _ratio, IPerpetualMarketCore.PoolState memory _poolParams)
         external
         view
-        returns (int128)
+        returns (int256)
     {
         return TraderVaultLib.getAmountRequired(traderPosition, _ratio, _poolParams);
     }
 
-    function testUpdateUsdcAmount(int128 _amount) external {
+    function testUpdateUsdcAmount(int256 _amount) external {
         TraderVaultLib.updateUsdcAmount(traderPosition, _amount);
     }
 
@@ -38,11 +38,11 @@ contract TraderVaultLibTester {
         r = int128(TraderVaultLib.liquidate(traderPosition, _poolParams));
     }
 
-    function getMinCollateral(uint128 _spot) external view returns (int128) {
+    function getMinCollateral(uint128 _spot) external view returns (int256) {
         return TraderVaultLib.getMinCollateral(traderPosition, _spot);
     }
 
-    function getPositionValue(IPerpetualMarketCore.PoolState memory _poolParams) external view returns (int128) {
+    function getPositionValue(IPerpetualMarketCore.PoolState memory _poolParams) external view returns (int256) {
         return TraderVaultLib.getPositionValue(traderPosition, _poolParams);
     }
 }

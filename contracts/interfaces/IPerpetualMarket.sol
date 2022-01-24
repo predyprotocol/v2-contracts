@@ -12,8 +12,8 @@ interface IPerpetualMarket {
     }
 
     struct VaultStatus {
-        int128 positionValue;
-        int128 minCollateral;
+        int256 positionValue;
+        int256 minCollateral;
         TraderVaultLib.TraderVault position;
     }
 
@@ -45,7 +45,7 @@ interface IPerpetualMarket {
 
     function getLPTokenPrice() external view returns (uint256);
 
-    function getTradePrice(uint256 _productId, int128 _size) external view returns (int128);
+    function getTradePrice(uint256 _productId, int128 _size) external view returns (int256);
 
     function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view returns (VaultStatus memory);
 }

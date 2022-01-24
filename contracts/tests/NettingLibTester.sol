@@ -17,7 +17,7 @@ contract NettingLibTester {
 
     function addCollateral(uint256 _productId, NettingLib.AddCollateralParams memory _params)
         external
-        returns (int128, int128)
+        returns (int256, int256)
     {
         return NettingLib.addCollateral(info, _productId, _params);
     }
@@ -29,7 +29,7 @@ contract NettingLibTester {
     function getRequiredCollateral(uint256 _productId, NettingLib.AddCollateralParams memory _params)
         external
         pure
-        returns (int128)
+        returns (int256)
     {
         return NettingLib.getRequiredCollateral(_productId, _params);
     }
@@ -38,7 +38,7 @@ contract NettingLibTester {
         uint256 _productId,
         int128 _delta0,
         int128 _delta1
-    ) external pure returns (int128) {
+    ) external pure returns (int256) {
         return NettingLib.calculateWeightedDelta(_productId, _delta0, _delta1);
     }
 }
