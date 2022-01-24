@@ -51,7 +51,7 @@ describe('PerpetualMarketCore', function () {
     it('suceed to initialize', async () => {
       await perpetualMarketCore.initialize(1000, scaledBN(5, 5))
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(1000)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1000)
       expect(await perpetualMarketCore.supply()).to.be.eq(1000)
     })
   })
@@ -68,7 +68,7 @@ describe('PerpetualMarketCore', function () {
     it('suceed to deposit', async () => {
       await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000000)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
       expect(await perpetualMarketCore.supply()).to.be.eq(2000000)
     })
 
@@ -77,7 +77,7 @@ describe('PerpetualMarketCore', function () {
 
       await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000000)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
       expect(await perpetualMarketCore.supply()).to.be.eq(2000000)
     })
 
@@ -88,7 +88,7 @@ describe('PerpetualMarketCore', function () {
 
       await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000000)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
       expect(await perpetualMarketCore.supply()).to.be.eq(1999990)
     })
 
@@ -99,7 +99,7 @@ describe('PerpetualMarketCore', function () {
 
       await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(2000000)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
       expect(await perpetualMarketCore.supply()).to.be.eq(2000010)
     })
   })
@@ -116,14 +116,14 @@ describe('PerpetualMarketCore', function () {
     it('withdraws a half of liquidity', async () => {
       await perpetualMarketCore.withdraw(500000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(500000)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(500000)
       expect(await perpetualMarketCore.supply()).to.be.eq(500000)
     })
 
     it('withdraws all', async () => {
       await perpetualMarketCore.withdraw(1000000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(0)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(0)
       expect(await perpetualMarketCore.supply()).to.be.eq(0)
     })
 
@@ -140,7 +140,7 @@ describe('PerpetualMarketCore', function () {
 
       await perpetualMarketCore.withdraw(500000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(500000)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(500000)
       expect(await perpetualMarketCore.supply()).to.be.eq(500005)
     })
 
@@ -151,7 +151,7 @@ describe('PerpetualMarketCore', function () {
 
       await perpetualMarketCore.withdraw(500000)
 
-      expect(await perpetualMarketCore.liquidityAmount()).to.be.eq(500000)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(500000)
       expect(await perpetualMarketCore.supply()).to.be.eq(499995)
     })
   })
@@ -182,7 +182,7 @@ describe('PerpetualMarketCore', function () {
         await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 100000)
 
         const pool = await perpetualMarketCore.pools(SQEETH_PRODUCT_ID)
-        expect(pool.lockedLiquidityAmount).to.be.gt(0)
+        expect(pool.amountLockedLiquidity).to.be.gt(0)
       })
 
       it('sqeeth position decreased', async () => {
@@ -190,14 +190,14 @@ describe('PerpetualMarketCore', function () {
         await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, -100000)
 
         const pool = await perpetualMarketCore.pools(SQEETH_PRODUCT_ID)
-        expect(pool.lockedLiquidityAmount).to.be.eq(0)
+        expect(pool.amountLockedLiquidity).to.be.eq(0)
       })
 
       it('long position of futures increased', async () => {
         await perpetualMarketCore.updatePoolPosition(FUTURE_PRODUCT_ID, -100000)
 
         const pool = await perpetualMarketCore.pools(FUTURE_PRODUCT_ID)
-        expect(pool.lockedLiquidityAmount).to.be.gt(0)
+        expect(pool.amountLockedLiquidity).to.be.gt(0)
       })
 
       it('long position of futures increased', async () => {
@@ -205,7 +205,7 @@ describe('PerpetualMarketCore', function () {
         await perpetualMarketCore.updatePoolPosition(FUTURE_PRODUCT_ID, 100000)
 
         const pool = await perpetualMarketCore.pools(FUTURE_PRODUCT_ID)
-        expect(pool.lockedLiquidityAmount).to.be.eq(0)
+        expect(pool.amountLockedLiquidity).to.be.eq(0)
       })
     })
   })

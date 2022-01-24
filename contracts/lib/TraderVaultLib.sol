@@ -141,8 +141,7 @@ library TraderVaultLib {
     {
         int128 pnl = getSqeethAndFutureValue(_traderPosition, _poolParams);
 
-        return
-            pnl + _traderPosition.amountUsdc + getFundingFee(_traderPosition, _poolParams.cumFundingFeePerSizeGlobals);
+        return pnl + _traderPosition.amountUsdc + getFundingFee(_traderPosition, _poolParams.amountFundingFeesPerSize);
     }
 
     /**
@@ -168,7 +167,7 @@ library TraderVaultLib {
      * FundingFee = Σ(FundingEntry_i - a_i*cumFundingGlobal_i)
      * @return FundingFee scaled by 1e6
      */
-    function getFundingFee(TraderPosition memory _traderPosition, int128[2] memory _cumFundingFeePerSizeGlobal)
+    function getFundingFee(TraderPosition memory _traderPosition, int128[2] memory _amountFundingFeesPerSize)
         internal
         pure
         returns (int128)
@@ -178,7 +177,7 @@ library TraderVaultLib {
         for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
             fundingFee +=
                 _traderPosition.valueFundingFeeEntry[i] -
-                _cumFundingFeePerSizeGlobal[i] *
+                _amountFundingFeesPerSize[i] *
                 _traderPosition.amountAsset[i];
         }
 

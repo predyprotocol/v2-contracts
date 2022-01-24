@@ -21,8 +21,8 @@ contract PerpetualMarket is ERC20 {
     struct TradeParams {
         // Vault Id to hold positions
         uint256 vaultId;
-        // Position sizes
-        int128[2] sizes;
+        // Position tradeAmounts
+        int128[2] tradeAmounts;
         // Target collateral ratio
         int128 collateralRatio;
     }
@@ -37,7 +37,7 @@ contract PerpetualMarket is ERC20 {
 
     event Withdrawn(address indexed account, uint256 burned, uint256 amount);
 
-    event PositionUpdated(address indexed trader, int256 size, int256 totalPrice);
+    event PositionUpdated(address indexed trader, int256 tradeAmount, int256 totalPrice);
 
     event Liquidated(address liquidator, address indexed vaultOwner, uint256 vaultId);
 
@@ -110,20 +110,20 @@ contract PerpetualMarket is ERC20 {
      */
     function openPositions(TradeParams memory _tradeParams) public {
         for (uint256 poolId = 0; poolId < MAX_PRODUCT_ID; poolId++) {
-            if (_tradeParams.sizes[poolId] != 0) {
-                (int128 totalPrice, int128 cumFundingGlobal) = perpetualMarketCore.updatePoolPosition(
+            if (_tradeParams.tradeAmounts[poolId] != 0) {
+                (int128 totalPrice, int128 valueFundingFeeEntry) = perpetualMarketCore.updatePoolPosition(
                     poolId,
-                    _tradeParams.sizes[poolId]
+                    _tradeParams.tradeAmounts[poolId]
                 );
 
                 traders[msg.sender][_tradeParams.vaultId].updateVault(
                     poolId,
-                    _tradeParams.sizes[poolId],
+                    _tradeParams.tradeAmounts[poolId],
                     totalPrice,
-                    cumFundingGlobal
+                    valueFundingFeeEntry
                 );
 
-                emit PositionUpdated(msg.sender, _tradeParams.sizes[poolId], totalPrice);
+                emit PositionUpdated(msg.sender, _tradeParams.tradeAmounts[poolId], totalPrice);
             }
         }
 
@@ -159,11 +159,11 @@ contract PerpetualMarket is ERC20 {
         uint128 _size,
         int128 _depositOrWithdrawAmount
     ) external {
-        int128[2] memory sizes;
+        int128[2] memory tradeAmounts;
 
-        sizes[_productId] = int128(_size);
+        tradeAmounts[_productId] = int128(_size);
 
-        openPositions(TradeParams(_vaultId, sizes, _depositOrWithdrawAmount));
+        openPositions(TradeParams(_vaultId, tradeAmounts, _depositOrWithdrawAmount));
     }
 
     /**
@@ -175,11 +175,11 @@ contract PerpetualMarket is ERC20 {
         uint128 _size,
         int128 _depositOrWithdrawAmount
     ) external {
-        int128[2] memory sizes;
+        int128[2] memory tradeAmounts;
 
-        sizes[_productId] = -int128(_size);
+        tradeAmounts[_productId] = -int128(_size);
 
-        openPositions(TradeParams(_vaultId, sizes, _depositOrWithdrawAmount));
+        openPositions(TradeParams(_vaultId, tradeAmounts, _depositOrWithdrawAmount));
     }
 
     /**
@@ -191,10 +191,10 @@ contract PerpetualMarket is ERC20 {
         PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState();
 
         for (uint256 poolId = 0; poolId < MAX_PRODUCT_ID; poolId++) {
-            int128 size = traders[_vaultOwner][_vaultId].amountAsset[poolId];
+            int128 amountAssetInVault = traders[_vaultOwner][_vaultId].amountAsset[poolId];
 
-            if (size != 0) {
-                perpetualMarketCore.updatePoolPosition(poolId, -size);
+            if (amountAssetInVault != 0) {
+                perpetualMarketCore.updatePoolPosition(poolId, -amountAssetInVault);
             }
         }
 
