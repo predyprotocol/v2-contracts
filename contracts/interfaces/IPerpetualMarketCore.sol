@@ -5,9 +5,9 @@ pragma abicoder v2;
 interface IPerpetualMarketCore {
     struct PoolState {
         uint128 spotPrice;
-        int128[2] markPrices;
+        int256[2] tradePrices;
         int128[2] amountFundingFeesPerSize;
     }
 
-    function getPoolState() external view returns (PoolState memory);
+    function getPoolState(int128[2] memory amountAssets) external view returns (PoolState memory);
 }

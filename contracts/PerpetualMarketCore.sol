@@ -187,7 +187,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         (int256 deltaM, int256 hedgePositionValue) = addCollateral(_productId, spotPrice);
 
         // Calculate trade price
-        int256 tradePrice = calculateTradePrice(_productId, spotPrice, deltaM);
+        int256 tradePrice = calculateTradePriceByDeltaCollateral(_productId, spotPrice, deltaM);
 
         // Manages spread
         tradePrice = spreadInfos[_productId].checkPrice(_tradeAmount > 0, tradePrice);
@@ -322,23 +322,21 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     function getTradePrice(uint256 _productId, int128 _tradeAmount) external view returns (int256) {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
-        int256 deltaM = getReqiredCollateral(_productId, spotPrice, _tradeAmount);
-
-        return calculateTradePrice(_productId, spotPrice, deltaM);
+        return calculateTradePrice(_productId, spotPrice, _tradeAmount);
     }
 
-    function getPoolState() external view override returns (PoolState memory) {
+    function getPoolState(int128[2] memory amountAssets) external view override returns (PoolState memory) {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
-        int128[2] memory markPrices;
+        int256[2] memory tradePrices;
         int128[2] memory cumFundingFeePerSizeGlobals;
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
-            markPrices[i] = getMarkPrice(i, spotPrice);
+            tradePrices[i] = calculateTradePrice(i, spotPrice, -amountAssets[i]);
             cumFundingFeePerSizeGlobals[i] = pools[i].amountFundingFeePerSize;
         }
 
-        return PoolState(uint128(spotPrice), markPrices, cumFundingFeePerSizeGlobals);
+        return PoolState(uint128(spotPrice), tradePrices, cumFundingFeePerSizeGlobals);
     }
 
     /////////////////////////
@@ -459,12 +457,22 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         }
     }
 
+    function calculateTradePrice(
+        uint256 _productId,
+        int256 _spotPrice,
+        int128 _amountAsset
+    ) internal view returns (int256) {
+        int256 deltaM = getReqiredCollateral(_productId, _spotPrice, _amountAsset);
+
+        return calculateTradePriceByDeltaCollateral(_productId, _spotPrice, deltaM);
+    }
+
     /**
      * @notice Calculates perpetual's trade price
      * TradePrice = IndexPrice * (1 + FundingRate + 0.5 * ΔFundingRate)
      * @return TradePrice scaled by 1e8
      */
-    function calculateTradePrice(
+    function calculateTradePriceByDeltaCollateral(
         uint256 _productId,
         int256 _spotPrice,
         int256 _deltaM
@@ -510,28 +518,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     /**
      * @notice Calculates Unrealized PnL
-     * UnrealizedPnL = MarkPrice * amountAsset - valueEntry + HedgePositionValue
+     * UnrealizedPnL = TradePrice * amountAsset - valueEntry + HedgePositionValue
      * @return UnrealizedPnL scaled by 1e8
      */
-    function getUnrealizedPnL(uint256 _productId, int256 _spot) internal view returns (int256) {
-        int256 markPrice = getMarkPrice(_productId, _spot);
+    function getUnrealizedPnL(uint256 _productId, int256 _spotPrice) internal view returns (int256) {
+        int256 tradePrice = calculateTradePrice(_productId, _spotPrice, -pools[_productId].amountAsset);
+
         return
-            (pools[_productId].valueEntry / 1e8).sub(markPrice.mul(pools[_productId].amountAsset) / 1e8).add(
-                nettingInfo.pools[_productId].getHedgePositionValue(_spot)
+            (pools[_productId].valueEntry / 1e8).sub(tradePrice.mul(pools[_productId].amountAsset) / 1e8).add(
+                nettingInfo.pools[_productId].getHedgePositionValue(_spotPrice)
             );
-    }
-
-    /**
-     * @notice Calculates perpetual's mark price
-     * MarkPrice = IndexPrice * (1 + FundingRate)
-     * @return mark price scaled by 1e8
-     */
-    function getMarkPrice(uint256 _productId, int256 _spot) internal view returns (int128) {
-        int256 indexPrice = Pricer.calculateIndexPrice(_productId, _spot);
-
-        int256 currentFundingRate = getFundingRate(_productId);
-
-        return ((indexPrice.mul(int256(1e8).add(currentFundingRate))) / 1e8).toInt128();
     }
 
     /**
