@@ -166,7 +166,7 @@ library TraderVaultLib {
 
         for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
             pnl = pnl.add(
-                _poolParams.markPrices[i].mul(_traderPosition.amountAsset[i]).sub(_traderPosition.valueEntry[i])
+                _poolParams.tradePrices[i].mul(_traderPosition.amountAsset[i]).sub(_traderPosition.valueEntry[i])
             );
         }
 
