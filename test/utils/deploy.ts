@@ -37,9 +37,13 @@ export class TestContractHelper {
   }
 
   async openLong(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish) {
-    await this.testContractSet.perpetualMarket
-      .connect(wallet)
-      .openPositions({ vaultId, tradeAmounts: [tradeAmount, 0], collateralRatio: scaledBN(1, 8) })
+    await this.testContractSet.perpetualMarket.connect(wallet).openPositions({
+      vaultId,
+      tradeAmounts: [tradeAmount, 0],
+      collateralRatio: scaledBN(1, 8),
+      limitPrices: [0, 0],
+      deadline: 0,
+    })
   }
 
   async openShort(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish) {
@@ -47,6 +51,8 @@ export class TestContractHelper {
       vaultId,
       tradeAmounts: [BigNumber.from(tradeAmount).mul(-1), 0],
       collateralRatio: scaledBN(1, 8),
+      limitPrices: [0, 0],
+      deadline: 0,
     })
   }
 }

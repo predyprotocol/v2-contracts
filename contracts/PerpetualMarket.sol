@@ -96,22 +96,34 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
      * and manage collaterals in the vault
      * @param _tradeParams trade parameters
      */
-    function openPositions(TradeParams memory _tradeParams) public override {
-        for (uint256 poolId = 0; poolId < MAX_PRODUCT_ID; poolId++) {
-            if (_tradeParams.tradeAmounts[poolId] != 0) {
+    function openPositions(MultiTradeParams memory _tradeParams) public override {
+        // check the transaction not exceed deadline
+        require(_tradeParams.deadline == 0 || _tradeParams.deadline >= block.number, "PM0");
+
+        for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
+            if (_tradeParams.tradeAmounts[productId] != 0) {
                 (int256 totalPrice, int256 valueFundingFeeEntry) = perpetualMarketCore.updatePoolPosition(
-                    poolId,
-                    _tradeParams.tradeAmounts[poolId]
+                    productId,
+                    _tradeParams.tradeAmounts[productId]
+                );
+
+                require(
+                    checkPrice(
+                        _tradeParams.tradeAmounts[productId] > 0,
+                        uint256(totalPrice / _tradeParams.tradeAmounts[productId]),
+                        _tradeParams.limitPrices[productId]
+                    ),
+                    "PM1"
                 );
 
                 traderVaults[msg.sender][_tradeParams.vaultId].updateVault(
-                    poolId,
-                    _tradeParams.tradeAmounts[poolId],
+                    productId,
+                    _tradeParams.tradeAmounts[productId],
                     totalPrice,
                     valueFundingFeeEntry
                 );
 
-                emit PositionUpdated(msg.sender, _tradeParams.tradeAmounts[poolId], totalPrice);
+                emit PositionUpdated(msg.sender, _tradeParams.tradeAmounts[productId], totalPrice);
             }
         }
 
@@ -141,33 +153,43 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
     /**
      * @notice Open new long position of the perpetual contract
      */
-    function openLongPosition(
-        uint256 _productId,
-        uint256 _vaultId,
-        uint128 _size,
-        int128 _depositOrWithdrawAmount
-    ) external override {
+    function openLongPosition(SingleTradeParams memory _tradeParams) external override {
         int128[2] memory tradeAmounts;
+        uint256[2] memory limitPrices;
 
-        tradeAmounts[_productId] = int128(_size);
+        tradeAmounts[_tradeParams.productId] = int128(_tradeParams.tradeAmount);
+        limitPrices[_tradeParams.productId] = _tradeParams.limitPrice;
 
-        openPositions(TradeParams(_vaultId, tradeAmounts, _depositOrWithdrawAmount));
+        openPositions(
+            MultiTradeParams(
+                _tradeParams.vaultId,
+                tradeAmounts,
+                _tradeParams.collateralRatio,
+                limitPrices,
+                _tradeParams.deadline
+            )
+        );
     }
 
     /**
      * @notice Open new short position of the perpetual contract
      */
-    function openShortPosition(
-        uint256 _productId,
-        uint256 _vaultId,
-        uint128 _size,
-        int128 _depositOrWithdrawAmount
-    ) external override {
+    function openShortPosition(SingleTradeParams memory _tradeParams) external override {
         int128[2] memory tradeAmounts;
+        uint256[2] memory limitPrices;
 
-        tradeAmounts[_productId] = -int128(_size);
+        tradeAmounts[_tradeParams.productId] = -int128(_tradeParams.tradeAmount);
+        limitPrices[_tradeParams.productId] = _tradeParams.limitPrice;
 
-        openPositions(TradeParams(_vaultId, tradeAmounts, _depositOrWithdrawAmount));
+        openPositions(
+            MultiTradeParams(
+                _tradeParams.vaultId,
+                tradeAmounts,
+                _tradeParams.collateralRatio,
+                limitPrices,
+                _tradeParams.deadline
+            )
+        );
     }
 
     /**
@@ -217,6 +239,30 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
         }
 
         emit Hedged(msg.sender, usdcAmount, uAmount);
+    }
+
+    /**
+     * @notice compare trade price and limit price
+     * For long, if trade price is less than limit price then return true.
+     * For short, if trade price is greater than limit price then return true.
+     * if limit price is 0 then always return true.
+     * @param _isLong true if the trade is long and false if the trade is short
+     * @param _tradePrice trade price per trade amount
+     * @param _limitPrice the worst price the trader accept
+     */
+    function checkPrice(
+        bool _isLong,
+        uint256 _tradePrice,
+        uint256 _limitPrice
+    ) internal pure returns (bool) {
+        if (_limitPrice == 0) {
+            return true;
+        }
+        if (_isLong) {
+            return _tradePrice <= _limitPrice;
+        } else {
+            return _tradePrice >= _limitPrice;
+        }
     }
 
     /**
