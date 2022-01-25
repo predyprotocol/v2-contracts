@@ -5,10 +5,21 @@ pragma abicoder v2;
 import "../lib/TraderVaultLib.sol";
 
 interface IPerpetualMarket {
-    struct TradeParams {
+    struct MultiTradeParams {
         uint256 vaultId;
         int128[2] tradeAmounts;
         int128 collateralRatio;
+        uint256[2] limitPrices;
+        uint256 deadline;
+    }
+
+    struct SingleTradeParams {
+        uint256 productId;
+        uint256 vaultId;
+        uint128 tradeAmount;
+        int128 collateralRatio;
+        uint256 limitPrice;
+        uint256 deadline;
     }
 
     struct VaultStatus {
@@ -23,21 +34,11 @@ interface IPerpetualMarket {
 
     function withdraw(uint128 _withdrawnAmount) external;
 
-    function openPositions(TradeParams memory _tradeParams) external;
+    function openPositions(MultiTradeParams memory _tradeParams) external;
 
-    function openLongPosition(
-        uint256 _productId,
-        uint256 _vaultId,
-        uint128 _size,
-        int128 _depositOrWithdrawAmount
-    ) external;
+    function openLongPosition(SingleTradeParams memory _tradeParams) external;
 
-    function openShortPosition(
-        uint256 _productId,
-        uint256 _vaultId,
-        uint128 _size,
-        int128 _depositOrWithdrawAmount
-    ) external;
+    function openShortPosition(SingleTradeParams memory _tradeParams) external;
 
     function liquidateByPool(address _vaultOwner, uint256 _vaultId) external;
 

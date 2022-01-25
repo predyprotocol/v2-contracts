@@ -213,7 +213,14 @@ describe('PerpetualMarket', function () {
     })
 
     it('reverts if withdraw with closing but there are no liquidity', async function () {
-      await perpetualMarket.openLongPosition(poolId, 0, scaledBN(1, 8), scaledBN(100, 6))
+      await perpetualMarket.openLongPosition({
+        productId: poolId,
+        vaultId: 0,
+        collateralRatio: scaledBN(1, 8),
+        tradeAmount: scaledBN(100, 6),
+        limitPrice: 0,
+        deadline: 0,
+      })
 
       expect(perpetualMarket.withdraw(scaledBN(100, 6))).to.be.reverted
     })
@@ -321,6 +328,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [scaledBN(1, 6), 0],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       const before = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)
@@ -333,6 +342,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [scaledBN(1, 6), 0],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       await testContractHelper.updateSpot(scaledBN(100, 8))
@@ -343,11 +354,76 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [scaledBN(1, 6), 0],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       const after = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)
 
       expect(after).to.be.gt(before)
+    })
+
+    it('reverts by deadline', async () => {
+      const blockNumber = await ethers.provider.getBlockNumber()
+      await perpetualMarket.openPositions({
+        vaultId,
+        tradeAmounts: [scaledBN(1, 6), 0],
+        collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: blockNumber + 1,
+      })
+
+      await expect(
+        perpetualMarket.openPositions({
+          vaultId,
+          tradeAmounts: [scaledBN(1, 6), 0],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: blockNumber,
+        }),
+      ).to.be.revertedWith('PM0')
+    })
+
+    describe('limit price', () => {
+      it('reverts long by limit price', async () => {
+        await perpetualMarket.openPositions({
+          vaultId,
+          tradeAmounts: [0, scaledBN(1, 6)],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, '11000000000'],
+          deadline: 0,
+        })
+
+        await expect(
+          perpetualMarket.openPositions({
+            vaultId,
+            tradeAmounts: [0, scaledBN(1, 6)],
+            collateralRatio: scaledBN(1, 8),
+            limitPrices: [0, '9000000000'],
+            deadline: 0,
+          }),
+        ).to.be.revertedWith('PM1')
+      })
+
+      it('reverts short by limit price', async () => {
+        await perpetualMarket.openPositions({
+          vaultId,
+          tradeAmounts: [0, scaledBN(-1, 6)],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, '9000000000'],
+          deadline: 0,
+        })
+
+        await expect(
+          perpetualMarket.openPositions({
+            vaultId,
+            tradeAmounts: [0, scaledBN(-1, 6)],
+            collateralRatio: scaledBN(1, 8),
+            limitPrices: [0, '11000000000'],
+            deadline: 0,
+          }),
+        ).to.be.revertedWith('PM1')
+      })
     })
 
     describe('Sqeeth', () => {
@@ -356,6 +432,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
       })
 
@@ -365,11 +443,15 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         await perpetualMarket.openPositions({
           vaultId,
           tradeAmounts: [scaledBN(-1, 6), 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         const after = await usdc.balanceOf(wallet.address)
 
@@ -383,6 +465,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         await increaseTime(SAFETY_PERIOD)
@@ -392,6 +476,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(-1, 6), 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         const after = await usdc.balanceOf(wallet.address)
 
@@ -405,6 +491,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
@@ -412,6 +500,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(-1, 6), 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         const after = await usdc.balanceOf(wallet.address)
 
@@ -425,6 +515,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [0, scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
       })
 
@@ -435,11 +527,15 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [0, scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         await perpetualMarket.openPositions({
           vaultId,
           tradeAmounts: [0, scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
@@ -454,6 +550,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [0, scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         await increaseTime(SAFETY_PERIOD)
@@ -463,6 +561,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [0, scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
@@ -477,12 +577,16 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [0, scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         await testContractHelper.updateSpot(scaledBN(90, 8))
         await perpetualMarket.openPositions({
           vaultId,
           tradeAmounts: [0, scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
@@ -497,6 +601,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
@@ -514,11 +620,15 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         await perpetualMarket.openPositions({
           vaultId,
           tradeAmounts: [scaledBN(-1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
@@ -533,11 +643,15 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         await perpetualMarket.openPositions({
           vaultId,
           tradeAmounts: [scaledBN(-1, 6), 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
@@ -552,11 +666,15 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         await perpetualMarket.openPositions({
           vaultId,
           tradeAmounts: [0, scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
@@ -571,6 +689,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         await increaseTime(SAFETY_PERIOD)
@@ -580,6 +700,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(-1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
@@ -596,6 +718,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 14), scaledBN(1, 14)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         await increaseTime(SAFETY_PERIOD)
@@ -605,6 +729,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(-1, 14), scaledBN(-1, 14)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
       })
     })
@@ -615,6 +741,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
@@ -632,11 +760,15 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
         await perpetualMarket.openPositions({
           vaultId,
           tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
@@ -651,6 +783,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         await increaseTime(SAFETY_PERIOD)
@@ -660,6 +794,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
@@ -674,6 +810,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         await increaseTime(SAFETY_PERIOD)
@@ -683,6 +821,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
@@ -706,6 +846,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [scaledBN(1, 6), 0],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
     })
 
@@ -719,6 +861,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [0, 0],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
       const after = await usdc.balanceOf(wallet.address)
 
@@ -735,6 +879,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [0, 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         }),
       ).to.be.revertedWith('T2')
 
@@ -763,6 +909,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [scaledBN(1, 7), 0],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       const before = await usdc.balanceOf(wallet.address)
@@ -777,6 +925,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 7)],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       await expect(perpetualMarket.execHedge()).to.be.revertedWith('N3')
@@ -788,6 +938,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(1, 7), 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         await perpetualMarket.execHedge()
@@ -800,6 +952,8 @@ describe('PerpetualMarket', function () {
           vaultId,
           tradeAmounts: [scaledBN(-2, 6), 0],
           collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
         })
 
         const beforeAskPrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)
@@ -831,6 +985,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [scaledBN(1, 8), 0],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       await increaseTime(24 * 60 * 60)
@@ -841,6 +997,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [scaledBN(1, 8), 0],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
@@ -853,6 +1011,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [0, scaledBN(1, 8)],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       await increaseTime(24 * 60 * 60)
@@ -863,6 +1023,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [0, scaledBN(1, 8)],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
@@ -875,6 +1037,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [0, scaledBN(-1, 8)],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       await increaseTime(24 * 60 * 60)
@@ -885,6 +1049,8 @@ describe('PerpetualMarket', function () {
         vaultId,
         tradeAmounts: [0, scaledBN(-1, 8)],
         collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
       })
 
       const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
