@@ -22,27 +22,31 @@ contract TraderVaultLibTester {
         TraderVaultLib.updateVault(traderPosition, _productId, _amountAsset, _valueEntry, _valueFundingFeeEntry);
     }
 
-    function testGetAmountRequired(int128 _ratio, IPerpetualMarketCore.PoolState memory _poolParams)
+    function testGetAmountRequired(int128 _ratio, IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
         external
         view
         returns (int256)
     {
-        return TraderVaultLib.getAmountRequired(traderPosition, _ratio, _poolParams);
+        return TraderVaultLib.getAmountRequired(traderPosition, _ratio, _tradePriceInfo);
     }
 
     function testUpdateUsdcAmount(int256 _amount) external {
         TraderVaultLib.updateUsdcAmount(traderPosition, _amount);
     }
 
-    function testLiquidate(IPerpetualMarketCore.PoolState memory _poolParams) external {
-        r = int128(TraderVaultLib.liquidate(traderPosition, _poolParams));
+    function testLiquidate(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo) external {
+        r = int128(TraderVaultLib.liquidate(traderPosition, _tradePriceInfo));
     }
 
     function getMinCollateral(uint128 _spot) external view returns (int256) {
         return TraderVaultLib.getMinCollateral(traderPosition, _spot);
     }
 
-    function getPositionValue(IPerpetualMarketCore.PoolState memory _poolParams) external view returns (int256) {
-        return TraderVaultLib.getPositionValue(traderPosition, _poolParams);
+    function getPositionValue(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
+        external
+        view
+        returns (int256)
+    {
+        return TraderVaultLib.getPositionValue(traderPosition, _tradePriceInfo);
     }
 }

@@ -46,12 +46,12 @@ library TraderVaultLib {
     function getAmountRequired(
         TraderVault storage _traderPosition,
         int128 _ratio,
-        IPerpetualMarketCore.PoolState memory _poolParams
+        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal view returns (int256 amount) {
         require(!_traderPosition.isInsolvent, "T2");
 
-        int256 positionValue = getPositionValue(_traderPosition, _poolParams);
-        int256 minCollateral = getMinCollateral(_traderPosition, _poolParams.spotPrice);
+        int256 positionValue = getPositionValue(_traderPosition, _tradePriceInfo);
+        int256 minCollateral = getMinCollateral(_traderPosition, _tradePriceInfo.spotPrice);
 
         int256 requiredPositionValue = minCollateral.mul(1e8).div(_ratio);
 
@@ -92,13 +92,13 @@ library TraderVaultLib {
     /**
      * @notice liquidate a vault whose PositionValue is less than MinCollateral
      */
-    function liquidate(TraderVault storage _traderPosition, IPerpetualMarketCore.PoolState memory _poolParams)
+    function liquidate(TraderVault storage _traderPosition, IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
         internal
         returns (uint128)
     {
-        int256 positionValue = getPositionValue(_traderPosition, _poolParams);
+        int256 positionValue = getPositionValue(_traderPosition, _tradePriceInfo);
 
-        require(positionValue < getMinCollateral(_traderPosition, _poolParams.spotPrice), "T1");
+        require(positionValue < getMinCollateral(_traderPosition, _tradePriceInfo.spotPrice), "T1");
 
         if (positionValue < 0) {
             _traderPosition.isInsolvent = true;
@@ -140,16 +140,15 @@ library TraderVaultLib {
      * PositionValue = Σ(Price_{i} * a_{i} - entry_{i}) + USDC + FundingFee
      * @return PositionValue scaled by 1e6
      */
-    function getPositionValue(TraderVault memory _traderPosition, IPerpetualMarketCore.PoolState memory _poolParams)
-        internal
-        pure
-        returns (int256)
-    {
-        int256 pnl = getSqeethAndFutureValue(_traderPosition, _poolParams);
+    function getPositionValue(
+        TraderVault memory _traderPosition,
+        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
+    ) internal pure returns (int256) {
+        int256 pnl = getSqeethAndFutureValue(_traderPosition, _tradePriceInfo);
 
         return
             pnl.add(_traderPosition.amountUsdc).add(
-                getFundingFee(_traderPosition, _poolParams.amountFundingFeesPerSize)
+                getFundingFee(_traderPosition, _tradePriceInfo.amountFundingFeesPerSize)
             );
     }
 
@@ -160,13 +159,13 @@ library TraderVaultLib {
      */
     function getSqeethAndFutureValue(
         TraderVault memory _traderPosition,
-        IPerpetualMarketCore.PoolState memory _poolParams
+        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal pure returns (int256) {
         int256 pnl;
 
         for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
             pnl = pnl.add(
-                _poolParams.tradePrices[i].mul(_traderPosition.amountAsset[i]).sub(_traderPosition.valueEntry[i])
+                _tradePriceInfo.tradePrices[i].mul(_traderPosition.amountAsset[i]).sub(_traderPosition.valueEntry[i])
             );
         }
 

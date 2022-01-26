@@ -132,7 +132,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
         {
             finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].getAmountRequired(
                 _tradeParams.collateralRatio,
-                perpetualMarketCore.getPoolState(traderVaults[msg.sender][_tradeParams.vaultId].amountAsset)
+                perpetualMarketCore.getTradePriceInfo(traderVaults[msg.sender][_tradeParams.vaultId].amountAsset)
             );
             traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcAmount(finalDepositOrWithdrawAmount);
         }
@@ -198,7 +198,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
      * @param _vaultId The id of target vault
      */
     function liquidateByPool(address _vaultOwner, uint256 _vaultId) external override {
-        PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState(
+        PerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
             traderVaults[_vaultOwner][_vaultId].amountAsset
         );
 
@@ -210,7 +210,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
             }
         }
 
-        uint128 reward = traderVaults[_vaultOwner][_vaultId].liquidate(poolState);
+        uint128 reward = traderVaults[_vaultOwner][_vaultId].liquidate(tradePriceInfo);
 
         // Sends a half of reward to the pool
         perpetualMarketCore.addLiquidity(reward / 2);
@@ -290,7 +290,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
      * @return vault status
      */
     function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view override returns (VaultStatus memory) {
-        PerpetualMarketCore.PoolState memory poolState = perpetualMarketCore.getPoolState(
+        PerpetualMarketCore.TradePriceInfo memory poolState = perpetualMarketCore.getTradePriceInfo(
             traderVaults[_vaultOwner][_vaultId].amountAsset
         );
 

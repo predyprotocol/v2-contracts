@@ -208,6 +208,19 @@ describe('PerpetualMarketCore', function () {
         expect(pool.amountLockedLiquidity).to.be.eq(0)
       })
     })
+
+    describe('check utilization', () => {
+      beforeEach(async () => {
+        await perpetualMarketCore.initialize(scaledBN(10, 6), scaledBN(5, 5))
+      })
+
+      it('utilization ratio becomes high', async () => {
+        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 5000000)
+
+        const utilizationRatio = await perpetualMarketCore.getUtilizationRatio()
+        expect(utilizationRatio).to.be.eq(840000)
+      })
+    })
   })
 
   describe('updateVariance', () => {
