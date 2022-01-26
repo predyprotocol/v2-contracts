@@ -917,11 +917,21 @@ describe('PerpetualMarket', function () {
         deadline: 0,
       })
 
+      const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
+      expect(tokenAmounts[0]).to.be.true
+      expect(tokenAmounts[1]).to.be.gt(0)
+      expect(tokenAmounts[2]).to.be.gt(0)
+
       const before = await usdc.balanceOf(wallet.address)
       await perpetualMarket.execHedge()
       const after = await usdc.balanceOf(wallet.address)
 
       expect(after.sub(before)).to.be.gt(0)
+
+      const afterTokenAmounts = await perpetualMarket.getTokenAmountForHedging()
+      expect(afterTokenAmounts[0]).to.be.false
+      expect(afterTokenAmounts[1]).to.be.eq(0)
+      expect(afterTokenAmounts[2]).to.be.eq(0)
     })
 
     it('reverts if net delta is positive', async () => {

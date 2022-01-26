@@ -38,7 +38,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
 
     event Liquidated(address liquidator, address indexed vaultOwner, uint256 vaultId);
 
-    event Hedged(address hedger, uint256 usdcAmount, uint256 underlyingAmount);
+    event Hedged(address hedger, uint256 usdcAmount, uint256 underlyingAmount, int256[2] deltas);
 
     /**
      * @notice initialize Perpetual Market
@@ -238,23 +238,51 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
     }
 
     /**
+     * @notice get token amount for hedging
+     * @return amount USDC and amount underlying
+     */
+    function getTokenAmountForHedging()
+        external
+        view
+        returns (
+            bool,
+            uint256,
+            uint256
+        )
+    {
+        NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
+
+        return (completeParams.isLong, completeParams.amountUsdc, completeParams.amountUnderlying);
+    }
+
+    /**
      * @notice execute hedging
      */
     function execHedge() external override {
         /// Update variance before hedging
         perpetualMarketCore.updateVariance();
 
-        (bool isLong, uint256 uAmount, uint256 usdcAmount) = perpetualMarketCore.calculateEntryPriceForHedging();
+        NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
 
-        if (isLong) {
-            ERC20(liquidityPool.underlying()).transferFrom(msg.sender, address(liquidityPool), uAmount);
-            liquidityPool.sendLiquidity(msg.sender, usdcAmount);
+        perpetualMarketCore.calculateEntryPriceForHedging(completeParams);
+
+        if (completeParams.isLong) {
+            ERC20(liquidityPool.underlying()).transferFrom(
+                msg.sender,
+                address(liquidityPool),
+                completeParams.amountUnderlying
+            );
+            liquidityPool.sendLiquidity(msg.sender, completeParams.amountUsdc);
         } else {
-            ERC20(liquidityPool.collateral()).transferFrom(msg.sender, address(liquidityPool), usdcAmount);
-            liquidityPool.sendUndrlying(msg.sender, uAmount);
+            ERC20(liquidityPool.collateral()).transferFrom(
+                msg.sender,
+                address(liquidityPool),
+                completeParams.amountUsdc
+            );
+            liquidityPool.sendUndrlying(msg.sender, completeParams.amountUnderlying);
         }
 
-        emit Hedged(msg.sender, usdcAmount, uAmount);
+        emit Hedged(msg.sender, completeParams.amountUsdc, completeParams.amountUnderlying, completeParams.deltas);
     }
 
     /**
