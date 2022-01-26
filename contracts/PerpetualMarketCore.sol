@@ -237,35 +237,29 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     /**
-     * @notice Calculates USDC amount and underlying amount for delta neutral
-     * and store valueEntry price in netting info
+     * @notice get USDC and underlying amount to make the pool delta neutral
      */
-    function calculateEntryPriceForHedging()
-        external
-        onlyPerpetualMarket
-        returns (
-            bool isLong,
-            uint256 underlyingAmount,
-            uint256 usdcAmount
-        )
-    {
-        (int256 spotPrice, ) = getUnderlyingPrice();
+    function getTokenAmountForHedging() external view returns (NettingLib.CompleteParams memory completeParams) {
+        (completeParams.spotPrice, ) = getUnderlyingPrice();
 
         (int256 sqeethPoolDelta, int256 futurePoolDelta) = getDeltas(
-            spotPrice,
+            completeParams.spotPrice,
             pools[0].amountAsset,
             pools[1].amountAsset
         );
+
+        completeParams.deltas[0] = sqeethPoolDelta;
+        completeParams.deltas[1] = futurePoolDelta;
 
         {
             // 1. Calculate net delta
             int256 netDelta = sqeethPoolDelta.add(futurePoolDelta).add(nettingInfo.amountUnderlying);
 
-            isLong = netDelta < 0;
+            completeParams.isLong = netDelta < 0;
 
             // 2. Calculate USDC and ETH amounts.
-            underlyingAmount = Math.abs(netDelta) * 1e10;
-            usdcAmount = (Math.abs(netDelta).mul(uint128(spotPrice))) / 1e10;
+            completeParams.amountUnderlying = Math.abs(netDelta) * 1e10;
+            completeParams.amountUsdc = (Math.abs(netDelta).mul(uint128(completeParams.spotPrice))) / 1e10;
         }
 
         {
@@ -274,20 +268,24 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
                 c = (uint128(block.timestamp) - lastHedgeTime - 12 hours) / 20 minutes;
                 if (c > MAX_DRAWDOWN) c = MAX_DRAWDOWN;
             }
-            if (isLong) {
-                usdcAmount = (usdcAmount * (10000 + c)) / 10000;
+            if (completeParams.isLong) {
+                completeParams.amountUsdc = (completeParams.amountUsdc * (10000 + c)) / 10000;
             } else {
-                usdcAmount = (usdcAmount * (10000 - c)) / 10000;
+                completeParams.amountUsdc = (completeParams.amountUsdc * (10000 - c)) / 10000;
             }
         }
+    }
 
-        // 3. Complete hedges for each pool
-        {
-            int256[2] memory deltas;
-            deltas[0] = sqeethPoolDelta;
-            deltas[1] = futurePoolDelta;
-            nettingInfo.complete(NettingLib.CompleteParams(usdcAmount, underlyingAmount, deltas, spotPrice, isLong));
-        }
+    /**
+     * @notice Calculates USDC amount and underlying amount for delta neutral
+     * and store valueEntry price in netting info
+     */
+    function calculateEntryPriceForHedging(NettingLib.CompleteParams memory _completeParams)
+        external
+        onlyPerpetualMarket
+    {
+        // Complete hedges for each pool
+        nettingInfo.complete(_completeParams);
     }
 
     /**
