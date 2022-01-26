@@ -45,6 +45,7 @@ library TraderVaultLib {
 
     /**
      * @notice get amount of deposit required to add amount of Squees/Future
+     * @param _traderVault trader vault object
      * @param _ratio target MinCollateral / PositionValue ratio.
      * @return amount positive means required more collateral and negative means excess collateral.
      */
@@ -65,6 +66,7 @@ library TraderVaultLib {
 
     /**
      * @notice update USDC amount
+     * @param _traderVault trader vault object
      * @param _amount amount to add. if positive then increase amount, if negative then decrease amount.
      */
     function updateUsdcAmount(TraderVault storage _traderVault, int256 _amount) internal {
@@ -72,7 +74,8 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get total amount of perpetual in a vault
+     * @notice get total amount of perpetual in the vault
+     * @param _traderVault trader vault object
      * @return assetAmounts are total amount of perpetual scaled by 1e8
      */
     function getAssetAmounts(TraderVault memory _traderVault) internal pure returns (int128[2] memory assetAmounts) {
@@ -81,6 +84,12 @@ library TraderVaultLib {
         }
     }
 
+    /**
+     * @notice get amount of perpetual in the vault
+     * @param _traderVault trader vault object
+     * @param _productId product id
+     * @return assetAmount is amount of perpetual scaled by 1e8
+     */
     function getAssetAmount(TraderVault memory _traderVault, uint256 _productId)
         internal
         pure
@@ -92,7 +101,10 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice update positions in a vault
+     * @notice update positions in the vault
+     * @param _traderVault trader vault object
+     * @param _subVaultIndex index of sub-vault
+     * @param _productId product id
      * @param _amountAsset position size to increase or decrease
      * @param _valueEntry entry value to increase or decrease
      * @param _valueFundingFeeEntry entry value of funding fee
@@ -132,7 +144,8 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice liquidate a vault whose PositionValue is less than MinCollateral
+     * @notice liquidate the vault whose PositionValue is less than MinCollateral
+     * @param _traderVault trader vault object
      */
     function liquidate(TraderVault storage _traderVault, IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
         internal
@@ -166,8 +179,10 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get min collateral
+     * @notice get min collateral of the vault
      * MinCollateral = 0.075 * S * (|2*S*a_{sqeeth}+a_{future}| + 0.15*S*|a_{sqeeth}|)
+     * @param _traderVault trader vault object
+     * @param _spotPrice spot price
      * @return MinCollateral scaled by 1e6
      */
     function getMinCollateral(TraderVault memory _traderVault, uint256 _spotPrice) internal pure returns (int256) {
@@ -183,8 +198,10 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get position value in a parent vault
+     * @notice get position value in the vault
      * PositionValue = USDC + Σ(ValueOfSubVault_i)
+     * @param _traderVault trader vault object
+     * @param _tradePriceInfo trade price info
      * @return PositionValue scaled by 1e6
      */
     function getPositionValue(
@@ -201,8 +218,10 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice Gets position value in a sub-vault
+     * @notice Gets position value in the sub-vault
      * ValueOfSubVault = Σ(Price_{i} * a_{i} - entry_{i}) + FundingFee
+     * @param _subVault sub-vault object
+     * @param _tradePriceInfo trade price info
      * @return ValueOfSubVault scaled by 1e6
      */
     function getSubVaultPositionValue(
@@ -216,8 +235,10 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice Gets total perpetual value
+     * @notice Gets total perpetual value in the sub-vault
      * TotalPerpetualValue = Σ(Price_{i} * a_{i} - entry_{i})
+     * @param _subVault sub-vault object
+     * @param _tradePriceInfo trade price info
      * @return TotalPerpetualValue scaled by 1e6
      */
     function getTotalPerpetualValue(
@@ -234,8 +255,11 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get perpetual value
+     * @notice get perpetual value in the sub-vault
      * PerpetualValue = Price_{i} * a_{i} - entry_{i}
+     * @param _subVault sub-vault object
+     * @param _productId product id
+     * @param _tradePriceInfo trade price info
      * @return PerpetualValue scaled by 1e6
      */
     function getPerpetualValue(
@@ -251,8 +275,10 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get total funding fee
+     * @notice get total funding fee in the sub-vault
      * TotalFundingFee = Σ(FundingEntry_i - a_i*cumFundingGlobal_i)
+     * @param _subVault sub-vault object
+     * @param _amountFundingFeesPerSize cumulative funding fee per size
      * @return TotalFundingFee scaled by 1e6
      */
     function getTotalFundingFee(SubVault memory _subVault, int128[2] memory _amountFundingFeesPerSize)
@@ -270,8 +296,11 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get funding fee
+     * @notice get funding fee in the sub-vault
      * FundingFee = FundingEntry_i - a_i*cumFundingGlobal_i
+     * @param _subVault sub-vault object
+     * @param _productId product id
+     * @param _amountFundingFeesPerSize cumulative funding fee per size
      * @return FundingFee scaled by 1e6
      */
     function getFundingFee(
