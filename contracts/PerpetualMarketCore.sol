@@ -92,7 +92,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     // The address of Perpetual Market Contract
     address private perpetualMarket;
 
-    event FundingPayment(uint256 productId, int256 fundingRate, int256 fundingReceived);
+    event FundingPayment(uint256 productId, int256 fundingRate, int256 fundingPaidPerSize, int256 poolReceived);
 
     modifier onlyPerpetualMarket() {
         require(msg.sender == perpetualMarket, "PMC2");
@@ -408,7 +408,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
         amountLiquidity = Math.addDelta(amountLiquidity, fundingReceived);
 
-        emit FundingPayment(_productId, currentFundingRate, fundingReceived);
+        emit FundingPayment(_productId, currentFundingRate, fundingFeePerSize, fundingReceived);
     }
 
     /**

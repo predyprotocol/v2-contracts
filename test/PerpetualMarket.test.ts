@@ -427,14 +427,18 @@ describe('PerpetualMarket', function () {
     })
 
     describe('Sqeeth', () => {
-      it('open', async () => {
-        await perpetualMarket.openPositions({
-          vaultId,
-          tradeAmounts: [scaledBN(1, 6), 0],
-          collateralRatio: scaledBN(1, 8),
-          limitPrices: [0, 0],
-          deadline: 0,
-        })
+      it('open position and emit an event', async () => {
+        await expect(
+          perpetualMarket.openPositions({
+            vaultId,
+            tradeAmounts: [scaledBN(1, 6), 0],
+            collateralRatio: scaledBN(1, 8),
+            limitPrices: [0, 0],
+            deadline: 0,
+          }),
+        )
+          .to.emit(perpetualMarket, 'PositionUpdated')
+          .withArgs(wallet.address, vaultId, SQEETH_PRODUCT_ID, scaledBN(1, 6), 100200420, 0)
       })
 
       it('close position', async () => {
@@ -993,20 +997,26 @@ describe('PerpetualMarket', function () {
 
       const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
 
-      await perpetualMarket.openPositions({
-        vaultId,
-        tradeAmounts: [scaledBN(1, 8), 0],
-        collateralRatio: scaledBN(1, 8),
-        limitPrices: [0, 0],
-        deadline: 0,
-      })
+      await expect(
+        perpetualMarket.openPositions({
+          vaultId,
+          tradeAmounts: [scaledBN(1, 8), 0],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        }),
+      ).to.emit(testContractSet.perpetualMarketCore, 'FundingPayment')
 
       const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
-
       expect(afterLPTokenPrice).to.be.gt(beforeLPTokenPrice)
+
+      // check vault status
+      const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
+      expect(vaultStatus.fundingPaid[SQEETH_PRODUCT_ID]).to.be.lt(0)
+      expect(vaultStatus.fundingPaid[FUTURE_PRODUCT_ID]).to.be.eq(0)
     })
 
-    it('pool receives funding fee from future positions', async () => {
+    it('pool receives from positive funding fee of future positions', async () => {
       await perpetualMarket.openPositions({
         vaultId,
         tradeAmounts: [0, scaledBN(1, 8)],
@@ -1032,7 +1042,7 @@ describe('PerpetualMarket', function () {
       expect(afterLPTokenPrice).to.be.gt(beforeLPTokenPrice)
     })
 
-    it('pool pays funding fee for future positions', async () => {
+    it('pool receives from negative funding fee of future positions', async () => {
       await perpetualMarket.openPositions({
         vaultId,
         tradeAmounts: [0, scaledBN(-1, 8)],
@@ -1045,17 +1055,24 @@ describe('PerpetualMarket', function () {
 
       const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
 
-      await perpetualMarket.openPositions({
-        vaultId,
-        tradeAmounts: [0, scaledBN(-1, 8)],
-        collateralRatio: scaledBN(1, 8),
-        limitPrices: [0, 0],
-        deadline: 0,
-      })
+      await expect(
+        perpetualMarket.openPositions({
+          vaultId,
+          tradeAmounts: [0, scaledBN(-1, 8)],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        }),
+      ).to.emit(testContractSet.perpetualMarketCore, 'FundingPayment')
 
       const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
 
       expect(afterLPTokenPrice).to.be.lt(beforeLPTokenPrice)
+
+      // check vault status
+      const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
+      expect(vaultStatus.fundingPaid[SQEETH_PRODUCT_ID]).to.be.eq(0)
+      expect(vaultStatus.fundingPaid[FUTURE_PRODUCT_ID]).to.be.lt(0)
     })
   })
 })

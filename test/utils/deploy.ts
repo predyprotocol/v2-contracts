@@ -13,6 +13,7 @@ import { scaledBN } from './helpers'
 export type TestContractSet = {
   priceFeed: MockChainlinkAggregator
   perpetualMarket: PerpetualMarket
+  perpetualMarketCore: PerpetualMarketCore
   liquidityPool: LiquidityPool
   usdc: MockERC20
   weth: MockWETH
@@ -96,6 +97,7 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     priceFeed,
     liquidityPool,
     perpetualMarket,
+    perpetualMarketCore,
   }
 }
 

@@ -25,6 +25,8 @@ interface IPerpetualMarket {
     struct VaultStatus {
         int256 positionValue;
         int256 minCollateral;
+        int256[2] perpetualValues;
+        int256[2] fundingPaid;
         TraderVaultLib.TraderVault position;
     }
 
