@@ -1151,8 +1151,8 @@ describe('PerpetualMarket', function () {
 
       // check vault status
       const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
-      expect(vaultStatus.fundingPaid[0][SQEETH_PRODUCT_ID]).to.be.lt(0)
-      expect(vaultStatus.fundingPaid[0][FUTURE_PRODUCT_ID]).to.be.eq(0)
+      expect(vaultStatus.fundingPaidAmounts[0][SQEETH_PRODUCT_ID]).to.be.lt(0)
+      expect(vaultStatus.fundingPaidAmounts[0][FUTURE_PRODUCT_ID]).to.be.eq(0)
     })
 
     it('pool receives from positive funding fee of future positions', async () => {
@@ -1214,8 +1214,8 @@ describe('PerpetualMarket', function () {
 
       // check vault status
       const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
-      expect(vaultStatus.fundingPaid[0][SQEETH_PRODUCT_ID]).to.be.eq(0)
-      expect(vaultStatus.fundingPaid[0][FUTURE_PRODUCT_ID]).to.be.lt(0)
+      expect(vaultStatus.fundingPaidAmounts[0][SQEETH_PRODUCT_ID]).to.be.eq(0)
+      expect(vaultStatus.fundingPaidAmounts[0][FUTURE_PRODUCT_ID]).to.be.lt(0)
     })
   })
 })

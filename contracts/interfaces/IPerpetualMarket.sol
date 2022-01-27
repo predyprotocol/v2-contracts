@@ -28,7 +28,7 @@ interface IPerpetualMarket {
         int256 positionValue;
         int256 minCollateral;
         int256[2][] perpetualValues;
-        int256[2][] fundingPaid;
+        int256[2][] fundingPaidAmounts;
         TraderVaultLib.TraderVault position;
     }
 
