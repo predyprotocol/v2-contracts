@@ -4,7 +4,7 @@ pragma solidity =0.7.6;
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/ILiquidityPool.sol";
 
-library Pricer {
+library IndexPricer {
     using SignedSafeMath for int256;
 
     /**

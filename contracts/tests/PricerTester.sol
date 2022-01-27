@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity =0.7.6;
 
-import "../lib/Pricer.sol";
+import "../lib/IndexPricer.sol";
 
 /**
  * @title PricerTester
@@ -9,10 +9,10 @@ import "../lib/Pricer.sol";
  */
 contract PricerTester {
     function testCalculatePrice(uint256 _productId, int256 _spotPrice) external pure returns (int256) {
-        return Pricer.calculateIndexPrice(_productId, _spotPrice);
+        return IndexPricer.calculateIndexPrice(_productId, _spotPrice);
     }
 
     function testCalculateDelta(uint256 _productId, int256 _spotPrice) external pure returns (int256) {
-        return Pricer.calculateDelta(_productId, _spotPrice);
+        return IndexPricer.calculateDelta(_productId, _spotPrice);
     }
 }

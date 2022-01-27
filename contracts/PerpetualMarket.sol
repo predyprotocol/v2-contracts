@@ -145,7 +145,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
 
         int256 finalDepositOrWithdrawAmount;
 
-        {
+        if (_tradeParams.collateralRatio > 0) {
             finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].getAmountRequired(
                 _tradeParams.collateralRatio,
                 perpetualMarketCore.getTradePriceInfo(traderVaults[msg.sender][_tradeParams.vaultId].amountAsset)
@@ -161,7 +161,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
                 address(liquidityPool),
                 uint256(finalDepositOrWithdrawAmount)
             );
-        } else {
+        } else if (finalDepositOrWithdrawAmount < 0) {
             liquidityPool.sendLiquidity(msg.sender, uint256(-finalDepositOrWithdrawAmount));
         }
     }
@@ -314,7 +314,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
      * @return LP token price scaled by 1e6
      */
     function getLPTokenPrice() external view override returns (uint256) {
-        return perpetualMarketCore.getLPTokenPrice();
+        return perpetualMarketCore.getLPTokenPrice(0);
     }
 
     /**
