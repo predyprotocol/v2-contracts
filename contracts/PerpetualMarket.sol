@@ -109,17 +109,17 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
 
         for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
             if (_tradeParams.tradeAmounts[productId] != 0) {
-                (int256 totalPrice, int256 valueFundingFeeEntry) = perpetualMarketCore.updatePoolPosition(
+                (int256 tradeValue, int256 valueFundingFeeEntry) = perpetualMarketCore.updatePoolPosition(
                     productId,
                     _tradeParams.tradeAmounts[productId]
                 );
 
-                uint256 pricePerPosition = uint256(totalPrice / _tradeParams.tradeAmounts[productId]);
+                uint256 tradePrice = uint256(tradeValue / _tradeParams.tradeAmounts[productId]);
 
                 require(
                     checkPrice(
                         _tradeParams.tradeAmounts[productId] > 0,
-                        pricePerPosition,
+                        tradePrice,
                         _tradeParams.limitPrices[productId]
                     ),
                     "PM1"
@@ -129,7 +129,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
                     _tradeParams.subVaultIndex,
                     productId,
                     _tradeParams.tradeAmounts[productId],
-                    totalPrice,
+                    tradeValue,
                     valueFundingFeeEntry
                 );
 
@@ -138,7 +138,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
                     _tradeParams.vaultId,
                     productId,
                     _tradeParams.tradeAmounts[productId],
-                    pricePerPosition,
+                    tradePrice,
                     uint256(valueFundingFeeEntry / _tradeParams.tradeAmounts[productId])
                 );
             }
