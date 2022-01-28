@@ -145,7 +145,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
 
         int256 finalDepositOrWithdrawAmount;
 
-        {
+        if (_tradeParams.collateralRatio > 0) {
             finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].getAmountRequired(
                 _tradeParams.collateralRatio,
                 perpetualMarketCore.getTradePriceInfo(traderVaults[msg.sender][_tradeParams.vaultId].amountAsset)
@@ -161,7 +161,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
                 address(liquidityPool),
                 uint256(finalDepositOrWithdrawAmount)
             );
-        } else {
+        } else if (finalDepositOrWithdrawAmount < 0) {
             liquidityPool.sendLiquidity(msg.sender, uint256(-finalDepositOrWithdrawAmount));
         }
     }
@@ -311,10 +311,13 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
 
     /**
      * @notice Gets current LP token price
+     * @param _deltaLiquidityAmount difference of liquidity
+     * If LPs want LP token price of deposit, _deltaLiquidityAmount is positive number of amount to deposit.
+     * On the pther handa, if LPs want LP token price of withdrawal, _deltaLiquidityAmount is negative number of amount to withdraw.
      * @return LP token price scaled by 1e6
      */
-    function getLPTokenPrice() external view override returns (uint256) {
-        return perpetualMarketCore.getLPTokenPrice();
+    function getLPTokenPrice(int256 _deltaLiquidityAmount) external view override returns (uint256) {
+        return perpetualMarketCore.getLPTokenPrice(_deltaLiquidityAmount);
     }
 
     /**

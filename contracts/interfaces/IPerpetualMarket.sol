@@ -46,7 +46,7 @@ interface IPerpetualMarket {
 
     function execHedge() external;
 
-    function getLPTokenPrice() external view returns (uint256);
+    function getLPTokenPrice(int256 _deltaLiquidityAmount) external view returns (uint256);
 
     function getTradePrice(uint256 _productId, int128 _size) external view returns (int256);
 

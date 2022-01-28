@@ -127,7 +127,7 @@ describe('PerpetualMarketCore', function () {
       expect(await perpetualMarketCore.supply()).to.be.eq(0)
     })
 
-    it('withdraws after that pool position increased', async () => {
+    it('reverts withdrawal if there is little available liquidity', async () => {
       await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
 
       await expect(perpetualMarketCore.withdraw(1000000)).to.be.revertedWith('PMC0')
@@ -144,7 +144,7 @@ describe('PerpetualMarketCore', function () {
       expect(await perpetualMarketCore.supply()).to.be.eq(500005)
     })
 
-    it('withdraws after thepool gets loss', async () => {
+    it('withdraws after the pool gets loss', async () => {
       await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
 
       await updateSpot(scaledBN(1005, 8))
