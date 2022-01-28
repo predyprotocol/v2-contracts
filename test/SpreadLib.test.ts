@@ -14,14 +14,14 @@ describe('SpreadLib', function () {
   describe('getUpdatedPrice', () => {
     describe('long', () => {
       describe('after safety period', () => {
-        it('maxBit is 80', async function () {
+        it('maxShortTradePrice is 80', async function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                askTime: 600,
-                minAskPrice: 80,
-                bitTime: 600,
-                maxBitPrice: 80,
+                timeLastLongTransaction: 600,
+                minLongTradePrice: 80,
+                timeLastShortTransaction: 600,
+                maxShortTradePrice: 80,
               },
               true,
               100,
@@ -30,14 +30,14 @@ describe('SpreadLib', function () {
           ).to.be.eq('100')
         })
 
-        it('maxBit is 120', async function () {
+        it('maxShortTradePrice is 120', async function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                askTime: 600,
-                minAskPrice: 120,
-                bitTime: 600,
-                maxBitPrice: 120,
+                timeLastLongTransaction: 600,
+                minLongTradePrice: 120,
+                timeLastShortTransaction: 600,
+                maxShortTradePrice: 120,
               },
               true,
               100,
@@ -48,14 +48,14 @@ describe('SpreadLib', function () {
       })
 
       describe('before safety period', () => {
-        it('maxBit is 80', async function () {
+        it('maxShortTradePrice is 80', async function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                askTime: 600,
-                minAskPrice: 80,
-                bitTime: 600,
-                maxBitPrice: 80,
+                timeLastLongTransaction: 600,
+                minLongTradePrice: 80,
+                timeLastShortTransaction: 600,
+                maxShortTradePrice: 80,
               },
               true,
               100,
@@ -64,14 +64,14 @@ describe('SpreadLib', function () {
           ).to.be.eq('100')
         })
 
-        it('maxBit is 120', async function () {
+        it('maxShortTradePrice is 120', async function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                askTime: 600,
-                minAskPrice: 120,
-                bitTime: 600,
-                maxBitPrice: 120,
+                timeLastLongTransaction: 600,
+                minLongTradePrice: 120,
+                timeLastShortTransaction: 600,
+                maxShortTradePrice: 120,
               },
               true,
               100,
@@ -84,14 +84,14 @@ describe('SpreadLib', function () {
 
     describe('short', () => {
       describe('after safety period', () => {
-        it('minAsk is 80', async function () {
+        it('minLongTradePrice is 80', async function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                askTime: 600,
-                minAskPrice: 80,
-                bitTime: 600,
-                maxBitPrice: 80,
+                timeLastLongTransaction: 600,
+                minLongTradePrice: 80,
+                timeLastShortTransaction: 600,
+                maxShortTradePrice: 80,
               },
               false,
               100,
@@ -100,14 +100,14 @@ describe('SpreadLib', function () {
           ).to.be.eq('100')
         })
 
-        it('minAsk is 120', async function () {
+        it('minLongTradePrice is 120', async function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                askTime: 600,
-                minAskPrice: 120,
-                bitTime: 600,
-                maxBitPrice: 120,
+                timeLastLongTransaction: 600,
+                minLongTradePrice: 120,
+                timeLastShortTransaction: 600,
+                maxShortTradePrice: 120,
               },
               false,
               100,
@@ -118,14 +118,14 @@ describe('SpreadLib', function () {
       })
 
       describe('before safety period', () => {
-        it('minAsk is 80', async function () {
+        it('minLongTradePrice is 80', async function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                askTime: 600,
-                minAskPrice: 80,
-                bitTime: 600,
-                maxBitPrice: 80,
+                timeLastLongTransaction: 600,
+                minLongTradePrice: 80,
+                timeLastShortTransaction: 600,
+                maxShortTradePrice: 80,
               },
               false,
               100,
@@ -134,14 +134,14 @@ describe('SpreadLib', function () {
           ).to.be.eq('80')
         })
 
-        it('minAsk is 120', async function () {
+        it('minLongTradePrice is 120', async function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                askTime: 600,
-                minAskPrice: 120,
-                bitTime: 600,
-                maxBitPrice: 120,
+                timeLastLongTransaction: 600,
+                minLongTradePrice: 120,
+                timeLastShortTransaction: 600,
+                maxShortTradePrice: 120,
               },
               false,
               100,

@@ -7,6 +7,7 @@ import "../lib/TraderVaultLib.sol";
 interface IPerpetualMarket {
     struct MultiTradeParams {
         uint256 vaultId;
+        uint256 subVaultIndex;
         int128[2] tradeAmounts;
         int128 collateralRatio;
         uint256[2] limitPrices;
@@ -16,6 +17,7 @@ interface IPerpetualMarket {
     struct SingleTradeParams {
         uint256 productId;
         uint256 vaultId;
+        uint256 subVaultIndex;
         uint128 tradeAmount;
         int128 collateralRatio;
         uint256 limitPrice;
@@ -25,9 +27,9 @@ interface IPerpetualMarket {
     struct VaultStatus {
         int256 positionValue;
         int256 minCollateral;
-        int256[2] perpetualValues;
-        int256[2] fundingPaid;
-        TraderVaultLib.TraderVault position;
+        int256[2][] positionValues;
+        int256[2][] fundingPaid;
+        TraderVaultLib.TraderVault rawVaultData;
     }
 
     function initialize(uint128 _depositAmount, int128 _initialFundingRate) external;
