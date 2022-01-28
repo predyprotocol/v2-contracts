@@ -150,12 +150,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * @notice withdraw liquidity
      */
     function withdraw(uint128 _withdrawnAmount) external onlyPerpetualMarket returns (uint256 burnAmount) {
-        burnAmount = _withdrawnAmount.mul(1e6).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
-
         require(
             amountLiquidity.sub(pools[0].amountLockedLiquidity).sub(pools[1].amountLockedLiquidity) >= _withdrawnAmount,
             "PMC0"
         );
+
+        burnAmount = _withdrawnAmount.mul(1e6).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
 
         amountLiquidity = amountLiquidity.sub(_withdrawnAmount);
         supply = supply.sub(burnAmount);
