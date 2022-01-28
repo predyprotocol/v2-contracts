@@ -644,8 +644,8 @@ describe('PerpetualMarket', function () {
 
         expect(vaultStatus.minCollateral).to.be.gt(0)
         expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
-        expect(vaultStatus.position.subVaults[0].amountAsset[SQEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
-        expect(vaultStatus.position.subVaults[0].amountAsset[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
+        expect(vaultStatus.rawVaultData.subVaults[0].positionPerpetuals[SQEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
+        expect(vaultStatus.rawVaultData.subVaults[0].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
       })
 
       it('close positions', async () => {
@@ -795,8 +795,8 @@ describe('PerpetualMarket', function () {
 
         expect(vaultStatus.minCollateral).to.be.gt(0)
         expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
-        expect(vaultStatus.position.subVaults[0].amountAsset[SQEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
-        expect(vaultStatus.position.subVaults[0].amountAsset[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(-1, 6))
+        expect(vaultStatus.rawVaultData.subVaults[0].positionPerpetuals[SQEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
+        expect(vaultStatus.rawVaultData.subVaults[0].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(-1, 6))
       })
 
       it('close positions', async () => {
@@ -945,7 +945,7 @@ describe('PerpetualMarket', function () {
         ).to.be.revertedWith('T2')
 
         const vault = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
-        expect(vault.position.isInsolvent).to.be.true
+        expect(vault.rawVaultData.isInsolvent).to.be.true
       })
 
       it('reverts if the vault has enough collateral', async () => {
@@ -1009,7 +1009,7 @@ describe('PerpetualMarket', function () {
         ).to.be.revertedWith('T2')
 
         const vault = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
-        expect(vault.position.isInsolvent).to.be.true
+        expect(vault.rawVaultData.isInsolvent).to.be.true
       })
 
       it('reverts if the vault has enough collateral', async () => {

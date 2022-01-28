@@ -114,12 +114,12 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
                     _tradeParams.tradeAmounts[productId]
                 );
 
-                uint256 pricePerSize = uint256(totalPrice / _tradeParams.tradeAmounts[productId]);
+                uint256 pricePerPosition = uint256(totalPrice / _tradeParams.tradeAmounts[productId]);
 
                 require(
                     checkPrice(
                         _tradeParams.tradeAmounts[productId] > 0,
-                        pricePerSize,
+                        pricePerPosition,
                         _tradeParams.limitPrices[productId]
                     ),
                     "PM1"
@@ -138,7 +138,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
                     _tradeParams.vaultId,
                     productId,
                     _tradeParams.tradeAmounts[productId],
-                    pricePerSize,
+                    pricePerPosition,
                     uint256(valueFundingFeeEntry / _tradeParams.tradeAmounts[productId])
                 );
             }
@@ -149,9 +149,11 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
         if (_tradeParams.collateralRatio > 0) {
             finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].getAmountRequired(
                 _tradeParams.collateralRatio,
-                perpetualMarketCore.getTradePriceInfo(traderVaults[msg.sender][_tradeParams.vaultId].getAssetAmounts())
+                perpetualMarketCore.getTradePriceInfo(
+                    traderVaults[msg.sender][_tradeParams.vaultId].getPositionPerpetuals()
+                )
             );
-            traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcAmount(finalDepositOrWithdrawAmount);
+            traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcPosition(finalDepositOrWithdrawAmount);
         }
 
         perpetualMarketCore.updateVariance();
@@ -218,11 +220,11 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
      */
     function liquidateByPool(address _vaultOwner, uint256 _vaultId) external override {
         PerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
-            traderVaults[_vaultOwner][_vaultId].getAssetAmounts()
+            traderVaults[_vaultOwner][_vaultId].getPositionPerpetuals()
         );
 
         for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
-            int128 amountAssetInVault = traderVaults[_vaultOwner][_vaultId].getAssetAmount(productId);
+            int128 amountAssetInVault = traderVaults[_vaultOwner][_vaultId].getPositionPerpetual(productId);
 
             if (amountAssetInVault != 0) {
                 perpetualMarketCore.updatePoolPosition(productId, -amountAssetInVault);
@@ -326,11 +328,11 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
     /**
      * @notice Gets trade price
      * @param _productId product id
-     * @param _size positive to get ask price and negatice to get bit price
+     * @param _tradeAmount amount of position to trade. positive to get long price and negative to get short price.
      * @return trade price scaled by 1e8
      */
-    function getTradePrice(uint256 _productId, int128 _size) external view override returns (int256) {
-        return perpetualMarketCore.getTradePrice(_productId, _size);
+    function getTradePrice(uint256 _productId, int128 _tradeAmount) external view override returns (int256) {
+        return perpetualMarketCore.getTradePrice(_productId, _tradeAmount);
     }
 
     /**
@@ -343,7 +345,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
 
         PerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
-            traderVault.getAssetAmounts()
+            traderVault.getPositionPerpetuals()
         );
 
         int256[2][] memory positionValues = new int256[2][](traderVault.subVaults.length);
@@ -355,7 +357,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
                 fundingPaid[i][j] = TraderVaultLib.getFundingFee(
                     traderVault.subVaults[i],
                     j,
-                    tradePriceInfo.amountFundingFeesPerSize
+                    tradePriceInfo.amountFundingFeesPerPosition
                 );
             }
         }

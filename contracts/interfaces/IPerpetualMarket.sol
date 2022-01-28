@@ -29,7 +29,7 @@ interface IPerpetualMarket {
         int256 minCollateral;
         int256[2][] positionValues;
         int256[2][] fundingPaid;
-        TraderVaultLib.TraderVault position;
+        TraderVaultLib.TraderVault rawVaultData;
     }
 
     function initialize(uint128 _depositAmount, int128 _initialFundingRate) external;

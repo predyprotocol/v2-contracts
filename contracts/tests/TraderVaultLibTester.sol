@@ -42,8 +42,8 @@ contract TraderVaultLibTester {
         return TraderVaultLib.getAmountRequired(traderVault, _ratio, _tradePriceInfo);
     }
 
-    function testUpdateUsdcAmount(int256 _amount) external {
-        TraderVaultLib.updateUsdcAmount(traderVault, _amount);
+    function testUpdateUsdcPosition(int256 _amount) external {
+        TraderVaultLib.updateUsdcPosition(traderVault, _amount);
     }
 
     function testLiquidate(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo) external {

@@ -6,7 +6,7 @@ interface IPerpetualMarketCore {
     struct TradePriceInfo {
         uint128 spotPrice;
         int256[2] tradePrices;
-        int128[2] amountFundingFeesPerSize;
+        int128[2] amountFundingFeesPerPosition;
     }
 
     function getTradePriceInfo(int128[2] memory amountAssets) external view returns (TradePriceInfo memory);
