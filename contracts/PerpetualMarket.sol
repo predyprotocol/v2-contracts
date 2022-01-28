@@ -154,7 +154,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
             traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcPosition(finalDepositOrWithdrawAmount);
         }
 
-        perpetualMarketCore.updateVariance();
+        perpetualMarketCore.updatePoolSnapshot();
 
         if (finalDepositOrWithdrawAmount > 0) {
             ERC20(liquidityPool.collateral()).transferFrom(
@@ -263,7 +263,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
      */
     function execHedge() external override {
         /// Update variance before hedging
-        perpetualMarketCore.updateVariance();
+        perpetualMarketCore.updatePoolSnapshot();
 
         NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
 
@@ -327,7 +327,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
      * @notice Gets trade price
      * @param _productId product id
      * @param _tradeAmount amount of position to trade. positive to get long price and negative to get short price.
-     * @return trade price scaled by 1e8
+     * @return trade price and protocol fee scaled by 1e8
      */
     function getTradePrice(uint256 _productId, int128 _tradeAmount) external view override returns (int256) {
         return perpetualMarketCore.getTradePrice(_productId, _tradeAmount);
