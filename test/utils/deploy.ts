@@ -56,6 +56,22 @@ export class TestContractHelper {
       deadline: 0,
     })
   }
+
+  async getWithdrawalAmount(burnAmount: BigNumber, _withdrawnAmount: BigNumberish): Promise<BigNumber> {
+    const withdrawnAmount = BigNumber.from(_withdrawnAmount)
+
+    console.log('withdrawnAmount', withdrawnAmount.toString())
+
+    const lpTokenPrice = await this.testContractSet.perpetualMarket.getLPTokenPrice(withdrawnAmount.mul(-1))
+
+    const nextWithdrawnAmount = lpTokenPrice.mul(burnAmount).div(scaledBN(1, 6))
+
+    if (withdrawnAmount.eq(nextWithdrawnAmount)) {
+      return withdrawnAmount
+    }
+
+    return this.getWithdrawalAmount(burnAmount, nextWithdrawnAmount)
+  }
 }
 
 export async function deployTestContractSet(wallet: Wallet): Promise<TestContractSet> {

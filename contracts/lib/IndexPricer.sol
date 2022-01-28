@@ -4,11 +4,14 @@ pragma solidity =0.7.6;
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/ILiquidityPool.sol";
 
+/**
+ * @notice Library contract that has functions to calculate Index price and Greeks of perpetual
+ */
 library IndexPricer {
     using SignedSafeMath for int256;
 
     /**
-     * @return calculated price scaled by 1e8
+     * @return calculated index price scaled by 1e8
      */
     function calculateIndexPrice(uint256 _productId, int256 _spot) internal pure returns (int256) {
         if (_productId == 0) {

@@ -258,8 +258,7 @@ describe('PerpetualMarket', function () {
 
       it('withdraw all', async function () {
         const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
-        const lpTokenPrice = await perpetualMarket.getLPTokenPrice()
-        const withdrawnAmount = lpTokenPrice.mul(tokenAmount).div(scaledBN(1, 6))
+        const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
 
         await perpetualMarket.withdraw(withdrawnAmount)
 
@@ -268,14 +267,13 @@ describe('PerpetualMarket', function () {
 
       it('LP token price is not changed', async function () {
         const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
-        const lpTokenPrice = await perpetualMarket.getLPTokenPrice()
-        const withdrawnAmount = lpTokenPrice.mul(tokenAmount).div(scaledBN(2, 6))
+        const withdrawnAmount = (await testContractHelper.getWithdrawalAmount(tokenAmount, 0)).div(2)
 
-        const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+        const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
         await perpetualMarket.withdraw(withdrawnAmount)
 
-        const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+        const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
         checkEqRoughly(beforeLPTokenPrice, afterLPTokenPrice)
       })
@@ -297,8 +295,7 @@ describe('PerpetualMarket', function () {
 
       it('withdraw all', async function () {
         const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
-        const lpTokenPrice = await perpetualMarket.getLPTokenPrice()
-        const withdrawnAmount = lpTokenPrice.mul(tokenAmount).div(scaledBN(1, 6))
+        const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
 
         await perpetualMarket.withdraw(withdrawnAmount)
 
@@ -307,14 +304,13 @@ describe('PerpetualMarket', function () {
 
       it('LP token price is not changed', async function () {
         const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
-        const lpTokenPrice = await perpetualMarket.getLPTokenPrice()
-        const withdrawnAmount = lpTokenPrice.mul(tokenAmount).div(scaledBN(2, 6))
+        const withdrawnAmount = (await testContractHelper.getWithdrawalAmount(tokenAmount, 0)).div(2)
 
-        const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+        const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
         await perpetualMarket.withdraw(withdrawnAmount)
 
-        const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+        const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
         checkEqRoughly(beforeLPTokenPrice, afterLPTokenPrice)
       })
@@ -1014,7 +1010,7 @@ describe('PerpetualMarket', function () {
 
       await increaseTime(24 * 60 * 60)
 
-      const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+      const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
       await expect(
         perpetualMarket.openPositions({
@@ -1026,7 +1022,7 @@ describe('PerpetualMarket', function () {
         }),
       ).to.emit(testContractSet.perpetualMarketCore, 'FundingPayment')
 
-      const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+      const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
       expect(afterLPTokenPrice).to.be.gt(beforeLPTokenPrice)
 
       // check vault status
@@ -1046,7 +1042,7 @@ describe('PerpetualMarket', function () {
 
       await increaseTime(24 * 60 * 60)
 
-      const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+      const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
       await perpetualMarket.openPositions({
         vaultId,
@@ -1056,7 +1052,7 @@ describe('PerpetualMarket', function () {
         deadline: 0,
       })
 
-      const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+      const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
       expect(afterLPTokenPrice).to.be.gt(beforeLPTokenPrice)
     })
@@ -1072,7 +1068,7 @@ describe('PerpetualMarket', function () {
 
       await increaseTime(24 * 60 * 60)
 
-      const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+      const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
       await expect(
         perpetualMarket.openPositions({
@@ -1084,7 +1080,7 @@ describe('PerpetualMarket', function () {
         }),
       ).to.emit(testContractSet.perpetualMarketCore, 'FundingPayment')
 
-      const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice()
+      const afterLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
       expect(afterLPTokenPrice).to.be.gt(beforeLPTokenPrice)
 

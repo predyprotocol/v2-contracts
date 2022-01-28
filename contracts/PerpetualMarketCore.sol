@@ -323,11 +323,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * LPTokenPrice = (UnrealizedPnL_sqeeth + UnrealizedPnL_future + L - lockedLiquidity_sqeeth - lockedLiquidity_future) / Supply
      * @return LPTokenPrice scaled by 1e6
      */
-    function getLPTokenPrice(int256 _deltaLiquidity) public view returns (uint256) {
+    function getLPTokenPrice(int256 _deltaLiquidityAmount) public view returns (uint256) {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         int256 unrealizedPnL = (
-            getUnrealizedPnL(0, spotPrice, _deltaLiquidity).add(getUnrealizedPnL(1, spotPrice, _deltaLiquidity))
+            getUnrealizedPnL(0, spotPrice, _deltaLiquidityAmount).add(
+                getUnrealizedPnL(1, spotPrice, _deltaLiquidityAmount)
+            )
         ) / 1e2;
 
         return
@@ -552,14 +554,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     function getUnrealizedPnL(
         uint256 _productId,
         int256 _spotPrice,
-        int256 _deltaLiquidity
+        int256 _deltaLiquidityAmount
     ) internal view returns (int256) {
         int256 assetValue;
 
         if (pools[_productId].amountAsset != 0) {
             assetValue =
                 pools[_productId].amountAsset.mul(
-                    calculateTradePrice(_productId, _spotPrice, -pools[_productId].amountAsset, _deltaLiquidity)
+                    calculateTradePrice(_productId, _spotPrice, -pools[_productId].amountAsset, _deltaLiquidityAmount)
                 ) /
                 1e8;
         }
