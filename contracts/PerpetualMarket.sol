@@ -346,12 +346,12 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
             traderVault.getAssetAmounts()
         );
 
-        int256[2][] memory perpetualValues = new int256[2][](traderVault.subVaults.length);
+        int256[2][] memory positionValues = new int256[2][](traderVault.subVaults.length);
         int256[2][] memory fundingPaid = new int256[2][](traderVault.subVaults.length);
 
         for (uint256 i = 0; i < traderVault.subVaults.length; i++) {
             for (uint256 j = 0; j < MAX_PRODUCT_ID; j++) {
-                perpetualValues[i][j] = TraderVaultLib.getPerpetualValue(traderVault.subVaults[i], j, tradePriceInfo);
+                positionValues[i][j] = TraderVaultLib.getPerpetualValue(traderVault.subVaults[i], j, tradePriceInfo);
                 fundingPaid[i][j] = TraderVaultLib.getFundingFee(
                     traderVault.subVaults[i],
                     j,
@@ -364,7 +364,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
             VaultStatus(
                 traderVault.getPositionValue(tradePriceInfo),
                 traderVault.getMinCollateral(tradePriceInfo.spotPrice),
-                perpetualValues,
+                positionValues,
                 fundingPaid,
                 traderVault
             );
