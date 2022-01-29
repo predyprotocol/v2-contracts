@@ -59,7 +59,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     struct PoolSnapshot {
-        int128 deltaImpact;
+        int128 futureBaseFundingRate;
         int128 ethVariance;
         int128 ethPrice;
         uint128 lastSnapshotTime;
@@ -83,7 +83,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     // Infos for collateral calculation
     NettingLib.Info private nettingInfo;
 
-    // Chainlink price feed address
+    // The address of Chainlink price feed
     AggregatorV3Interface private priceFeed;
 
     // The last timestamp of hedging
@@ -312,6 +312,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             1e8).toInt128();
         poolSnapshot.ethPrice = spotPrice.toInt128();
         poolSnapshot.lastSnapshotTime = block.timestamp.toUint128();
+    }
+
+    function updateBaseFundingRate() external onlyPerpetualMarket {
+        poolSnapshot.futureBaseFundingRate = 0;
     }
 
     /////////////////////////
@@ -580,7 +584,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     /**
      * @notice Calculates perpetual's funding rate
      * Sqeeth: FundingRate = variance * (1 + BETA_UR * m / L)
-     * Future: FundingRate = MAX_FUNDING_RATE * (m / L)
+     * Future: FundingRate = BASE_FUNDING_RATE + MAX_FUNDING_RATE * (m / L)
      * @param _productId product id
      * @param _deltaMargin difference of required margin
      * @param _deltaLiquidity difference of liquidity
@@ -600,38 +604,35 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             if (liquidityAmountInt256 == 0) {
                 return poolSnapshot.ethVariance;
             } else {
-                return
-                    ((
-                        poolSnapshot.ethVariance.mul(
-                            (
-                                BETA_UR.mul(
-                                    calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity)
-                                )
-                            ).div(1e8).add(1e8)
-                        )
-                    ) / 1e8).toInt128();
+                return ((
+                    poolSnapshot.ethVariance.mul(
+                        (
+                            BETA_UR.mul(
+                                calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity)
+                            )
+                        ).div(1e8).add(1e8)
+                    )
+                ) / 1e8);
             }
         } else if (_productId == 1) {
+            int256 fundingRate;
             if (pools[_productId].positionPerpetuals > 0) {
-                return
-                    MAX_FUNDING_RATE
-                        .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
-                        .div(1e8)
-                        .toInt128();
+                fundingRate = MAX_FUNDING_RATE
+                    .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
+                    .div(1e8);
             } else {
-                return
-                    -MAX_FUNDING_RATE
-                        .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
-                        .div(1e8)
-                        .toInt128();
+                fundingRate = -MAX_FUNDING_RATE
+                    .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
+                    .div(1e8);
             }
+            return poolSnapshot.futureBaseFundingRate.add(fundingRate);
         }
         return 0;
     }
 
     /**
-     * @notice Multiple integral of m/L
-     * calculate ((_m + _deltaM / 2) / _deltaL) * (log(_l + _deltaL) - log(_l))
+     * @notice calculate multiple integral of m/L
+     * the formula is ((_m + _deltaM / 2) / _deltaL) * (log(_l + _deltaL) - log(_l))
      * @param _m required margin
      * @param _deltaM difference of required margin
      * @param _l total amount of liquidity
