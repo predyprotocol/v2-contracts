@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IPerpetualMarket.sol";
-import "./BaseLiquidityPool.sol";
+import "./base/BaseLiquidityPool.sol";
 import "./lib/TraderVaultLib.sol";
 import "./PerpetualMarketCore.sol";
 
@@ -247,6 +247,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
     function getTokenAmountForHedging()
         external
         view
+        override
         returns (
             bool,
             uint256,
@@ -255,29 +256,32 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
     {
         NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
 
-        return (completeParams.isLong, completeParams.amountUsdc, completeParams.amountUnderlying);
+        return (completeParams.isLong, completeParams.amountUsdc / 1e2, completeParams.amountUnderlying * 1e10);
     }
 
     /**
      * @notice Executes hedging
      */
-    function execHedge() external override {
+    function execHedge() external override returns (uint256 amountUsdc, uint256 amountUnderlying) {
         /// Update variance before hedging
         perpetualMarketCore.updatePoolSnapshot();
 
         NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
 
-        perpetualMarketCore.calculateEntryPriceForHedging(completeParams);
+        perpetualMarketCore.completeHedgingProcedure(completeParams);
+
+        amountUsdc = completeParams.amountUsdc / 1e2;
+        amountUnderlying = completeParams.amountUnderlying * 1e10;
 
         if (completeParams.isLong) {
-            ERC20(underlying).transferFrom(msg.sender, address(this), completeParams.amountUnderlying * 1e10);
-            sendLiquidity(msg.sender, completeParams.amountUsdc / 1e2);
+            ERC20(underlying).transferFrom(msg.sender, address(this), amountUnderlying);
+            sendLiquidity(msg.sender, amountUsdc);
         } else {
-            ERC20(collateral).transferFrom(msg.sender, address(this), completeParams.amountUsdc / 1e2);
-            sendUndrlying(msg.sender, completeParams.amountUnderlying * 1e10);
+            ERC20(collateral).transferFrom(msg.sender, address(this), amountUsdc);
+            sendUndrlying(msg.sender, amountUnderlying);
         }
 
-        emit Hedged(msg.sender, completeParams.amountUsdc, completeParams.amountUnderlying, completeParams.deltas);
+        emit Hedged(msg.sender, amountUsdc, amountUnderlying, completeParams.deltas);
     }
 
     /**

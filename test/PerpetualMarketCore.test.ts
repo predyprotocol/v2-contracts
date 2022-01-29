@@ -4,7 +4,13 @@ import { MockChainlinkAggregator, PerpetualMarketCore } from '../typechain'
 import { BigNumber, BigNumberish, Wallet } from 'ethers'
 import { restoreSnapshot, takeSnapshot } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
-import { FUTURE_PRODUCT_ID, SAFETY_PERIOD, SQEETH_PRODUCT_ID, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
+import {
+  FUTURE_PRODUCT_ID,
+  HEDGE_TIME_THRESHOLD,
+  SAFETY_PERIOD,
+  SQEETH_PRODUCT_ID,
+  VARIANCE_UPDATE_INTERVAL,
+} from './utils/constants'
 
 describe('PerpetualMarketCore', function () {
   let wallet: Wallet, other: Wallet
@@ -266,6 +272,86 @@ describe('PerpetualMarketCore', function () {
       const afterTradePrice = await perpetualMarketCore.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 6))
 
       expect(beforeTradePrice).to.be.lt(afterTradePrice)
+    })
+  })
+
+  describe('getTokenAmountForHedging', () => {
+    beforeEach(async () => {
+      await updateSpot(scaledBN(1000, 8))
+    })
+
+    it('get token amounts with min slippage tolerance', async () => {
+      await perpetualMarketCore.initialize(scaledBN(2000, 6), scaledBN(5, 5))
+
+      await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(1, 5))
+
+      const tokenAmounts = await perpetualMarketCore.getTokenAmountForHedging()
+
+      expect(tokenAmounts.amountUsdc).to.be.eq(20080000)
+      expect(tokenAmounts.amountUnderlying).to.be.eq(20000)
+    })
+
+    it('slippage tolerance becomes big price move', async () => {
+      await updateSpot(scaledBN(980, 8))
+
+      await perpetualMarketCore.initialize(scaledBN(2000, 6), scaledBN(5, 5))
+
+      await updateSpot(scaledBN(1000, 8))
+
+      await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(1, 5))
+
+      const tokenAmounts = await perpetualMarketCore.getTokenAmountForHedging()
+
+      expect(tokenAmounts.amountUsdc).to.be.eq(20144000)
+      expect(tokenAmounts.amountUnderlying).to.be.eq(20000)
+    })
+
+    describe('delta is negative', () => {
+      beforeEach(async () => {
+        await perpetualMarketCore.initialize(scaledBN(2000, 6), scaledBN(5, 5))
+
+        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(1, 5))
+      })
+
+      it('get token amounts with min slippage tolerance', async () => {
+        const beforeTokenAmounts = await perpetualMarketCore.getTokenAmountForHedging()
+        await perpetualMarketCore.completeHedgingProcedure({
+          amountUsdc: beforeTokenAmounts[0],
+          amountUnderlying: beforeTokenAmounts[1],
+          isLong: true,
+          deltas: beforeTokenAmounts.deltas,
+        })
+
+        await updateSpot(scaledBN(1000, 8))
+
+        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(-1, 5))
+
+        const tokenAmounts = await perpetualMarketCore.getTokenAmountForHedging()
+
+        expect(tokenAmounts.amountUsdc).to.be.eq(19920000)
+        expect(tokenAmounts.amountUnderlying).to.be.eq(20000)
+      })
+
+      it('slippage tolerance becomes big by price move', async () => {
+        await updateSpot(scaledBN(980, 8))
+
+        const beforeTokenAmounts = await perpetualMarketCore.getTokenAmountForHedging()
+        await perpetualMarketCore.completeHedgingProcedure({
+          amountUsdc: beforeTokenAmounts[0],
+          amountUnderlying: beforeTokenAmounts[1],
+          isLong: true,
+          deltas: beforeTokenAmounts.deltas,
+        })
+
+        await updateSpot(scaledBN(1000, 8))
+
+        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(-1, 5))
+
+        const tokenAmounts = await perpetualMarketCore.getTokenAmountForHedging()
+
+        expect(tokenAmounts.amountUsdc).to.be.eq(19458880)
+        expect(tokenAmounts.amountUnderlying).to.be.eq(19600)
+      })
     })
   })
 })

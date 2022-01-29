@@ -1069,7 +1069,7 @@ describe('PerpetualMarket', function () {
         deadline: 0,
       })
 
-      await expect(perpetualMarket.execHedge()).to.be.revertedWith('N3')
+      await expect(perpetualMarket.execHedge()).to.be.revertedWith('PMC4')
     })
 
     describe('net delta is negative', () => {
