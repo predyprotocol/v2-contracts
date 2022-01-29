@@ -225,13 +225,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             (_tradeAmount < 0 && pools[_productId].positionPerpetuals.sub(_tradeAmount) > 0) ||
             (_tradeAmount > 0 && pools[_productId].positionPerpetuals.sub(_tradeAmount) < 0)
         ) {
+            // newEntryValue = entryValue * newPoolPosition / (newPoolPosition + Δposition)
             pools[_productId].valueEntry = pools[_productId]
                 .valueEntry
-                .add(
-                    (pools[_productId].valueEntry.mul(_tradeAmount)).div(
-                        pools[_productId].positionPerpetuals.sub(_tradeAmount)
-                    )
-                )
+                .mul(pools[_productId].positionPerpetuals)
+                .div(pools[_productId].positionPerpetuals.sub(_tradeAmount))
                 .toInt128();
         } else {
             pools[_productId].valueEntry = pools[_productId].valueEntry.add(tradePrice.mul(_tradeAmount)).toInt128();
