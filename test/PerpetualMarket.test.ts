@@ -139,14 +139,14 @@ describe('PerpetualMarket', function () {
       })
 
       it('withdrawal works after deposit', async () => {
-        const before = await usdc.balanceOf(testContractSet.liquidityPool.address)
+        const before = await usdc.balanceOf(perpetualMarket.address)
         const beforeLPTokenBalance = await perpetualMarket.balanceOf(wallet.address)
 
         await perpetualMarket.deposit(scaledBN(20, 6))
         await perpetualMarket.withdraw(scaledBN(20, 6))
 
         const afterLPTokenBalance = await perpetualMarket.balanceOf(wallet.address)
-        const after = await usdc.balanceOf(testContractSet.liquidityPool.address)
+        const after = await usdc.balanceOf(perpetualMarket.address)
 
         expect(beforeLPTokenBalance).to.be.eq(afterLPTokenBalance)
         expect(after.sub(before)).to.be.eq(0)
@@ -154,14 +154,14 @@ describe('PerpetualMarket', function () {
 
       it('large amount of deposit', async () => {
         const largeAmountOfUSDC = scaledBN(1, 15)
-        const before = await usdc.balanceOf(testContractSet.liquidityPool.address)
+        const before = await usdc.balanceOf(perpetualMarket.address)
         const beforeLPTokenBalance = await perpetualMarket.balanceOf(wallet.address)
 
         await perpetualMarket.deposit(largeAmountOfUSDC)
         await perpetualMarket.withdraw(largeAmountOfUSDC)
 
         const afterLPTokenBalance = await perpetualMarket.balanceOf(wallet.address)
-        const after = await usdc.balanceOf(testContractSet.liquidityPool.address)
+        const after = await usdc.balanceOf(perpetualMarket.address)
 
         expect(beforeLPTokenBalance).to.be.eq(afterLPTokenBalance)
         expect(after.sub(before)).to.be.eq(0)
@@ -190,14 +190,14 @@ describe('PerpetualMarket', function () {
       })
 
       it('withdrawal works after deposit', async () => {
-        const before = await usdc.balanceOf(testContractSet.liquidityPool.address)
+        const before = await usdc.balanceOf(perpetualMarket.address)
         const beforeLPTokenBalance = await perpetualMarket.balanceOf(wallet.address)
 
         await perpetualMarket.deposit(scaledBN(20, 6))
         await perpetualMarket.withdraw(scaledBN(20, 6))
 
         const afterLPTokenBalance = await perpetualMarket.balanceOf(wallet.address)
-        const after = await usdc.balanceOf(testContractSet.liquidityPool.address)
+        const after = await usdc.balanceOf(perpetualMarket.address)
 
         expect(beforeLPTokenBalance).to.be.eq(afterLPTokenBalance)
         expect(after.sub(before)).to.be.eq(0)
