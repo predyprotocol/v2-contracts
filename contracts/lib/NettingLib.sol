@@ -19,6 +19,7 @@ library NettingLib {
     using SafeCast for uint128;
     using SafeCast for uint256;
     using SafeMath for uint256;
+    using SafeMath for uint128;
     using SignedSafeMath for int256;
     using SignedSafeMath for int128;
 
@@ -36,20 +37,13 @@ library NettingLib {
         uint256 amountUsdc;
         uint256 amountUnderlying;
         int256[2] deltas;
-        int256 spotPrice;
         bool isLong;
     }
 
     struct Info {
-        int128 amountUnderlying;
-        int128 amountAaveCollateral;
-        PoolInfo[2] pools;
-    }
-
-    struct PoolInfo {
-        int128 amountUsdc;
-        int128 amountUnderlying;
-        int128 valueEntry;
+        uint128 amountAaveCollateral;
+        uint128[2] amountsUsdc;
+        int128[2] amountsUnderlying;
     }
 
     /**
@@ -62,15 +56,20 @@ library NettingLib {
     ) internal returns (int256 requiredCollateral, int256 hedgePositionValue) {
         int256 totalRequiredCollateral = getRequiredCollateral(_productId, _params);
 
-        hedgePositionValue = getHedgePositionValue(_info.pools[_productId], _params.spotPrice);
+        hedgePositionValue = getHedgePositionValue(_info, _params.spotPrice, _productId);
 
         requiredCollateral = totalRequiredCollateral.sub(hedgePositionValue);
 
-        if (_info.pools[_productId].amountUsdc + requiredCollateral < 0) {
-            requiredCollateral = -_info.pools[_productId].amountUsdc;
+        if (_info.amountsUsdc[_productId].toInt256().add(requiredCollateral) < 0) {
+            requiredCollateral = -_info.amountsUsdc[_productId].toInt256();
         }
 
-        _info.pools[_productId].amountUsdc = _info.pools[_productId].amountUsdc.add(requiredCollateral).toInt128();
+        _info.amountsUsdc[_productId] = _info
+            .amountsUsdc[_productId]
+            .toInt256()
+            .add(requiredCollateral)
+            .toUint256()
+            .toUint128();
     }
 
     /**
@@ -84,31 +83,18 @@ library NettingLib {
         require(totalDelta > 0, "N2");
         require(netDelta <= 0, "N3");
 
-        _info.amountUnderlying = -netDelta.toInt128();
-
         for (uint256 i = 0; i < 2; i++) {
+            _info.amountsUnderlying[i] = -_params.deltas[i].toInt128();
+
             {
                 uint256 deltaUsdcAmount = (_params.amountUsdc.mul(Math.abs(_params.deltas[i]))).div(totalDelta);
+
                 if (_params.isLong) {
-                    _info.pools[i].amountUsdc = _info.pools[i].amountUsdc.sub(deltaUsdcAmount.toInt256()).toInt128();
+                    _info.amountsUsdc[i] = _info.amountsUsdc[i].sub(deltaUsdcAmount).toUint128();
                 } else {
-                    _info.pools[i].amountUsdc = _info.pools[i].amountUsdc.add(deltaUsdcAmount.toInt256()).toInt128();
+                    _info.amountsUsdc[i] = _info.amountsUsdc[i].add(deltaUsdcAmount).toUint128();
                 }
             }
-
-            _info.pools[i].amountUnderlying = -(_params.deltas[i]).toInt128();
-
-            // entry += uPos * S - (usdc/underlying)*(|uPos|*|netDelta|/|totalDelta|)
-            int256 newEntry = _info.pools[i].amountUnderlying.mul(_params.spotPrice) / 1e8;
-
-            newEntry = newEntry
-                .sub(
-                    ((_params.amountUsdc.mul(Math.abs(_info.pools[i].amountUnderlying).mul(Math.abs(netDelta)))) /
-                        (_params.amountUnderlying.mul(totalDelta))).toInt256()
-                )
-                .toInt128();
-
-            _info.pools[i].valueEntry = _info.pools[i].valueEntry.add(newEntry).toInt128();
         }
     }
 
@@ -168,12 +154,22 @@ library NettingLib {
      * HedgePositionValue = USDCPosition+UnderlyingPosition*S-entry
      * @return HedgePositionValue scaled by 1e8
      */
-    function getHedgePositionValue(PoolInfo storage _poolState, int256 _spot) internal view returns (int256) {
-        int256 hedgeNotional = _poolState.amountUsdc.add(_spot.mul(_poolState.amountUnderlying) / 1e8).sub(
-            _poolState.valueEntry
-        );
+    function getHedgePositionValue(
+        Info memory _info,
+        int256 _spot,
+        uint256 _productId
+    ) internal pure returns (int256) {
+        int256 hedgeNotional = _spot.mul(_info.amountsUnderlying[_productId]) / 1e8;
 
-        return hedgeNotional;
+        return _info.amountsUsdc[_productId].toInt256().add(hedgeNotional);
+    }
+
+    function getTotalUnderlyingPosition(Info memory _info) internal pure returns (int256 underlyingPosition) {
+        for (uint256 i = 0; i < 2; i++) {
+            underlyingPosition = underlyingPosition.add(_info.amountsUnderlying[i]);
+        }
+
+        return underlyingPosition;
     }
 
     /**

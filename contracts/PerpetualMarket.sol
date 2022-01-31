@@ -273,16 +273,16 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
             ERC20(liquidityPool.underlying()).transferFrom(
                 msg.sender,
                 address(liquidityPool),
-                completeParams.amountUnderlying
+                completeParams.amountUnderlying * 1e10
             );
-            liquidityPool.sendLiquidity(msg.sender, completeParams.amountUsdc);
+            liquidityPool.sendLiquidity(msg.sender, completeParams.amountUsdc / 1e2);
         } else {
             ERC20(liquidityPool.collateral()).transferFrom(
                 msg.sender,
                 address(liquidityPool),
-                completeParams.amountUsdc
+                completeParams.amountUsdc / 1e2
             );
-            liquidityPool.sendUndrlying(msg.sender, completeParams.amountUnderlying);
+            liquidityPool.sendUndrlying(msg.sender, completeParams.amountUnderlying * 1e10);
         }
 
         emit Hedged(msg.sender, completeParams.amountUsdc, completeParams.amountUnderlying, completeParams.deltas);

@@ -11,8 +11,8 @@ import "../lib/NettingLib.sol";
 contract NettingLibTester {
     NettingLib.Info public info;
 
-    function getPoolInfo(uint256 _productId) external view returns (NettingLib.PoolInfo memory) {
-        return info.pools[_productId];
+    function getInfo() external view returns (NettingLib.Info memory) {
+        return info;
     }
 
     function addCollateral(uint256 _productId, NettingLib.AddCollateralParams memory _params)
@@ -28,7 +28,7 @@ contract NettingLibTester {
 
     function getRequiredCollateral(uint256 _productId, NettingLib.AddCollateralParams memory _params)
         external
-        pure
+        view
         returns (int256)
     {
         return NettingLib.getRequiredCollateral(_productId, _params);

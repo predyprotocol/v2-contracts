@@ -24,7 +24,6 @@ import "hardhat/console.sol";
  */
 contract PerpetualMarketCore is IPerpetualMarketCore {
     using NettingLib for NettingLib.Info;
-    using NettingLib for NettingLib.PoolInfo;
     using SpreadLib for SpreadLib.Info;
     using SafeCast for uint256;
     using SafeCast for uint128;
@@ -241,10 +240,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * @notice get USDC and underlying amount to make the pool delta neutral
      */
     function getTokenAmountForHedging() external view returns (NettingLib.CompleteParams memory completeParams) {
-        (completeParams.spotPrice, ) = getUnderlyingPrice();
+        (int256 spotPrice, ) = getUnderlyingPrice();
 
         (int256 sqeethPoolDelta, int256 futurePoolDelta) = getDeltas(
-            completeParams.spotPrice,
+            spotPrice,
             pools[0].positionPerpetuals,
             pools[1].positionPerpetuals
         );
@@ -254,13 +253,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
         {
             // 1. Calculate net delta
-            int256 netDelta = sqeethPoolDelta.add(futurePoolDelta).add(nettingInfo.amountUnderlying);
+            int256 netDelta = sqeethPoolDelta.add(futurePoolDelta).add(nettingInfo.getTotalUnderlyingPosition());
 
             completeParams.isLong = netDelta < 0;
 
             // 2. Calculate USDC and ETH amounts.
-            completeParams.amountUnderlying = Math.abs(netDelta) * 1e10;
-            completeParams.amountUsdc = (Math.abs(netDelta).mul(uint128(completeParams.spotPrice))) / 1e10;
+            completeParams.amountUnderlying = Math.abs(netDelta);
+            completeParams.amountUsdc = (Math.abs(netDelta).mul(uint128(spotPrice))) / 1e8;
         }
 
         {
@@ -423,7 +422,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      */
     function addCollateral(uint256 _productId, int256 _spot) internal returns (int256, int256) {
         (int256 delta0, int256 delta1) = getDeltas(_spot, pools[0].positionPerpetuals, pools[1].positionPerpetuals);
-        int256 gamma = (IndexPricer.calculateGamma(0).mul(-pools[0].positionPerpetuals)) / 1e8;
+        int256 gamma = (IndexPricer.calculateGamma(0).mul(pools[0].positionPerpetuals)) / 1e8;
 
         return nettingInfo.addCollateral(_productId, NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot));
     }
@@ -453,14 +452,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             }
 
             (delta0, delta1) = getDeltas(_spot, tradeAmount0, tradeAmount1);
-            gamma = (IndexPricer.calculateGamma(0).mul(-tradeAmount0)) / 1e8;
+            gamma = (IndexPricer.calculateGamma(0).mul(tradeAmount0)) / 1e8;
         }
 
         NettingLib.AddCollateralParams memory params = NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot);
 
         int256 totalRequiredCollateral = NettingLib.getRequiredCollateral(_productId, params);
 
-        int256 hedgePositionValue = nettingInfo.pools[_productId].getHedgePositionValue(params.spotPrice);
+        int256 hedgePositionValue = nettingInfo.getHedgePositionValue(params.spotPrice, _productId);
 
         return totalRequiredCollateral - hedgePositionValue;
     }
@@ -554,7 +553,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
                 1e8;
         }
 
-        return positionsValue.add(nettingInfo.pools[_productId].getHedgePositionValue(_spotPrice));
+        {
+            int256 hedgePositionValue = nettingInfo.getHedgePositionValue(_spotPrice, _productId);
+
+            positionsValue = positionsValue.add(hedgePositionValue);
+        }
+
+        return positionsValue;
     }
 
     /**
