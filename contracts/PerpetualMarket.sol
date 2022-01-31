@@ -109,12 +109,10 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
 
         for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
             if (_tradeParams.tradeAmounts[productId] != 0) {
-                (int256 tradeValue, int256 valueFundingFeeEntry) = perpetualMarketCore.updatePoolPosition(
+                (uint256 tradePrice, int256 valueFundingFeeEntry) = perpetualMarketCore.updatePoolPosition(
                     productId,
                     _tradeParams.tradeAmounts[productId]
                 );
-
-                uint256 tradePrice = uint256(tradeValue / _tradeParams.tradeAmounts[productId]);
 
                 require(
                     checkPrice(
@@ -129,7 +127,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
                     _tradeParams.subVaultIndex,
                     productId,
                     _tradeParams.tradeAmounts[productId],
-                    tradeValue,
+                    tradePrice,
                     valueFundingFeeEntry
                 );
 

@@ -173,7 +173,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     function updatePoolPosition(uint256 _productId, int128 _tradeAmount)
         external
         onlyPerpetualMarket
-        returns (int256, int256)
+        returns (uint256, int256)
     {
         require(amountLiquidity > 0, "PMC1");
 
@@ -235,7 +235,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             pools[_productId].valueEntry = pools[_productId].valueEntry.add(tradePrice.mul(_tradeAmount)).toInt128();
         }
 
-        return (tradePrice.mul(_tradeAmount), pools[_productId].amountFundingFeePerPosition.mul(_tradeAmount));
+        return (uint256(tradePrice), pools[_productId].amountFundingFeePerPosition.mul(_tradeAmount));
     }
 
     /**

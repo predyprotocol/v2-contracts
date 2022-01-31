@@ -11,12 +11,21 @@ library EntryPriceMath {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
 
+    /**
+     * @notice calculate new entry price
+     * @param _entryPrice previous entry price
+     * @param _position current position
+     * @param _tradePrice trade price
+     * @param _positionTrade position to trade
+     * @return newEntryPrice new entry price
+     * @return profitValue notional profit value when positions are closed
+     */
     function updateEntryPrice(
         uint256 _entryPrice,
         int256 _position,
         uint256 _tradePrice,
         int256 _positionTrade
-    ) internal pure returns (uint256 newEntryPrice, int256 profit) {
+    ) internal pure returns (uint256 newEntryPrice, int256 profitValue) {
         int256 newPosition = _position.add(_positionTrade);
         if (_position == 0 || (_position > 0 && _positionTrade > 0) || (_position < 0 && _positionTrade < 0)) {
             newEntryPrice = (_entryPrice.mul(Math.abs(_position)).add(_tradePrice.mul(Math.abs(_positionTrade)))).div(
@@ -27,11 +36,11 @@ library EntryPriceMath {
             (_position < 0 && _positionTrade > 0 && newPosition < 0)
         ) {
             newEntryPrice = _entryPrice;
-            profit = Math.abs(_positionTrade).toInt256().mul(_tradePrice.toInt256().sub(_entryPrice.toInt256()));
+            profitValue = (-_positionTrade).mul(_tradePrice.toInt256().sub(_entryPrice.toInt256())) / 1e8;
         } else {
             newEntryPrice = _tradePrice;
 
-            profit = Math.abs(_position).toInt256().mul(_tradePrice.toInt256().sub(_entryPrice.toInt256()));
+            profitValue = _position.mul(_tradePrice.toInt256().sub(_entryPrice.toInt256())) / 1e8;
         }
     }
 }

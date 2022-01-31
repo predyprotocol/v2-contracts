@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/IPerpetualMarketCore.sol";
 import "./Math.sol";
+import "./EntryPriceMath.sol";
 
 /**
  * @title TraderVaultLib
@@ -33,7 +34,7 @@ library TraderVaultLib {
 
     struct SubVault {
         int128[2] positionPerpetuals;
-        int128[2] valueEntry;
+        uint128[2] entryPrice;
         int128[2] valueFundingFeeEntry;
     }
 
@@ -112,7 +113,7 @@ library TraderVaultLib {
      * @param _subVaultIndex index of sub-vault
      * @param _productId product id
      * @param _positionPerpetual amount of position to increase or decrease
-     * @param _valueEntry entry value to increase or decrease
+     * @param _tradePrice trade price
      * @param _valueFundingFeeEntry entry value of funding fee
      */
     function updateVault(
@@ -120,36 +121,41 @@ library TraderVaultLib {
         uint256 _subVaultIndex,
         uint256 _productId,
         int128 _positionPerpetual,
-        int256 _valueEntry,
+        uint256 _tradePrice,
         int256 _valueFundingFeeEntry
     ) internal {
         require(!_traderVault.isInsolvent, "T2");
 
         if (_traderVault.subVaults.length == _subVaultIndex) {
             int128[2] memory positionPerpetuals;
-            int128[2] memory valueEntry;
+            uint128[2] memory entryPrice;
             int128[2] memory valueFundingFeeEntry;
 
-            positionPerpetuals[_productId] = _positionPerpetual;
-            valueEntry[_productId] = _valueEntry.toInt128();
-            valueFundingFeeEntry[_productId] = _valueFundingFeeEntry.toInt128();
-
-            _traderVault.subVaults.push(SubVault(positionPerpetuals, valueEntry, valueFundingFeeEntry));
+            _traderVault.subVaults.push(SubVault(positionPerpetuals, entryPrice, valueFundingFeeEntry));
         } else {
             require(_traderVault.subVaults.length > _subVaultIndex, "T3");
-
-            SubVault storage subVault = _traderVault.subVaults[_subVaultIndex];
-
-            subVault.positionPerpetuals[_productId] = subVault
-                .positionPerpetuals[_productId]
-                .add(_positionPerpetual)
-                .toInt128();
-            subVault.valueEntry[_productId] = subVault.valueEntry[_productId].add(_valueEntry).toInt128();
-            subVault.valueFundingFeeEntry[_productId] = subVault
-                .valueFundingFeeEntry[_productId]
-                .add(_valueFundingFeeEntry)
-                .toInt128();
         }
+
+        SubVault storage subVault = _traderVault.subVaults[_subVaultIndex];
+
+        (uint256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
+            subVault.entryPrice[_productId],
+            subVault.positionPerpetuals[_productId],
+            _tradePrice,
+            _positionPerpetual
+        );
+
+        subVault.entryPrice[_productId] = newEntryPrice.toUint128();
+        _traderVault.positionUsdc = _traderVault.positionUsdc.add(profitValue / 1e2).toInt128();
+
+        subVault.positionPerpetuals[_productId] = subVault
+            .positionPerpetuals[_productId]
+            .add(_positionPerpetual)
+            .toInt128();
+        subVault.valueFundingFeeEntry[_productId] = subVault
+            .valueFundingFeeEntry[_productId]
+            .add(_valueFundingFeeEntry)
+            .toInt128();
     }
 
     /**
@@ -173,7 +179,7 @@ library TraderVaultLib {
         for (uint256 i = 0; i < _traderVault.subVaults.length; i++) {
             for (uint256 j = 0; j < MAX_PRODUCT_ID; j++) {
                 _traderVault.subVaults[i].positionPerpetuals[j] = 0;
-                _traderVault.subVaults[i].valueEntry[j] = 0;
+                _traderVault.subVaults[i].entryPrice[j] = 0;
                 _traderVault.subVaults[i].valueFundingFeeEntry[j] = 0;
             }
         }
@@ -276,8 +282,8 @@ library TraderVaultLib {
         uint256 _productId,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal pure returns (int256) {
-        int256 pnl = _tradePriceInfo.tradePrices[_productId].mul(_subVault.positionPerpetuals[_productId]).sub(
-            _subVault.valueEntry[_productId]
+        int256 pnl = _tradePriceInfo.tradePrices[_productId].sub(_subVault.entryPrice[_productId].toInt256()).mul(
+            _subVault.positionPerpetuals[_productId]
         );
 
         return pnl / 1e10;
