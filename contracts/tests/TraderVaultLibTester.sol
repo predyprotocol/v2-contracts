@@ -21,7 +21,7 @@ contract TraderVaultLibTester {
         uint256 _subVaultId,
         uint256 _productId,
         int128 _amountAsset,
-        int128 _valueEntry,
+        uint256 _tradePrice,
         int128 _valueFundingFeeEntry
     ) external {
         TraderVaultLib.updateVault(
@@ -29,7 +29,7 @@ contract TraderVaultLibTester {
             _subVaultId,
             _productId,
             _amountAsset,
-            _valueEntry,
+            _tradePrice,
             _valueFundingFeeEntry
         );
     }

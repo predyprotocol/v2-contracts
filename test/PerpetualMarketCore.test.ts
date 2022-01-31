@@ -215,10 +215,10 @@ describe('PerpetualMarketCore', function () {
       })
 
       it('utilization ratio becomes high', async () => {
-        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 5000000)
+        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 2000000)
 
         const utilizationRatio = await perpetualMarketCore.getUtilizationRatio()
-        expect(utilizationRatio).to.be.eq(840000)
+        expect(utilizationRatio).to.be.eq(784000)
       })
     })
   })
