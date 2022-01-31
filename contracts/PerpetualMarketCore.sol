@@ -10,6 +10,7 @@ import "./interfaces/IPerpetualMarketCore.sol";
 import "./lib/NettingLib.sol";
 import "./lib/IndexPricer.sol";
 import "./lib/SpreadLib.sol";
+import "./lib/EntryPriceMath.sol";
 import "hardhat/console.sol";
 
 /**
@@ -53,7 +54,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     struct Pool {
         uint128 amountLockedLiquidity;
         int128 positionPerpetuals;
-        int128 valueEntry;
+        uint128 entryPrice;
         int128 amountFundingFeePerPosition;
         uint128 lastTradeTime;
     }
@@ -183,7 +184,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         executeFundingPayment(_productId, spotPrice);
 
         // Updates pool position
-        pools[_productId].positionPerpetuals += _tradeAmount;
+        pools[_productId].positionPerpetuals -= _tradeAmount;
 
         // Add collateral to Netting contract
         (int256 deltaM, int256 hedgePositionValue) = addCollateral(_productId, spotPrice);
@@ -200,7 +201,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
         {
             // Calculate pool's new amountLiquidity
-            int256 poolPofit = calculatePoolProfit(_productId, _tradeAmount, deltaM, tradePrice, hedgePositionValue);
+            int256 poolPofit = calculatePoolProfit(_productId, deltaM, hedgePositionValue);
 
             // Updates locked liquidity amount
             if (deltaM > 0) {
@@ -221,18 +222,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         // Update trade time
         pools[_productId].lastTradeTime = uint128(block.timestamp);
 
-        if (
-            (_tradeAmount < 0 && pools[_productId].positionPerpetuals.sub(_tradeAmount) > 0) ||
-            (_tradeAmount > 0 && pools[_productId].positionPerpetuals.sub(_tradeAmount) < 0)
-        ) {
-            // newEntryValue = entryValue * newPoolPosition / (newPoolPosition + Δposition)
-            pools[_productId].valueEntry = pools[_productId]
-                .valueEntry
-                .mul(pools[_productId].positionPerpetuals)
-                .div(pools[_productId].positionPerpetuals.sub(_tradeAmount))
-                .toInt128();
-        } else {
-            pools[_productId].valueEntry = pools[_productId].valueEntry.add(tradePrice.mul(_tradeAmount)).toInt128();
+        {
+            (uint256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
+                pools[_productId].entryPrice,
+                pools[_productId].positionPerpetuals.add(_tradeAmount),
+                uint256(tradePrice),
+                -_tradeAmount
+            );
+
+            pools[_productId].entryPrice = newEntryPrice.toUint128();
+            amountLiquidity = Math.addDelta(amountLiquidity, profitValue / 1e2);
         }
 
         return (uint256(tradePrice), pools[_productId].amountFundingFeePerPosition.mul(_tradeAmount));
@@ -412,7 +411,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             .add(fundingFeePerPosition)
             .toInt128();
 
-        int256 fundingReceived = (fundingFeePerPosition * pools[_productId].positionPerpetuals) / 1e10;
+        int256 fundingReceived = (fundingFeePerPosition.mul(-pools[_productId].positionPerpetuals)) / 1e10;
 
         amountLiquidity = Math.addDelta(amountLiquidity, fundingReceived);
 
@@ -424,7 +423,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      */
     function addCollateral(uint256 _productId, int256 _spot) internal returns (int256, int256) {
         (int256 delta0, int256 delta1) = getDeltas(_spot, pools[0].positionPerpetuals, pools[1].positionPerpetuals);
-        int256 gamma = (IndexPricer.calculateGamma(0).mul(pools[0].positionPerpetuals)) / 1e8;
+        int256 gamma = (IndexPricer.calculateGamma(0).mul(-pools[0].positionPerpetuals)) / 1e8;
 
         return nettingInfo.addCollateral(_productId, NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot));
     }
@@ -440,20 +439,21 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         int256 delta0;
         int256 delta1;
         int256 gamma;
+
         {
             int128 tradeAmount0 = pools[0].positionPerpetuals;
             int128 tradeAmount1 = pools[1].positionPerpetuals;
 
             if (_productId == 0) {
-                tradeAmount0 += _tradeAmount;
+                tradeAmount0 -= _tradeAmount;
             }
 
             if (_productId == 1) {
-                tradeAmount1 += _tradeAmount;
+                tradeAmount1 -= _tradeAmount;
             }
 
             (delta0, delta1) = getDeltas(_spot, tradeAmount0, tradeAmount1);
-            gamma = (IndexPricer.calculateGamma(0).mul(tradeAmount0)) / 1e8;
+            gamma = (IndexPricer.calculateGamma(0).mul(-tradeAmount0)) / 1e8;
         }
 
         NettingLib.AddCollateralParams memory params = NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot);
@@ -471,27 +471,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      */
     function calculatePoolProfit(
         uint256 _productId,
-        int256 _tradeAmount,
         int256 _deltaM,
-        int256 _tradePrice,
         int256 _hedgePositionValue
     ) internal view returns (int256 poolProfit) {
-        if (
-            (_tradeAmount < 0 && pools[_productId].positionPerpetuals.sub(_tradeAmount) > 0) ||
-            (_tradeAmount > 0 && pools[_productId].positionPerpetuals.sub(_tradeAmount) < 0)
-        ) {
-            // Δposition * (Price - valueEntry / tradeAmount)
-            poolProfit =
-                (
-                    _tradeAmount.mul(
-                        _tradePrice.sub(
-                            pools[_productId].valueEntry.div((pools[_productId].positionPerpetuals.sub(_tradeAmount)))
-                        )
-                    )
-                ) /
-                1e10;
-        }
-
         if (_deltaM < 0) {
             // |Δm| * (1 - amountLockedLiquidity / HedgePositionValue)
             poolProfit = poolProfit.add(
@@ -542,8 +524,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         int256 _tradeAmount0,
         int256 _tradeAmount1
     ) internal pure returns (int256, int256) {
-        int256 sqeethPoolDelta = -(IndexPricer.calculateDelta(0, _spotPrice).mul(_tradeAmount0)) / 1e8;
-        int256 futurePoolDelta = -(IndexPricer.calculateDelta(1, _spotPrice).mul(_tradeAmount1)) / 1e8;
+        int256 sqeethPoolDelta = (IndexPricer.calculateDelta(0, _spotPrice).mul(_tradeAmount0)) / 1e8;
+        int256 futurePoolDelta = (IndexPricer.calculateDelta(1, _spotPrice).mul(_tradeAmount1)) / 1e8;
         return (sqeethPoolDelta, futurePoolDelta);
     }
 
@@ -561,22 +543,18 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         int256 positionsValue;
 
         if (pools[_productId].positionPerpetuals != 0) {
+            int256 tradePrice = calculateTradePrice(
+                _productId,
+                _spotPrice,
+                pools[_productId].positionPerpetuals,
+                _deltaLiquidityAmount
+            );
             positionsValue =
-                pools[_productId].positionPerpetuals.mul(
-                    calculateTradePrice(
-                        _productId,
-                        _spotPrice,
-                        -pools[_productId].positionPerpetuals,
-                        _deltaLiquidityAmount
-                    )
-                ) /
+                pools[_productId].positionPerpetuals.mul(tradePrice.sub(pools[_productId].entryPrice.toInt256())) /
                 1e8;
         }
 
-        return
-            (pools[_productId].valueEntry / 1e8).sub(positionsValue).add(
-                nettingInfo.pools[_productId].getHedgePositionValue(_spotPrice)
-            );
+        return positionsValue.add(nettingInfo.pools[_productId].getHedgePositionValue(_spotPrice));
     }
 
     /**
@@ -615,11 +593,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         } else if (_productId == 1) {
             int256 fundingRate;
             if (pools[_productId].positionPerpetuals > 0) {
-                fundingRate = MAX_FUNDING_RATE
+                fundingRate = -MAX_FUNDING_RATE
                     .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
                     .div(1e8);
             } else {
-                fundingRate = -MAX_FUNDING_RATE
+                fundingRate = MAX_FUNDING_RATE
                     .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
                     .div(1e8);
             }
