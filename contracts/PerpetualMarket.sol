@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IPerpetualMarket.sol";
-import "./interfaces/ILiquidityPool.sol";
+import "./LiquidityPool.sol";
 import "./lib/TraderVaultLib.sol";
 import "./PerpetualMarketCore.sol";
 
@@ -12,13 +12,12 @@ import "./PerpetualMarketCore.sol";
  * @title Perpetual Market
  * @notice Perpetual Market Contract
  */
-contract PerpetualMarket is IPerpetualMarket, ERC20 {
+contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     using TraderVaultLib for TraderVaultLib.TraderVault;
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
     PerpetualMarketCore private immutable perpetualMarketCore;
-    ILiquidityPool private immutable liquidityPool;
 
     // trader's vaults storage
     mapping(address => mapping(uint256 => TraderVaultLib.TraderVault)) private traderVaults;
@@ -43,11 +42,12 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
     /**
      * @notice initialize Perpetual Market
      */
-    constructor(PerpetualMarketCore _perpetualMarketCore, ILiquidityPool _liquidityPool)
-        ERC20("Predy V2 LP Token", "PREDY-V2-LP")
-    {
+    constructor(
+        PerpetualMarketCore _perpetualMarketCore,
+        address _collateral,
+        address _underlying
+    ) ERC20("Predy V2 LP Token", "PREDY-V2-LP") LiquidityPool(_collateral, _underlying) {
         perpetualMarketCore = _perpetualMarketCore;
-        liquidityPool = _liquidityPool;
     }
 
     /**
@@ -60,7 +60,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
 
         uint256 lpTokenAmount = perpetualMarketCore.initialize(_depositAmount, _initialFundingRate);
 
-        ERC20(liquidityPool.collateral()).transferFrom(msg.sender, address(liquidityPool), uint128(_depositAmount));
+        ERC20(collateral).transferFrom(msg.sender, address(this), uint128(_depositAmount));
 
         _mint(msg.sender, _depositAmount);
 
@@ -75,7 +75,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
 
         uint256 lpTokenAmount = perpetualMarketCore.deposit(_depositAmount);
 
-        ERC20(liquidityPool.collateral()).transferFrom(msg.sender, address(liquidityPool), uint128(_depositAmount));
+        ERC20(collateral).transferFrom(msg.sender, address(this), uint128(_depositAmount));
 
         _mint(msg.sender, lpTokenAmount);
 
@@ -93,7 +93,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
         _burn(msg.sender, lpTokenAmount);
 
         // Send collateral to msg.sender
-        liquidityPool.sendLiquidity(msg.sender, _withdrawnAmount);
+        sendLiquidity(msg.sender, _withdrawnAmount);
 
         emit Withdrawn(msg.sender, lpTokenAmount, _withdrawnAmount);
     }
@@ -157,13 +157,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
         perpetualMarketCore.updatePoolSnapshot();
 
         if (finalDepositOrWithdrawAmount > 0) {
-            ERC20(liquidityPool.collateral()).transferFrom(
-                msg.sender,
-                address(liquidityPool),
-                uint256(finalDepositOrWithdrawAmount)
-            );
+            ERC20(collateral).transferFrom(msg.sender, address(this), uint256(finalDepositOrWithdrawAmount));
         } else if (finalDepositOrWithdrawAmount < 0) {
-            liquidityPool.sendLiquidity(msg.sender, uint256(-finalDepositOrWithdrawAmount));
+            sendLiquidity(msg.sender, uint256(-finalDepositOrWithdrawAmount));
         }
     }
 
@@ -235,7 +231,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
         perpetualMarketCore.addLiquidity(reward / 2);
 
         // Sends a half of reward to the liquidator
-        liquidityPool.sendLiquidity(msg.sender, reward / 2);
+        sendLiquidity(msg.sender, reward / 2);
 
         emit Liquidated(msg.sender, _vaultOwner, _vaultId);
     }
@@ -270,19 +266,11 @@ contract PerpetualMarket is IPerpetualMarket, ERC20 {
         perpetualMarketCore.calculateEntryPriceForHedging(completeParams);
 
         if (completeParams.isLong) {
-            ERC20(liquidityPool.underlying()).transferFrom(
-                msg.sender,
-                address(liquidityPool),
-                completeParams.amountUnderlying * 1e10
-            );
-            liquidityPool.sendLiquidity(msg.sender, completeParams.amountUsdc / 1e2);
+            ERC20(underlying).transferFrom(msg.sender, address(this), completeParams.amountUnderlying * 1e10);
+            sendLiquidity(msg.sender, completeParams.amountUsdc / 1e2);
         } else {
-            ERC20(liquidityPool.collateral()).transferFrom(
-                msg.sender,
-                address(liquidityPool),
-                completeParams.amountUsdc / 1e2
-            );
-            liquidityPool.sendUndrlying(msg.sender, completeParams.amountUnderlying * 1e10);
+            ERC20(collateral).transferFrom(msg.sender, address(this), completeParams.amountUsdc / 1e2);
+            sendUndrlying(msg.sender, completeParams.amountUnderlying * 1e10);
         }
 
         emit Hedged(msg.sender, completeParams.amountUsdc, completeParams.amountUnderlying, completeParams.deltas);

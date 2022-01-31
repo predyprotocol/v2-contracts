@@ -14,7 +14,6 @@ export type TestContractSet = {
   priceFeed: MockChainlinkAggregator
   perpetualMarket: PerpetualMarket
   perpetualMarketCore: PerpetualMarketCore
-  liquidityPool: LiquidityPool
   usdc: MockERC20
   weth: MockWETH
 }
@@ -86,34 +85,22 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const MockChainlinkAggregator = await ethers.getContractFactory('MockChainlinkAggregator')
   const priceFeed = (await MockChainlinkAggregator.deploy()) as MockChainlinkAggregator
 
-  const NettingLib = await ethers.getContractFactory('NettingLib')
-  const nettingLib = await NettingLib.deploy()
-
-  const TraderVaultLib = await ethers.getContractFactory('TraderVaultLib')
-  const traderVaultLib = await TraderVaultLib.deploy()
-
-  const LiquidityPool = await ethers.getContractFactory('LiquidityPool')
-
-  const liquidityPool = (await LiquidityPool.deploy(usdc.address, weth.address)) as LiquidityPool
-
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
   const perpetualMarketCore = (await PerpetualMarketCore.deploy(priceFeed.address)) as PerpetualMarketCore
 
   const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
   const perpetualMarket = (await PerpetualMarket.deploy(
     perpetualMarketCore.address,
-    liquidityPool.address,
+    usdc.address,
+    weth.address,
   )) as PerpetualMarket
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
-
-  await liquidityPool.transferOwnership(perpetualMarket.address)
 
   return {
     weth,
     usdc,
     priceFeed,
-    liquidityPool,
     perpetualMarket,
     perpetualMarketCore,
   }

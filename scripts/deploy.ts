@@ -43,10 +43,6 @@ async function main() {
   }
 
 
-  const LiquidityPool = await ethers.getContractFactory('LiquidityPool')
-  const liquidityPool = await LiquidityPool.deploy(usdcAddress, wethAddress)
-  console.log(`LiquidityPool deployed to ${liquidityPool.address}`)
-
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
   const perpetualMarketCore = await PerpetualMarketCore.deploy(aggregatorAddress)
   await perpetualMarketCore.deployed();
@@ -55,14 +51,13 @@ async function main() {
   const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
   const perpetualMarket = await PerpetualMarket.deploy(
     perpetualMarketCore.address,
-    liquidityPool.address,
+    usdcAddress,
+    wethAddress
   )
   await perpetualMarket.deployed();
   console.log(`PerpetualMarket deployed to ${perpetualMarket.address}`)
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
-
-  await liquidityPool.transferOwnership(perpetualMarket.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

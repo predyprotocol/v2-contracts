@@ -9,9 +9,9 @@ import "./interfaces/ILiquidityPool.sol";
  * @title Liquidity Pool
  * @notice Liquidity Pool Contract
  */
-contract LiquidityPool is ILiquidityPool, Ownable {
-    address public immutable override collateral;
-    address public immutable override underlying;
+abstract contract LiquidityPool {
+    address public immutable collateral;
+    address public immutable underlying;
 
     /**
      * @notice initialize liquidity pool
@@ -21,11 +21,11 @@ contract LiquidityPool is ILiquidityPool, Ownable {
         underlying = _underlying;
     }
 
-    function sendLiquidity(address _recipient, uint256 _amount) external override onlyOwner {
+    function sendLiquidity(address _recipient, uint256 _amount) internal {
         ERC20(collateral).transfer(_recipient, _amount);
     }
 
-    function sendUndrlying(address _recipient, uint256 _amount) external override onlyOwner {
+    function sendUndrlying(address _recipient, uint256 _amount) internal {
         ERC20(underlying).transfer(_recipient, _amount);
     }
 }
