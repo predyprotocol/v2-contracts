@@ -78,7 +78,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1999998)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1999766)
     })
 
     it('deposits after pool gets profit', async () => {
@@ -89,7 +89,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1999988)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1998765)
     })
 
     it('deposits after pool gets loss', async () => {
@@ -101,7 +101,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(2000008)
+      expect(await perpetualMarketCore.supply()).to.be.eq(2000771)
     })
   })
 
@@ -142,7 +142,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(500000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(500006)
+      expect(await perpetualMarketCore.supply()).to.be.eq(500618)
     })
 
     it('withdraws after the pool gets loss', async () => {
@@ -154,7 +154,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(500000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(499996)
+      expect(await perpetualMarketCore.supply()).to.be.eq(499615)
     })
   })
 
@@ -171,7 +171,7 @@ describe('PerpetualMarketCore', function () {
 
     describe('after initialized', () => {
       beforeEach(async () => {
-        await perpetualMarketCore.initialize(scaledBN(10, 6), scaledBN(5, 5))
+        await perpetualMarketCore.initialize(scaledBN(10, 8), scaledBN(5, 5))
       })
 
       it('reverts if pool has no enough liquidity', async () => {
@@ -213,21 +213,21 @@ describe('PerpetualMarketCore', function () {
 
     describe('check utilization', () => {
       beforeEach(async () => {
-        await perpetualMarketCore.initialize(scaledBN(10, 6), scaledBN(5, 5))
+        await perpetualMarketCore.initialize(scaledBN(10, 8), scaledBN(5, 5))
       })
 
       it('utilization ratio becomes high', async () => {
         await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 2000000)
 
         const utilizationRatio = await perpetualMarketCore.getUtilizationRatio()
-        expect(utilizationRatio).to.be.eq(784000)
+        expect(utilizationRatio).to.be.eq(78400000)
       })
     })
   })
 
   describe('updatePoolSnapshot', () => {
     beforeEach(async () => {
-      await perpetualMarketCore.initialize(scaledBN(10, 6), scaledBN(5, 5))
+      await perpetualMarketCore.initialize(scaledBN(10, 8), scaledBN(5, 5))
     })
 
     it('reverts if caller is not PerpetualMarket', async () => {

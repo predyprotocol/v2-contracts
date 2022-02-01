@@ -11,6 +11,7 @@ import "./PerpetualMarketCore.sol";
 /**
  * @title Perpetual Market
  * @notice Perpetual Market Contract
+ * The contract manages LP token, that decimal is 6.
  */
 contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     using TraderVaultLib for TraderVaultLib.TraderVault;
@@ -48,6 +49,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
         address _underlying
     ) ERC20("Predy V2 LP Token", "PREDY-V2-LP") LiquidityPool(_collateral, _underlying) {
         perpetualMarketCore = _perpetualMarketCore;
+
+        // The decimals of LP token is 6
+        _setupDecimals(6);
     }
 
     /**
@@ -58,11 +62,11 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     function initialize(uint128 _depositAmount, int128 _initialFundingRate) external override {
         require(_depositAmount > 0 && _initialFundingRate > 0);
 
-        uint256 lpTokenAmount = perpetualMarketCore.initialize(_depositAmount, _initialFundingRate);
+        uint256 lpTokenAmount = perpetualMarketCore.initialize(_depositAmount * 1e2, _initialFundingRate) / 1e2;
 
         ERC20(collateral).transferFrom(msg.sender, address(this), uint128(_depositAmount));
 
-        _mint(msg.sender, _depositAmount);
+        _mint(msg.sender, lpTokenAmount);
 
         emit Deposited(msg.sender, lpTokenAmount, _depositAmount);
     }
@@ -73,7 +77,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     function deposit(uint128 _depositAmount) external override {
         require(_depositAmount > 0);
 
-        uint256 lpTokenAmount = perpetualMarketCore.deposit(_depositAmount);
+        uint256 lpTokenAmount = perpetualMarketCore.deposit(_depositAmount * 1e2) / 1e2;
 
         ERC20(collateral).transferFrom(msg.sender, address(this), uint128(_depositAmount));
 
@@ -88,7 +92,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     function withdraw(uint128 _withdrawnAmount) external override {
         require(_withdrawnAmount > 0);
 
-        uint256 lpTokenAmount = perpetualMarketCore.withdraw(_withdrawnAmount);
+        uint256 lpTokenAmount = perpetualMarketCore.withdraw(_withdrawnAmount * 1e2) / 1e2;
 
         _burn(msg.sender, lpTokenAmount);
 
@@ -157,9 +161,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
         perpetualMarketCore.updatePoolSnapshot();
 
         if (finalDepositOrWithdrawAmount > 0) {
-            ERC20(collateral).transferFrom(msg.sender, address(this), uint256(finalDepositOrWithdrawAmount));
+            ERC20(collateral).transferFrom(msg.sender, address(this), uint256(finalDepositOrWithdrawAmount / 1e2));
         } else if (finalDepositOrWithdrawAmount < 0) {
-            sendLiquidity(msg.sender, uint256(-finalDepositOrWithdrawAmount));
+            sendLiquidity(msg.sender, uint256(-finalDepositOrWithdrawAmount) / 1e2);
         }
     }
 
@@ -231,7 +235,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
         perpetualMarketCore.addLiquidity(reward / 2);
 
         // Sends a half of reward to the liquidator
-        sendLiquidity(msg.sender, reward / 2);
+        sendLiquidity(msg.sender, reward / (2 * 1e2));
 
         emit Liquidated(msg.sender, _vaultOwner, _vaultId);
     }

@@ -9,8 +9,7 @@ import {
   TestContractHelper,
   TestContractSet,
 } from './utils/deploy'
-import { increaseTime, scaledBN } from './utils/helpers'
-import { FUTURE_PRODUCT_ID, SAFETY_PERIOD, SQEETH_PRODUCT_ID, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
+import { scaledBN } from './utils/helpers'
 
 function checkEqRoughly(a: BigNumberish, b: BigNumberish) {
   expect(a).to.be.lte(BigNumber.from(b).add(1))
@@ -29,7 +28,6 @@ describe('PerpetualMarket', function () {
   let perpetualMarket: PerpetualMarket
 
   const MaxInt128 = BigNumber.from(2).pow(127).sub(1)
-  const MinInt128 = BigNumber.from(2).pow(127).sub(1).mul(-1)
 
   before(async () => {
     ;[wallet, other] = await (ethers as any).getSigners()
@@ -66,7 +64,6 @@ describe('PerpetualMarket', function () {
     await restoreSnapshot(snapshotId)
   })
 
-
   describe('trade', () => {
     beforeEach(async () => {
       await testContractHelper.updateSpot(scaledBN(1200, 8))
@@ -102,13 +99,6 @@ describe('PerpetualMarket', function () {
           limitPrices: [0, 0],
           deadline: 0,
         })
-
-        const after = await usdc.balanceOf(wallet.address)
-
-        const vault = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
-        console.log('positionUsdc', vault[4].positionUsdc.toString())
-
-        console.log('wallet balance', after.sub(before).toString())
       })
 
       it('withdraw all', async function () {
@@ -119,8 +109,7 @@ describe('PerpetualMarket', function () {
 
         expect(withdrawnAmount).to.gt(scaledBN(5000, 6))
 
-
-        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(680)
+        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(160)
         expect(await perpetualMarket.balanceOf(wallet.address)).to.eq(0)
       })
     })
