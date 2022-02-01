@@ -1,12 +1,6 @@
 import { BigNumber, BigNumberish, constants, Wallet } from 'ethers'
 import { ethers } from 'hardhat'
-import {
-  PerpetualMarket,
-  PerpetualMarketCore,
-  MockERC20,
-  MockWETH,
-  MockChainlinkAggregator,
-} from '../../typechain'
+import { PerpetualMarket, PerpetualMarketCore, MockERC20, MockWETH, MockChainlinkAggregator } from '../../typechain'
 import { scaledBN } from './helpers'
 
 export type TestContractSet = {

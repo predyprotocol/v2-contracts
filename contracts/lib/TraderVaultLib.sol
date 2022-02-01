@@ -195,7 +195,7 @@ library TraderVaultLib {
 
     /**
      * @notice Gets min collateral of the vault
-     * MinCollateral = 0.075 * S * (|2*S*a_{sqeeth}+a_{future}| + 0.15*S*|a_{sqeeth}|)
+     * MinCollateral = 0.075 * S * (|2*S*PositionSqeeth+PositionFuture| + 0.15*S*|PositionSqeeth|)
      * @param _traderVault trader vault object
      * @param _spotPrice spot price
      * @return MinCollateral scaled by 1e8
@@ -234,7 +234,7 @@ library TraderVaultLib {
 
     /**
      * @notice Gets position value in the sub-vault
-     * ValueOfSubVault = Σ(Price_{i} * a_{i} - entry_{i}) + FundingFee
+     * ValueOfSubVault = TotalPerpetualValueOfSubVault + TotalFundingFeePaidOfSubVault
      * @param _subVault sub-vault object
      * @param _tradePriceInfo trade price info
      * @return ValueOfSubVault scaled by 1e8
@@ -244,26 +244,26 @@ library TraderVaultLib {
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal pure returns (int256) {
         return
-            getTotalPerpetualValue(_subVault, _tradePriceInfo).add(
-                getTotalFundingFee(_subVault, _tradePriceInfo.amountFundingFeesPerPosition)
+            getTotalPerpetualValueOfSubVault(_subVault, _tradePriceInfo).add(
+                getTotalFundingFeePaidOfSubVault(_subVault, _tradePriceInfo.amountFundingFeesPerPosition)
             );
     }
 
     /**
      * @notice Gets total perpetual value in the sub-vault
-     * TotalPerpetualValue = Σ(Price_{i} * a_{i} - entry_{i})
+     * TotalPerpetualValueOfSubVault = Σ(PerpetualValueOfSubVault_i)
      * @param _subVault sub-vault object
      * @param _tradePriceInfo trade price info
-     * @return TotalPerpetualValue scaled by 1e8
+     * @return TotalPerpetualValueOfSubVault scaled by 1e8
      */
-    function getTotalPerpetualValue(
+    function getTotalPerpetualValueOfSubVault(
         SubVault memory _subVault,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal pure returns (int256) {
         int256 pnl;
 
         for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
-            pnl = pnl.add(getPerpetualValue(_subVault, i, _tradePriceInfo));
+            pnl = pnl.add(getPerpetualValueOfSubVault(_subVault, i, _tradePriceInfo));
         }
 
         return pnl;
@@ -271,13 +271,13 @@ library TraderVaultLib {
 
     /**
      * @notice Gets perpetual value in the sub-vault
-     * PerpetualValue = Price_{i} * a_{i} - entry_{i}
+     * PerpetualValueOfSubVault_i = (TradePrice_i - EntryPrice_i)*Position_i
      * @param _subVault sub-vault object
      * @param _productId product id
      * @param _tradePriceInfo trade price info
-     * @return PerpetualValue scaled by 1e8
+     * @return PerpetualValueOfSubVault_i scaled by 1e8
      */
-    function getPerpetualValue(
+    function getPerpetualValueOfSubVault(
         SubVault memory _subVault,
         uint256 _productId,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
@@ -291,12 +291,12 @@ library TraderVaultLib {
 
     /**
      * @notice Gets total funding fee in the sub-vault
-     * TotalFundingFee = Σ(FundingEntry_i - a_i*cumFundingGlobal_i)
+     * TotalFundingFeePaidOfSubVault = Σ(FundingFeePaidOfSubVault_i)
      * @param _subVault sub-vault object
      * @param _amountFundingFeesPerPosition cumulative funding fee per position
-     * @return TotalFundingFee scaled by 1e8
+     * @return TotalFundingFeePaidOfSubVault scaled by 1e8
      */
-    function getTotalFundingFee(SubVault memory _subVault, int128[2] memory _amountFundingFeesPerPosition)
+    function getTotalFundingFeePaidOfSubVault(SubVault memory _subVault, int128[2] memory _amountFundingFeesPerPosition)
         internal
         pure
         returns (int256)
@@ -304,7 +304,7 @@ library TraderVaultLib {
         int256 fundingFee;
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
-            fundingFee = fundingFee.add(getFundingFee(_subVault, i, _amountFundingFeesPerPosition));
+            fundingFee = fundingFee.add(getFundingFeePaidOfSubVault(_subVault, i, _amountFundingFeesPerPosition));
         }
 
         return fundingFee;
@@ -312,13 +312,13 @@ library TraderVaultLib {
 
     /**
      * @notice Gets funding fee in the sub-vault
-     * FundingFee = FundingEntry_i - a_i*cumFundingGlobal_i
+     * FundingFeePaidOfSubVault_i = FundingEntryValue_i - Position_i*cumFundingGlobal_i
      * @param _subVault sub-vault object
      * @param _productId product id
      * @param _amountFundingFeesPerPosition cumulative funding fee per position
-     * @return FundingFee scaled by 1e8
+     * @return FundingFeePaidOfSubVault_i scaled by 1e8
      */
-    function getFundingFee(
+    function getFundingFeePaidOfSubVault(
         SubVault memory _subVault,
         uint256 _productId,
         int128[2] memory _amountFundingFeesPerPosition

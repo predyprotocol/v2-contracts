@@ -13,6 +13,28 @@ library EntryPriceMath {
 
     /**
      * @notice Calculates new entry price and return profit if position is closed
+     *
+     * Calculation Patterns
+     *  |Position|PositionTrade|NewPosition|Pattern|
+     *  |       +|            +|          +|      A|
+     *  |       +|            -|          +|      B|
+     *  |       +|            -|          -|      C|
+     *  |       -|            -|          -|      A|
+     *  |       -|            +|          -|      B|
+     *  |       -|            +|          +|      C|
+     *
+     * Calculations
+     *  Pattern A (open positions)
+     *   NewEntryPrice = (EntryPrice * |Position| + TradePrce * |PositionTrade|) / (Position + PositionTrade)
+     *
+     *  Pattern B (close positions)
+     *   NewEntryPrice = EntryPrice
+     *   ProfitValue = -PositionTrade * (TradePrice - EntryPrice)
+     *
+     *  Pattern C (close all positions & open new)
+     *   NewEntryPrice = TradePrice
+     *   ProfitValue = Position * (TradePrice - EntryPrice)
+     *
      * @param _entryPrice previous entry price
      * @param _position current position
      * @param _tradePrice trade price
