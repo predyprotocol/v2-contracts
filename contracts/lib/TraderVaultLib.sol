@@ -10,11 +10,24 @@ import "./EntryPriceMath.sol";
 
 /**
  * @title TraderVaultLib
+ *
+ * Data Structure
+ *  Vault
+ *  - PositionUSDC
+ *  - SubVault0(PositionPerpetuals, EntryPrices, FundingFeeEntryValues)
+ *  - SubVault1(PositionPerpetuals, EntryPrices, FundingFeeEntryValues)
+ *  - ...
+ *
+ *  PositionPerpetuals = [PositionSqeeth, PositionFuture]
+ *  EntryPrices = [EntryPriceSqeeth, EntryPriceFuture]
+ *  FundingFeeEntryValues = [FundingFeeEntryValueSqeeth, FundingFeeEntryValueFuture]
+ *
+ *
  * Error codes
- * T0: PositionValue must be greater than MinCollateral
- * T1: PositionValue must be less than MinCollateral
- * T2: Vault is insolvent
- * T3: subVaultIndex is too large
+ *  T0: PositionValue must be greater than MinCollateral
+ *  T1: PositionValue must be less than MinCollateral
+ *  T2: Vault is insolvent
+ *  T3: subVaultIndex is too large
  */
 library TraderVaultLib {
     using SafeCast for int256;
@@ -34,8 +47,8 @@ library TraderVaultLib {
 
     struct SubVault {
         int128[2] positionPerpetuals;
-        uint128[2] entryPrice;
-        int128[2] valueFundingFeeEntry;
+        uint128[2] entryPrices;
+        int128[2] fundingFeeEntryValues;
     }
 
     struct TraderVault {
@@ -128,10 +141,10 @@ library TraderVaultLib {
 
         if (_traderVault.subVaults.length == _subVaultIndex) {
             int128[2] memory positionPerpetuals;
-            uint128[2] memory entryPrice;
-            int128[2] memory valueFundingFeeEntry;
+            uint128[2] memory entryPrices;
+            int128[2] memory fundingFeeEntryValues;
 
-            _traderVault.subVaults.push(SubVault(positionPerpetuals, entryPrice, valueFundingFeeEntry));
+            _traderVault.subVaults.push(SubVault(positionPerpetuals, entryPrices, fundingFeeEntryValues));
         } else {
             require(_traderVault.subVaults.length > _subVaultIndex, "T3");
         }
@@ -139,21 +152,21 @@ library TraderVaultLib {
         SubVault storage subVault = _traderVault.subVaults[_subVaultIndex];
 
         (uint256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
-            subVault.entryPrice[_productId],
+            subVault.entryPrices[_productId],
             subVault.positionPerpetuals[_productId],
             _tradePrice,
             _positionPerpetual
         );
 
-        subVault.entryPrice[_productId] = newEntryPrice.toUint128();
+        subVault.entryPrices[_productId] = newEntryPrice.toUint128();
         _traderVault.positionUsdc = _traderVault.positionUsdc.add(profitValue).toInt128();
 
         subVault.positionPerpetuals[_productId] = subVault
             .positionPerpetuals[_productId]
             .add(_positionPerpetual)
             .toInt128();
-        subVault.valueFundingFeeEntry[_productId] = subVault
-            .valueFundingFeeEntry[_productId]
+        subVault.fundingFeeEntryValues[_productId] = subVault
+            .fundingFeeEntryValues[_productId]
             .add(_valueFundingFeeEntry)
             .toInt128();
     }
@@ -179,8 +192,8 @@ library TraderVaultLib {
         for (uint256 i = 0; i < _traderVault.subVaults.length; i++) {
             for (uint256 j = 0; j < MAX_PRODUCT_ID; j++) {
                 _traderVault.subVaults[i].positionPerpetuals[j] = 0;
-                _traderVault.subVaults[i].entryPrice[j] = 0;
-                _traderVault.subVaults[i].valueFundingFeeEntry[j] = 0;
+                _traderVault.subVaults[i].entryPrices[j] = 0;
+                _traderVault.subVaults[i].fundingFeeEntryValues[j] = 0;
             }
         }
 
@@ -282,7 +295,7 @@ library TraderVaultLib {
         uint256 _productId,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal pure returns (int256) {
-        int256 pnl = _tradePriceInfo.tradePrices[_productId].sub(_subVault.entryPrice[_productId].toInt256()).mul(
+        int256 pnl = _tradePriceInfo.tradePrices[_productId].sub(_subVault.entryPrices[_productId].toInt256()).mul(
             _subVault.positionPerpetuals[_productId]
         );
 
@@ -323,7 +336,7 @@ library TraderVaultLib {
         uint256 _productId,
         int128[2] memory _amountFundingFeesPerPosition
     ) internal pure returns (int256) {
-        int256 fundingFee = _subVault.valueFundingFeeEntry[_productId].sub(
+        int256 fundingFee = _subVault.fundingFeeEntryValues[_productId].sub(
             _amountFundingFeesPerPosition[_productId].mul(_subVault.positionPerpetuals[_productId])
         );
 
