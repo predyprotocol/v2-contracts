@@ -2,7 +2,7 @@
 pragma solidity =0.7.6;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "../interfaces/IAave.sol";
+import "../external/IAave.sol";
 
 contract MockLendingPool is LendingPool {
     IERC20 public immutable usdc;

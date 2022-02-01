@@ -2,14 +2,12 @@
 pragma solidity =0.7.6;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/ILiquidityPool.sol";
 
 /**
- * @title Liquidity Pool
- * @notice Liquidity Pool Contract
+ * @title Base Liquidity Pool
+ * @notice Base Liquidity Pool Contract
  */
-abstract contract LiquidityPool {
+abstract contract BaseLiquidityPool {
     address public immutable collateral;
     address public immutable underlying;
 

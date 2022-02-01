@@ -2,7 +2,6 @@
 pragma solidity =0.7.6;
 
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "../interfaces/ILiquidityPool.sol";
 
 /**
  * @notice Library contract that has functions to calculate Index price and Greeks of perpetual

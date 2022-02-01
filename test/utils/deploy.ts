@@ -3,7 +3,6 @@ import { ethers } from 'hardhat'
 import {
   PerpetualMarket,
   PerpetualMarketCore,
-  LiquidityPool,
   MockERC20,
   MockWETH,
   MockChainlinkAggregator,

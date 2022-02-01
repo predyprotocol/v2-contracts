@@ -2,7 +2,7 @@
 pragma solidity =0.7.6;
 
 import "./MockERC20.sol";
-import "../interfaces/IWETH.sol";
+import "../external/IWETH.sol";
 
 /**
  * @notice Mock of WETH contract

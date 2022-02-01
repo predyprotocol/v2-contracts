@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IPerpetualMarket.sol";
-import "./LiquidityPool.sol";
+import "./BaseLiquidityPool.sol";
 import "./lib/TraderVaultLib.sol";
 import "./PerpetualMarketCore.sol";
 
@@ -13,7 +13,7 @@ import "./PerpetualMarketCore.sol";
  * @notice Perpetual Market Contract
  * The contract manages LP token, that decimal is 6.
  */
-contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
+contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
     using TraderVaultLib for TraderVaultLib.TraderVault;
 
     uint256 private constant MAX_PRODUCT_ID = 2;
@@ -47,7 +47,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
         PerpetualMarketCore _perpetualMarketCore,
         address _collateral,
         address _underlying
-    ) ERC20("Predy V2 LP Token", "PREDY-V2-LP") LiquidityPool(_collateral, _underlying) {
+    ) ERC20("Predy V2 LP Token", "PREDY-V2-LP") BaseLiquidityPool(_collateral, _underlying) {
         perpetualMarketCore = _perpetualMarketCore;
 
         // The decimals of LP token is 6
