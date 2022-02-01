@@ -11,6 +11,9 @@ library IndexPricer {
     using SignedSafeMath for int256;
 
     /**
+     * @notice Calculate index price of perpetuals
+     * Sqeeth: ETH^2 / 10000
+     * Future: ETH
      * @return calculated index price scaled by 1e8
      */
     function calculateIndexPrice(uint256 _productId, int256 _spot) internal pure returns (int256) {
@@ -24,6 +27,9 @@ library IndexPricer {
     }
 
     /**
+     * @notice Calculate delta of perpetuals
+     * Sqeeth: 2 * ETH / 10000
+     * Future: 1
      * @return calculated delta scaled by 1e8
      */
     function calculateDelta(uint256 _productId, int256 _spot) internal pure returns (int256) {
@@ -37,6 +43,9 @@ library IndexPricer {
     }
 
     /**
+     * @notice Calculate gamma of perpetuals
+     * Sqeeth: 2 / 10000
+     * Future: 0
      * @return calculated gamma scaled by 1e8
      */
     function calculateGamma(uint256 _productId) internal pure returns (int256) {

@@ -41,39 +41,39 @@ describe('TraderVaultLib', function () {
     it('1 long sqeeth', async function () {
       await tester.testUpdateVault(0, SQEETH_PRODUCT_ID, '100000000', '10000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
-      expect(minCollateral).to.be.eq(15000000)
+      expect(minCollateral).to.be.eq(1500000000)
     })
 
     it('1 short sqeeth', async function () {
       await tester.testUpdateVault(0, SQEETH_PRODUCT_ID, '-100000000', '10000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
-      expect(minCollateral).to.be.eq(15000000)
+      expect(minCollateral).to.be.eq(1500000000)
     })
 
     it('1 long future', async function () {
       await tester.testUpdateVault(0, FUTURE_PRODUCT_ID, '100000000', '10000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
-      expect(minCollateral).to.be.eq(75000000)
+      expect(minCollateral).to.be.eq(7500000000)
     })
 
     it('1 short future', async function () {
       await tester.testUpdateVault(0, FUTURE_PRODUCT_ID, '-100000000', '10000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
-      expect(minCollateral).to.be.eq(75000000)
+      expect(minCollateral).to.be.eq(7500000000)
     })
 
     it('1 long sqeeth and 1 short future', async function () {
       await tester.testUpdateVault(0, SQEETH_PRODUCT_ID, '100000000', '10000000000', '0')
       await tester.testUpdateVault(0, FUTURE_PRODUCT_ID, '-100000000', '10000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
-      expect(minCollateral).to.be.eq(60000000)
+      expect(minCollateral).to.be.eq(6000000000)
     })
 
     it('1 short sqeeth and 1 long future', async function () {
       await tester.testUpdateVault(0, SQEETH_PRODUCT_ID, '-100000000', '10000000000', '0')
       await tester.testUpdateVault(0, FUTURE_PRODUCT_ID, '-100000000', '10000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
-      expect(minCollateral).to.be.eq(90000000)
+      expect(minCollateral).to.be.eq(9000000000)
     })
 
     it('1 short sqeeth and 1 long future in different sub-vaults', async function () {
@@ -81,7 +81,7 @@ describe('TraderVaultLib', function () {
       await tester.testUpdateVault(0, FUTURE_PRODUCT_ID, '-50000000', '50000000000', '0')
       await tester.testUpdateVault(1, FUTURE_PRODUCT_ID, '-50000000', '50000000000', '0')
       const minCollateral = await tester.getMinCollateral('100000000000')
-      expect(minCollateral).to.be.eq(90000000)
+      expect(minCollateral).to.be.eq(9000000000)
     })
   })
 
@@ -95,7 +95,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['12100000000', '110000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(positionValue).to.be.eq(21000000)
+        expect(positionValue).to.be.eq(2100000000)
       })
 
       it('1 short sqeeth', async function () {
@@ -106,7 +106,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['12100000000', '110000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(positionValue).to.be.eq(-21000000)
+        expect(positionValue).to.be.eq(-2100000000)
       })
 
       it('1 long future', async function () {
@@ -117,7 +117,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['12100000000', '110000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(positionValue).to.be.eq(100000000)
+        expect(positionValue).to.be.eq(10000000000)
       })
 
       it('1 short future', async function () {
@@ -128,7 +128,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['12100000000', '110000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(positionValue).to.be.eq(-100000000)
+        expect(positionValue).to.be.eq(-10000000000)
       })
 
       it('1 long sqeeth and 0.2 short future', async function () {
@@ -140,7 +140,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['12100000000', '110000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(positionValue).to.be.eq(1000000)
+        expect(positionValue).to.be.eq(100000000)
       })
 
       it('1 short sqeeth and 1 long future', async function () {
@@ -152,7 +152,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['12100000000', '110000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(positionValue).to.be.eq(79000000)
+        expect(positionValue).to.be.eq(7900000000)
       })
 
       it('1 short sqeeth and 1 long future in different sub-vaults', async function () {
@@ -165,7 +165,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['12100000000', '110000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(positionValue).to.be.eq(79000000)
+        expect(positionValue).to.be.eq(7900000000)
       })
     })
 
@@ -178,7 +178,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['10000000000', '100000000000'],
           amountFundingFeesPerPosition: [1000000, 0],
         })
-        expect(positionValue).to.be.eq(-10000)
+        expect(positionValue).to.be.eq(-1000000)
       })
 
       it('1 short sqeeth and positive funding fee', async function () {
@@ -189,7 +189,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['10000000000', '100000000000'],
           amountFundingFeesPerPosition: [1000000, 0],
         })
-        expect(positionValue).to.be.eq(10000)
+        expect(positionValue).to.be.eq(1000000)
       })
 
       it('1 long future and positive funding fee', async function () {
@@ -200,7 +200,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['10000000000', '100000000000'],
           amountFundingFeesPerPosition: [0, 1000000],
         })
-        expect(positionValue).to.be.eq(-10000)
+        expect(positionValue).to.be.eq(-1000000)
       })
 
       it('1 short future and positive funding fee', async function () {
@@ -211,7 +211,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['10000000000', '100000000000'],
           amountFundingFeesPerPosition: [0, 1000000],
         })
-        expect(positionValue).to.be.eq(10000)
+        expect(positionValue).to.be.eq(1000000)
       })
 
       it('1 long future and negative funding fee', async function () {
@@ -222,7 +222,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['10000000000', '100000000000'],
           amountFundingFeesPerPosition: [0, -1000000],
         })
-        expect(positionValue).to.be.eq(10000)
+        expect(positionValue).to.be.eq(1000000)
       })
 
       it('1 short future and negative funding fee', async function () {
@@ -233,7 +233,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['10000000000', '100000000000'],
           amountFundingFeesPerPosition: [0, -1000000],
         })
-        expect(positionValue).to.be.eq(-10000)
+        expect(positionValue).to.be.eq(-1000000)
       })
     })
   })
@@ -250,7 +250,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['10000000000', '100000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(usdcAmount).to.be.eq(15000000)
+        expect(usdcAmount).to.be.eq(1500000000)
       })
 
       it('there is excess collateral', async function () {
@@ -265,7 +265,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['12100000000', '110000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(usdcAmount2).to.be.eq(-17850000)
+        expect(usdcAmount2).to.be.eq(-1785000000)
       })
     })
 
@@ -281,7 +281,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['10000000000', '100000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(usdcAmount).to.be.eq(15000000)
+        expect(usdcAmount).to.be.eq(1500000000)
       })
 
       it('there is excess collateral', async function () {
@@ -296,7 +296,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['12100000000', '110000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect(usdcAmount2).to.be.eq(-17850000)
+        expect(usdcAmount2).to.be.eq(-1785000000)
       })
     })
   })
@@ -322,7 +322,7 @@ describe('TraderVaultLib', function () {
           }),
         ).to.be.revertedWith('T1')
 
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(15000000)
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(1500000000)
       })
 
       it('liquidate a vault', async function () {
@@ -331,7 +331,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['9025000000', '95000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(12375000)
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(1237500000)
       })
 
       it('vault is insolvency', async function () {
@@ -341,7 +341,7 @@ describe('TraderVaultLib', function () {
           amountFundingFeesPerPosition: [0, 0],
         })
         const traderVault = await tester.traderVault()
-        expect(traderVault.positionUsdc).to.be.eq(15000000)
+        expect(traderVault.positionUsdc).to.be.eq(1500000000)
         expect(traderVault.isInsolvent).to.be.eq(true)
       })
 
@@ -351,7 +351,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['10000000000', '100000000000'],
           amountFundingFeesPerPosition: [100, 100],
         })
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(7500001)
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(750000050)
       })
     })
 
@@ -377,7 +377,7 @@ describe('TraderVaultLib', function () {
           }),
         ).to.be.revertedWith('T1')
 
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(15000000)
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(1500000000)
       })
 
       it('liquidate a vault', async function () {
@@ -386,7 +386,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['9025000000', '95000000000'],
           amountFundingFeesPerPosition: [0, 0],
         })
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(12375000)
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(1237500000)
       })
 
       it('vault is insolvency', async function () {
@@ -396,7 +396,7 @@ describe('TraderVaultLib', function () {
           amountFundingFeesPerPosition: [0, 0],
         })
         const traderVault = await tester.traderVault()
-        expect(traderVault.positionUsdc).to.be.eq(15000000)
+        expect(traderVault.positionUsdc).to.be.eq(1500000000)
         expect(traderVault.isInsolvent).to.be.eq(true)
       })
 
@@ -406,7 +406,7 @@ describe('TraderVaultLib', function () {
           tradePrices: ['10000000000', '100000000000'],
           amountFundingFeesPerPosition: [1000, 1000],
         })
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(7500005)
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(750000500)
       })
     })
   })
