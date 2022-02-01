@@ -138,7 +138,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     /**
-     * @notice provide liquidity
+     * @notice Provides liquidity
      */
     function deposit(uint128 _depositAmount) external onlyPerpetualMarket returns (uint256 mintAmount) {
         require(supply > 0);
@@ -150,7 +150,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     /**
-     * @notice withdraw liquidity
+     * @notice Withdraws liquidity
      */
     function withdraw(uint128 _withdrawnAmount) external onlyPerpetualMarket returns (uint256 burnAmount) {
         require(
@@ -169,7 +169,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     /**
-     * @notice add or remove positions
+     * @notice Adds or removes positions
      * @param _productId product id
      * @param _tradeAmount amount of position to trade. positive for pool short and negative for pool long.
      */
@@ -234,7 +234,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     /**
-     * @notice get USDC and underlying amount to make the pool delta neutral
+     * @notice Gets USDC and underlying amount to make the pool delta neutral
      */
     function getTokenAmountForHedging() external view returns (NettingLib.CompleteParams memory completeParams) {
         (int256 spotPrice, ) = getUnderlyingPrice();
@@ -286,7 +286,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     /**
-     * @notice update pool snapshot
+     * @notice Updates pool snapshot
      * Calculates ETH variance and base funding rate for future pool.
      */
     function updatePoolSnapshot() external onlyPerpetualMarket {
@@ -326,7 +326,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     /////////////////////////
 
     /**
-     * @notice get LP token price
+     * @notice Gets LP token price
      * LPTokenPrice = (UnrealizedPnL_sqeeth + UnrealizedPnL_future + L - lockedLiquidity_sqeeth - lockedLiquidity_future) / Supply
      * @return LPTokenPrice scaled by 1e8
      */
@@ -350,7 +350,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     /**
-     * @notice get trade price
+     * @notice Gets trade price
      * @param _productId product id
      * @param _tradeAmount amount of position to trade. positive for pool short and negative for pool long.
      */
@@ -361,7 +361,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     /**
-     * @notice get utilization ratio
+     * @notice Gets utilization ratio
      * Utilization Ratio = (ΣamountLocked) / L
      * @return Utilization Ratio scaled by 1e8
      */

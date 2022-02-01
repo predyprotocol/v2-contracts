@@ -45,7 +45,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get amount of deposit required to add amount of Squees/Future
+     * @notice Gets amount of deposit required to add amount of Squees/Future
      * @param _traderVault trader vault object
      * @param _ratio target MinCollateral / PositionValue ratio.
      * @return amount positive means required more collateral and negative means excess collateral.
@@ -66,7 +66,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice update USDC position
+     * @notice Updates USDC position
      * @param _traderVault trader vault object
      * @param _usdcPosition amount to add. if positive then increase amount, if negative then decrease amount.
      */
@@ -75,7 +75,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get total position of perpetuals in the vault
+     * @notice Gets total position of perpetuals in the vault
      * @param _traderVault trader vault object
      * @return positionPerpetuals are total amount of perpetual scaled by 1e8
      */
@@ -90,7 +90,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get position of a perpetual in the vault
+     * @notice Gets position of a perpetual in the vault
      * @param _traderVault trader vault object
      * @param _productId product id
      * @return positionPerpetual is amount of perpetual scaled by 1e8
@@ -108,7 +108,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice update positions in the vault
+     * @notice Updates positions in the vault
      * @param _traderVault trader vault object
      * @param _subVaultIndex index of sub-vault
      * @param _productId product id
@@ -159,7 +159,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice liquidate the vault whose PositionValue is less than MinCollateral
+     * @notice Liquidates the vault whose PositionValue is less than MinCollateral
      * @param _traderVault trader vault object
      */
     function liquidate(TraderVault storage _traderVault, IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
@@ -194,7 +194,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get min collateral of the vault
+     * @notice Gets min collateral of the vault
      * MinCollateral = 0.075 * S * (|2*S*a_{sqeeth}+a_{future}| + 0.15*S*|a_{sqeeth}|)
      * @param _traderVault trader vault object
      * @param _spotPrice spot price
@@ -213,7 +213,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get position value in the vault
+     * @notice Gets position value in the vault
      * PositionValue = USDC + Σ(ValueOfSubVault_i)
      * @param _traderVault trader vault object
      * @param _tradePriceInfo trade price info
@@ -270,7 +270,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get perpetual value in the sub-vault
+     * @notice Gets perpetual value in the sub-vault
      * PerpetualValue = Price_{i} * a_{i} - entry_{i}
      * @param _subVault sub-vault object
      * @param _productId product id
@@ -290,7 +290,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get total funding fee in the sub-vault
+     * @notice Gets total funding fee in the sub-vault
      * TotalFundingFee = Σ(FundingEntry_i - a_i*cumFundingGlobal_i)
      * @param _subVault sub-vault object
      * @param _amountFundingFeesPerPosition cumulative funding fee per position
@@ -311,7 +311,7 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice get funding fee in the sub-vault
+     * @notice Gets funding fee in the sub-vault
      * FundingFee = FundingEntry_i - a_i*cumFundingGlobal_i
      * @param _subVault sub-vault object
      * @param _productId product id

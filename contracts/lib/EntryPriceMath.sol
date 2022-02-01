@@ -12,7 +12,7 @@ library EntryPriceMath {
     using SignedSafeMath for int256;
 
     /**
-     * @notice calculate new entry price
+     * @notice Calculates new entry price and return profit if position is closed
      * @param _entryPrice previous entry price
      * @param _position current position
      * @param _tradePrice trade price

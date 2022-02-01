@@ -35,7 +35,7 @@ library SpreadLib {
     }
 
     /**
-     * @notice check and update price to guarantee that
+     * @notice Checks and updates price to guarantee that
      * max(bit) ≤ min(ask) from some point t to t-Safety Period.
      * @param _isLong trade is long or short
      * @param _price trade price

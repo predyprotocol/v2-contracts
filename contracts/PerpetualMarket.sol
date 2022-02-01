@@ -41,7 +41,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     event Hedged(address hedger, uint256 usdcAmount, uint256 underlyingAmount, int256[2] deltas);
 
     /**
-     * @notice initialize Perpetual Market
+     * @notice Constructor of Perpetual Market contract
      */
     constructor(
         PerpetualMarketCore _perpetualMarketCore,
@@ -55,7 +55,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     }
 
     /**
-     * @notice initialize Perpetual Pool
+     * @notice Initializes Perpetual Pool
      * @param _depositAmount deposit amount
      * @param _initialFundingRate initial funding rate
      */
@@ -168,7 +168,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     }
 
     /**
-     * @notice Open new long position of the perpetual contract
+     * @notice Opens new long position of the perpetual contract
      */
     function openLongPosition(SingleTradeParams memory _tradeParams) external override {
         int128[2] memory tradeAmounts;
@@ -190,7 +190,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     }
 
     /**
-     * @notice Open new short position of the perpetual contract
+     * @notice Opens new short position of the perpetual contract
      */
     function openShortPosition(SingleTradeParams memory _tradeParams) external override {
         int128[2] memory tradeAmounts;
@@ -212,7 +212,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     }
 
     /**
-     * @notice Liquidate a vault by Pool
+     * @notice Liquidates a vault by Pool
      * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
      */
@@ -241,8 +241,8 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     }
 
     /**
-     * @notice get token amount for hedging
-     * @return amount USDC and amount underlying
+     * @notice Gets token amount for hedging
+     * @return Amount of USDC and underlying reqired for hedging
      */
     function getTokenAmountForHedging()
         external
@@ -259,7 +259,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     }
 
     /**
-     * @notice execute hedging
+     * @notice Executes hedging
      */
     function execHedge() external override {
         /// Update variance before hedging
@@ -281,7 +281,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, LiquidityPool {
     }
 
     /**
-     * @notice compare trade price and limit price
+     * @notice Compares trade price and limit price
      * For long, if trade price is less than limit price then return true.
      * For short, if trade price is greater than limit price then return true.
      * if limit price is 0 then always return true.
