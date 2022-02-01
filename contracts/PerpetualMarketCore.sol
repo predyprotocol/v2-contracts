@@ -143,7 +143,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     function deposit(uint128 _depositAmount) external onlyPerpetualMarket returns (uint256 mintAmount) {
         require(supply > 0);
 
-        mintAmount = _depositAmount.mul(1e6).div(getLPTokenPrice(_depositAmount.toInt256()));
+        mintAmount = _depositAmount.mul(1e8).div(getLPTokenPrice(_depositAmount.toInt256()));
 
         amountLiquidity = amountLiquidity.add(_depositAmount);
         supply = supply.add(mintAmount);
@@ -158,7 +158,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             "PMC0"
         );
 
-        burnAmount = _withdrawnAmount.mul(1e6).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
+        burnAmount = _withdrawnAmount.mul(1e8).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
 
         amountLiquidity = amountLiquidity.sub(_withdrawnAmount);
         supply = supply.sub(burnAmount);
@@ -226,6 +226,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             );
 
             pools[_productId].entryPrice = newEntryPrice.toUint128();
+
             amountLiquidity = Math.addDelta(amountLiquidity, profitValue / 1e2);
         }
 
@@ -327,7 +328,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     /**
      * @notice get LP token price
      * LPTokenPrice = (UnrealizedPnL_sqeeth + UnrealizedPnL_future + L - lockedLiquidity_sqeeth - lockedLiquidity_future) / Supply
-     * @return LPTokenPrice scaled by 1e6
+     * @return LPTokenPrice scaled by 1e8
      */
     function getLPTokenPrice(int256 _deltaLiquidityAmount) public view returns (uint256) {
         (int256 spotPrice, ) = getUnderlyingPrice();
@@ -344,7 +345,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
                     uint256(amountLiquidity.toInt256().add(unrealizedPnL)).sub(pools[0].amountLockedLiquidity).sub(
                         pools[1].amountLockedLiquidity
                     )
-                ).mul(1e6)
+                ).mul(1e8)
             ).div(supply);
     }
 
@@ -355,8 +356,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      */
     function getTradePrice(uint256 _productId, int128 _tradeAmount) external view returns (int256) {
         (int256 spotPrice, ) = getUnderlyingPrice();
-
-        int256 deltaM = getReqiredCollateral(_productId, spotPrice, _tradeAmount);
 
         return calculateTradePriceReadOnly(_productId, spotPrice, _tradeAmount, 0);
     }

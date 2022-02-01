@@ -36,23 +36,23 @@ export class TestContractHelper {
     await this.updateRoundData(0, spot)
   }
 
-  async openLong(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish) {
+  async openLong(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, collateralRatio?: BigNumberish) {
     await this.testContractSet.perpetualMarket.connect(wallet).openPositions({
       vaultId,
       subVaultIndex: 0,
       tradeAmounts: [tradeAmount, 0],
-      collateralRatio: scaledBN(1, 8),
+      collateralRatio: collateralRatio || scaledBN(1, 8),
       limitPrices: [0, 0],
       deadline: 0,
     })
   }
 
-  async openShort(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish) {
+  async openShort(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, collateralRatio?: BigNumberish) {
     await this.testContractSet.perpetualMarket.connect(wallet).openPositions({
       vaultId,
       subVaultIndex: 0,
       tradeAmounts: [BigNumber.from(tradeAmount).mul(-1), 0],
-      collateralRatio: scaledBN(1, 8),
+      collateralRatio: collateralRatio || scaledBN(1, 8),
       limitPrices: [0, 0],
       deadline: 0,
     })
@@ -61,11 +61,15 @@ export class TestContractHelper {
   async getWithdrawalAmount(burnAmount: BigNumber, _withdrawnAmount: BigNumberish): Promise<BigNumber> {
     const withdrawnAmount = BigNumber.from(_withdrawnAmount)
 
-    console.log('withdrawnAmount', withdrawnAmount.toString())
-
     const lpTokenPrice = await this.testContractSet.perpetualMarket.getLPTokenPrice(withdrawnAmount.mul(-1))
 
-    const nextWithdrawnAmount = lpTokenPrice.mul(burnAmount).div(scaledBN(1, 6))
+    const nextWithdrawnAmount = lpTokenPrice.mul(burnAmount).div(scaledBN(1, 8))
+
+    console.log('===')
+    console.log('lpTokenPrice', lpTokenPrice.toString())
+    console.log('withdrawnAmount', withdrawnAmount.toString())
+    console.log('nextWithdrawnAmount', nextWithdrawnAmount.toString())
+    console.log('===')
 
     if (withdrawnAmount.eq(nextWithdrawnAmount)) {
       return withdrawnAmount
