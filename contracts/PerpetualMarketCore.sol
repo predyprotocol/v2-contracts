@@ -327,7 +327,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     /**
      * @notice Gets LP token price
-     * LPTokenPrice = (UnrealizedPnL_sqeeth + UnrealizedPnL_future + L - lockedLiquidity_sqeeth - lockedLiquidity_future) / Supply
+     * LPTokenPrice = (L + ΣUnrealizedPnL_i - ΣAmountLockedLiquidity_i) / Supply
      * @return LPTokenPrice scaled by 1e8
      */
     function getLPTokenPrice(int256 _deltaLiquidityAmount) public view returns (uint256) {
@@ -362,7 +362,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     /**
      * @notice Gets utilization ratio
-     * Utilization Ratio = (ΣamountLocked) / L
+     * Utilization Ratio = (ΣAmountLockedLiquidity_i) / L
      * @return Utilization Ratio scaled by 1e8
      */
     function getUtilizationRatio() external view returns (uint256) {
@@ -537,7 +537,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     /**
      * @notice Calculates perpetual's trade price
-     * TradePrice = IndexPrice * (1 + FundingRate)
+     * TradePrice = IndexPrice * (1 + FundingRate) + TradeFee
      * @return TradePrice scaled by 1e8
      */
     function calculateTradePriceWithFundingRate(
@@ -560,6 +560,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     /**
      * @notice apply trade fee to trade price
+     * TradeFee = IndxPrice * TRADE_FEE
      */
     function getTradeFee(bool _isLong, int256 _indexPrice) internal pure returns (int256) {
         require(_indexPrice > 0);
@@ -583,7 +584,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     /**
      * @notice Calculates Unrealized PnL
-     * UnrealizedPnL = valueEntry - TradePrice * positionPerpetuals + HedgePositionValue
+     * UnrealizedPnL = (TradePrice - EntryPrice) * Position_i + HedgePositionValue
      * TradePrice is calculated as fill price of closing all pool positions.
      * @return UnrealizedPnL scaled by 1e8
      */
