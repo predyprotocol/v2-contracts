@@ -21,6 +21,7 @@ import "hardhat/console.sol";
  * PMC1: No available liquidity
  * PMC2: caller must be PerpetualMarket contract
  * PMC3: underlying price must not be 0
+ * PMC4: pool delta must be negative
  */
 contract PerpetualMarketCore is IPerpetualMarketCore {
     using NettingLib for NettingLib.Info;
@@ -47,8 +48,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     // funding period is 1 days
     int128 private constant FUNDING_PERIOD = 1 days;
 
-    // max drawdown of hedging is 0.7%
-    uint128 private constant MAX_DRAWDOWN = 70;
+    // min slippage tolerance of a hedge is 0.4%
+    uint256 private constant MIN_SLIPPAGE_TOLERANCE = 40;
+
+    // max slippage tolerance of a hedge is 0.8%
+    uint256 private constant MAX_SLIPPAGE_TOLERANCE = 80;
+
+    // rate of return threshold of a hedge is 2.5 %
+    uint256 private constant HEDGE_RATE_OF_RETURN_THRESHOLD = 25 * 1e5;
 
     // trade fee is 0.1%
     int256 private constant TRADE_FEE = 10 * 1e4;
@@ -89,8 +96,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     // The address of Chainlink price feed
     AggregatorV3Interface private priceFeed;
 
-    // The last timestamp of hedging
-    uint128 public lastHedgeTime;
+    // The last spot price at heding
+    int256 public lastHedgeSpotPrice;
 
     // The address of Perpetual Market Contract
     address private perpetualMarket;
@@ -117,7 +124,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     /**
-     * @notice initialize pool with initial liquidity and funding rate
+     * @notice Initialize pool with initial liquidity and funding rate
      */
     function initialize(uint128 _depositAmount, int128 _initialFundingRate)
         external
@@ -129,9 +136,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
         (int256 spotPrice, ) = getUnderlyingPrice();
 
+        // initialize pool snapshot
         poolSnapshot.ethVariance = _initialFundingRate;
         poolSnapshot.ethPrice = spotPrice.toInt128();
         poolSnapshot.lastSnapshotTime = block.timestamp.toUint128();
+
+        // initialize last spot price at heding
+        lastHedgeSpotPrice = spotPrice;
 
         amountLiquidity = amountLiquidity.add(_depositAmount);
         supply = supply.add(mintAmount);
@@ -245,43 +256,41 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             pools[1].positionPerpetuals
         );
 
+        require(sqeethPoolDelta.add(futurePoolDelta) <= 0, "PMC4");
+
         completeParams.deltas[0] = sqeethPoolDelta;
         completeParams.deltas[1] = futurePoolDelta;
 
-        {
-            // 1. Calculate net delta
-            int256 netDelta = sqeethPoolDelta.add(futurePoolDelta).add(nettingInfo.getTotalUnderlyingPosition());
+        // 1. Calculate net delta
+        int256 netDelta = sqeethPoolDelta.add(futurePoolDelta).add(nettingInfo.getTotalUnderlyingPosition());
 
-            completeParams.isLong = netDelta < 0;
+        completeParams.isLong = netDelta < 0;
 
-            // 2. Calculate USDC and ETH amounts.
-            completeParams.amountUnderlying = Math.abs(netDelta);
-            completeParams.amountUsdc = (Math.abs(netDelta).mul(uint128(spotPrice))) / 1e8;
-        }
+        // 2. Calculate USDC and ETH amounts.
+        completeParams.amountUnderlying = Math.abs(netDelta);
+        completeParams.amountUsdc = (Math.abs(netDelta).mul(uint128(spotPrice))) / 1e8;
 
-        {
-            uint128 c;
-            if (block.timestamp >= lastHedgeTime + 12 hours) {
-                c = (uint128(block.timestamp) - lastHedgeTime - 12 hours) / 20 minutes;
-                if (c > MAX_DRAWDOWN) c = MAX_DRAWDOWN;
-            }
-            if (completeParams.isLong) {
-                completeParams.amountUsdc = (completeParams.amountUsdc * (10000 + c)) / 10000;
-            } else {
-                completeParams.amountUsdc = (completeParams.amountUsdc * (10000 - c)) / 10000;
-            }
+        uint256 slippageTolerance = calculateSlippageToleranceForHedging(spotPrice);
+
+        if (completeParams.isLong) {
+            completeParams.amountUsdc = (completeParams.amountUsdc.mul(uint256(10000).add(slippageTolerance))).div(
+                10000
+            );
+        } else {
+            completeParams.amountUsdc = (completeParams.amountUsdc.mul(uint256(10000).sub(slippageTolerance))).div(
+                10000
+            );
         }
     }
 
     /**
-     * @notice Calculates USDC amount and underlying amount for delta neutral
-     * and store valueEntry price in netting info
+     * @notice Update netting info to complete heging procedure
      */
-    function calculateEntryPriceForHedging(NettingLib.CompleteParams memory _completeParams)
-        external
-        onlyPerpetualMarket
-    {
-        // Complete hedges for each pool
+    function completeHedgingProcedure(NettingLib.CompleteParams memory _completeParams) external onlyPerpetualMarket {
+        (int256 spotPrice, ) = getUnderlyingPrice();
+
+        lastHedgeSpotPrice = spotPrice;
+
         nettingInfo.complete(_completeParams);
     }
 
@@ -684,6 +693,20 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         } else {
             return (_m.add(_deltaM / 2)).mul(Math.logTaylor(_l.add(_deltaL)).sub(Math.logTaylor(_l))).div(_deltaL);
         }
+    }
+
+    /**
+     * @notice Calculates the slippage tolerance of USDC amount for a hedge
+     */
+    function calculateSlippageToleranceForHedging(int256 _spotPrice) internal view returns (uint256 slippageTolerance) {
+        uint256 rateOfReturn = Math.abs(_spotPrice.sub(lastHedgeSpotPrice).mul(1e8).div(lastHedgeSpotPrice));
+
+        slippageTolerance = MIN_SLIPPAGE_TOLERANCE.add(
+            (MAX_SLIPPAGE_TOLERANCE - MIN_SLIPPAGE_TOLERANCE).mul(rateOfReturn).div(HEDGE_RATE_OF_RETURN_THRESHOLD)
+        );
+
+        if (slippageTolerance < MIN_SLIPPAGE_TOLERANCE) slippageTolerance = MIN_SLIPPAGE_TOLERANCE;
+        if (slippageTolerance > MAX_SLIPPAGE_TOLERANCE) slippageTolerance = MAX_SLIPPAGE_TOLERANCE;
     }
 
     /**

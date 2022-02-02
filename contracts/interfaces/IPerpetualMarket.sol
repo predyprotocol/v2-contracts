@@ -46,7 +46,16 @@ interface IPerpetualMarket {
 
     function liquidateByPool(address _vaultOwner, uint256 _vaultId) external;
 
-    function execHedge() external;
+    function getTokenAmountForHedging()
+        external
+        view
+        returns (
+            bool,
+            uint256,
+            uint256
+        );
+
+    function execHedge() external returns (uint256 amountUsdc, uint256 amountUnderlying);
 
     function getLPTokenPrice(int256 _deltaLiquidityAmount) external view returns (uint256);
 
