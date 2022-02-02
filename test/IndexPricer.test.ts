@@ -1,17 +1,11 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { PricerTester } from '../typechain'
-import { BigNumber, Wallet } from 'ethers'
 import { scaledBN } from './utils/helpers'
 import { FUTURE_PRODUCT_ID, SQEETH_PRODUCT_ID } from './utils/constants'
 
-describe('PricerTester', function () {
-  let wallet: Wallet, other: Wallet
+describe('IndexPricer', function () {
   let tester: PricerTester
-
-  before(async () => {
-    ;[wallet, other] = await (ethers as any).getSigners()
-  })
 
   beforeEach(async () => {
     const PricerTester = await ethers.getContractFactory('PricerTester')

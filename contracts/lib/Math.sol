@@ -27,6 +27,20 @@ library Math {
         return int128(a > b ? b : a);
     }
 
+    function scale(
+        uint256 _a,
+        uint256 _from,
+        uint256 _to
+    ) internal pure returns (uint256) {
+        if (_from > _to) {
+            return _a / 10**(_from - _to);
+        } else if (_from < _to) {
+            return _a * 10**(_to - _from);
+        } else {
+            return _a;
+        }
+    }
+
     /**
      * @dev Returns log(x) for any positive x.
      */
