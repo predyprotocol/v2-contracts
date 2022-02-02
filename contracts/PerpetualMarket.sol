@@ -323,9 +323,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
      * @notice Gets trade price
      * @param _productId product id
      * @param _tradeAmount amount of position to trade. positive to get long price and negative to get short price.
-     * @return trade price and protocol fee scaled by 1e8
+     * @return trade price and funding rate scaled by 1e8
      */
-    function getTradePrice(uint256 _productId, int128 _tradeAmount) external view override returns (int256) {
+    function getTradePrice(uint256 _productId, int128 _tradeAmount) external view override returns (int256, int256) {
         return perpetualMarketCore.getTradePrice(_productId, _tradeAmount);
     }
 

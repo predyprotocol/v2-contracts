@@ -372,7 +372,7 @@ describe('PerpetualMarket', function () {
 
       const after = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)
 
-      expect(after).to.be.gt(before)
+      expect(after[0]).to.be.gt(before[0])
     })
 
     it('reverts by deadline', async () => {
@@ -1098,7 +1098,7 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
 
-        const beforeAskPrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)
+        const beforeTradePrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)
 
         const before = await weth.balanceOf(wallet.address)
         await perpetualMarket.execHedge()
@@ -1106,7 +1106,7 @@ describe('PerpetualMarket', function () {
 
         expect(after.sub(before)).to.be.gt(0)
 
-        expect(await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)).to.be.gt(beforeAskPrice)
+        expect((await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000))[0]).to.be.gt(beforeTradePrice[0])
       })
     })
   })
