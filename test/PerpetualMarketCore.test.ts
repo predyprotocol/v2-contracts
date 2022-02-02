@@ -1,16 +1,10 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { MockChainlinkAggregator, PerpetualMarketCore } from '../typechain'
-import { BigNumber, BigNumberish, Wallet } from 'ethers'
+import { BigNumberish, Wallet } from 'ethers'
 import { restoreSnapshot, takeSnapshot } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
-import {
-  FUTURE_PRODUCT_ID,
-  HEDGE_TIME_THRESHOLD,
-  SAFETY_PERIOD,
-  SQEETH_PRODUCT_ID,
-  VARIANCE_UPDATE_INTERVAL,
-} from './utils/constants'
+import { FUTURE_PRODUCT_ID, SAFETY_PERIOD, SQEETH_PRODUCT_ID, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
 
 describe('PerpetualMarketCore', function () {
   let wallet: Wallet, other: Wallet
@@ -83,8 +77,8 @@ describe('PerpetualMarketCore', function () {
 
       await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1999766)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1999806)
     })
 
     it('deposits after pool gets profit', async () => {
@@ -94,8 +88,8 @@ describe('PerpetualMarketCore', function () {
 
       await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1998765)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1998805)
     })
 
     it('deposits after pool gets loss', async () => {
@@ -106,8 +100,8 @@ describe('PerpetualMarketCore', function () {
 
       await perpetualMarketCore.deposit(1000000)
 
-      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(2000771)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
+      expect(await perpetualMarketCore.supply()).to.be.eq(2000811)
     })
   })
 
@@ -147,8 +141,8 @@ describe('PerpetualMarketCore', function () {
 
       await perpetualMarketCore.withdraw(500000)
 
-      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(500000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(500618)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
+      expect(await perpetualMarketCore.supply()).to.be.eq(500598)
     })
 
     it('withdraws after the pool gets loss', async () => {
@@ -159,8 +153,8 @@ describe('PerpetualMarketCore', function () {
 
       await perpetualMarketCore.withdraw(500000)
 
-      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(500000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(499615)
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
+      expect(await perpetualMarketCore.supply()).to.be.eq(499595)
     })
   })
 
@@ -226,7 +220,7 @@ describe('PerpetualMarketCore', function () {
         await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 2000000)
 
         const utilizationRatio = await perpetualMarketCore.getUtilizationRatio()
-        expect(utilizationRatio).to.be.eq(78400000)
+        expect(utilizationRatio).to.be.eq(78406272)
       })
     })
   })

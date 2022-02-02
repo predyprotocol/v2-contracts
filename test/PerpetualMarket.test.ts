@@ -28,8 +28,7 @@ describe('PerpetualMarket', function () {
 
   let perpetualMarket: PerpetualMarket
 
-  const MaxInt128 = BigNumber.from(2).pow(127).sub(1)
-  const MinInt128 = BigNumber.from(2).pow(127).sub(1).mul(-1)
+  const MaxUint256 = ethers.constants.MaxUint256
 
   before(async () => {
     ;[wallet, other] = await (ethers as any).getSigners()
@@ -45,18 +44,13 @@ describe('PerpetualMarket', function () {
   beforeEach(async () => {
     snapshotId = await takeSnapshot()
 
-    // mint 2^127 - 1 ETH
-    const testAmount = MaxInt128
-    await weth.mint(wallet.address, testAmount)
-
-    // mint 2^127 - 1 USDC
-    const testUsdcAmount = MaxInt128
-    await usdc.mint(wallet.address, testUsdcAmount)
-    await usdc.mint(other.address, testUsdcAmount)
+    await weth.mint(wallet.address, MaxUint256)
+    await usdc.mint(wallet.address, MaxUint256.div(2))
+    await usdc.mint(other.address, MaxUint256.div(2))
 
     // approve
-    await weth.approve(perpetualMarket.address, MaxInt128)
-    await usdc.approve(perpetualMarket.address, MaxInt128)
+    await weth.approve(perpetualMarket.address, MaxUint256)
+    await usdc.approve(perpetualMarket.address, MaxUint256)
 
     // spot price is $1,000
     await testContractHelper.updateSpot(scaledBN(1000, 8))
@@ -458,6 +452,9 @@ describe('PerpetualMarket', function () {
         )
           .to.emit(perpetualMarket, 'PositionUpdated')
           .withArgs(wallet.address, vaultId, SQEETH_PRODUCT_ID, scaledBN(1, 6), 100300009, 0)
+
+        // Check fee pool received protocol fee
+        expect(await usdc.balanceOf(testContractSet.feePool.address)).to.be.gt(0)
       })
 
       it('close position', async () => {
@@ -672,7 +669,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-2021')
+        expect(after.sub(before)).to.be.eq('-2020')
       })
 
       it('close Sqeeth', async () => {
@@ -697,7 +694,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-77021')
+        expect(after.sub(before)).to.be.eq('-77020')
       })
 
       it('close Future', async () => {

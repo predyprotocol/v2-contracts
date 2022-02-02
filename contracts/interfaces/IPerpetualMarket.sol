@@ -59,7 +59,15 @@ interface IPerpetualMarket {
 
     function getLPTokenPrice(int256 _deltaLiquidityAmount) external view returns (uint256);
 
-    function getTradePrice(uint256 _productId, int128 _tradeAmount) external view returns (int256, int256);
+    function getTradePrice(uint256 _productId, int128 _tradeAmount)
+        external
+        view
+        returns (
+            int256,
+            int256,
+            int256,
+            int256
+        );
 
     function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view returns (VaultStatus memory);
 }

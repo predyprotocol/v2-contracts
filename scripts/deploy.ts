@@ -14,6 +14,7 @@ async function main() {
   let aggregatorAddress
   let wethAddress
   let usdcAddress
+  let feePoolAddress
 
   console.log(network.name)
 
@@ -36,9 +37,10 @@ async function main() {
     aggregatorAddress = '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419'
     wethAddress = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
     usdcAddress = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+    feePoolAddress = '0x66fBaAd82083716343B9413CAeB77aA13a8053a4'
   }
 
-  if (usdcAddress === undefined || wethAddress === undefined || aggregatorAddress === undefined) {
+  if (usdcAddress === undefined || wethAddress === undefined || aggregatorAddress === undefined || feePoolAddress === undefined) {
     return
   }
 
@@ -52,7 +54,8 @@ async function main() {
   const perpetualMarket = await PerpetualMarket.deploy(
     perpetualMarketCore.address,
     usdcAddress,
-    wethAddress
+    wethAddress,
+    feePoolAddress
   )
   await perpetualMarket.deployed();
   console.log(`PerpetualMarket deployed to ${perpetualMarket.address}`)

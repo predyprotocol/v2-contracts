@@ -109,7 +109,7 @@ describe('PerpetualMarket', function () {
 
         expect(withdrawnAmount).to.gt(scaledBN(5000, 6))
 
-        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(160)
+        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(141)
         expect(await perpetualMarket.balanceOf(wallet.address)).to.eq(0)
       })
     })
