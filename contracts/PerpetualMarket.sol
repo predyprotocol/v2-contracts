@@ -256,7 +256,11 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
     {
         NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
 
-        return (completeParams.isLong, completeParams.amountUsdc / 1e2, completeParams.amountUnderlying * 1e10);
+        return (
+            completeParams.isLong,
+            completeParams.amountUsdc / 1e2,
+            Math.scale(completeParams.amountUnderlying, 8, ERC20(underlying).decimals())
+        );
     }
 
     /**
@@ -271,7 +275,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
         perpetualMarketCore.completeHedgingProcedure(completeParams);
 
         amountUsdc = completeParams.amountUsdc / 1e2;
-        amountUnderlying = completeParams.amountUnderlying * 1e10;
+        amountUnderlying = Math.scale(completeParams.amountUnderlying, 8, ERC20(underlying).decimals());
 
         if (completeParams.isLong) {
             ERC20(underlying).transferFrom(msg.sender, address(this), amountUnderlying);
