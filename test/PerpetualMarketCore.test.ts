@@ -245,7 +245,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.updatePoolSnapshot()
       const afterTradePrice = await perpetualMarketCore.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 6))
 
-      expect(beforeTradePrice).to.be.eq(afterTradePrice)
+      expect(beforeTradePrice[0]).to.be.eq(afterTradePrice[0])
     })
 
     it('variance becomes low', async () => {
@@ -258,7 +258,7 @@ describe('PerpetualMarketCore', function () {
 
       const afterTradePrice = await perpetualMarketCore.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 6))
 
-      expect(beforeTradePrice).to.be.gt(afterTradePrice)
+      expect(beforeTradePrice[0]).to.be.gt(afterTradePrice[0])
     })
 
     it('variance becomes high', async () => {
@@ -271,7 +271,7 @@ describe('PerpetualMarketCore', function () {
 
       const afterTradePrice = await perpetualMarketCore.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 6))
 
-      expect(beforeTradePrice).to.be.lt(afterTradePrice)
+      expect(beforeTradePrice[0]).to.be.lt(afterTradePrice[0])
     })
   })
 
