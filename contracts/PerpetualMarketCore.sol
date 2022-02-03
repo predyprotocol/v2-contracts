@@ -379,6 +379,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             int256,
             int256,
             int256,
+            int256,
             int256
         )
     {
@@ -409,7 +410,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         int128[2] memory cumFundingFeePerPositionGlobals;
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
-            (tradePrices[i], , , ) = calculateTradePriceReadOnly(i, spotPrice, -amountAssets[i], 0);
+            (tradePrices[i], , , , ) = calculateTradePriceReadOnly(i, spotPrice, -amountAssets[i], 0);
             cumFundingFeePerPositionGlobals[i] = pools[i].amountFundingFeePerPosition;
         }
 
@@ -532,7 +533,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         int256 _deltaM,
         int256 _deltaLiquidity
     ) internal returns (uint256, uint256) {
-        (int256 tradePrice, , , int256 protocolFee) = calculateTradePriceWithFundingRate(
+        (int256 tradePrice, , , , int256 protocolFee) = calculateTradePriceWithFundingRate(
             _productId,
             _spotPrice,
             _isLong,
@@ -547,7 +548,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     /**
      * @notice Calculates trade price
-     * @return tradePrice , fundingRate, tradeFee and protocolFee
+     * @return tradePrice , indexPrice, fundingRate, tradeFee and protocolFee
      */
     function calculateTradePriceReadOnly(
         uint256 _productId,
@@ -559,6 +560,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         view
         returns (
             int256 tradePrice,
+            int256 indexPrice,
             int256 fundingRate,
             int256 tradeFee,
             int256 protocolFee
@@ -566,7 +568,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     {
         int256 deltaM = getReqiredCollateral(_productId, _spotPrice, _tradeAmount.toInt128());
 
-        (tradePrice, fundingRate, tradeFee, protocolFee) = calculateTradePriceWithFundingRate(
+        (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePriceWithFundingRate(
             _productId,
             _spotPrice,
             _tradeAmount > 0,
@@ -576,7 +578,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
         tradePrice = spreadInfos[_productId].getUpdatedPrice(_tradeAmount > 0, tradePrice, block.timestamp);
 
-        return (tradePrice, fundingRate, tradeFee, protocolFee);
+        return (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee);
     }
 
     /**
@@ -595,16 +597,17 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         view
         returns (
             int256,
+            int256 indexPrice,
             int256,
             int256 tradeFee,
             int256 protocolFee
         )
     {
-        int256 fundingFee = calculateFundingRate(_productId, _deltaM, _deltaLiquidity);
+        int256 fundingRate = calculateFundingRate(_productId, _deltaM, _deltaLiquidity);
 
-        int256 indexPrice = IndexPricer.calculateIndexPrice(_productId, _spotPrice);
+        indexPrice = IndexPricer.calculateIndexPrice(_productId, _spotPrice);
 
-        int256 tradePrice = ((indexPrice.mul(int256(1e8).add(fundingFee))) / 1e8).toInt128();
+        int256 tradePrice = ((indexPrice.mul(int256(1e8).add(fundingRate))) / 1e8).toInt128();
 
         tradeFee = getTradeFee(_isLong, indexPrice);
 
@@ -612,7 +615,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
         protocolFee = getProtocolFee(indexPrice);
 
-        return (tradePrice, fundingFee, tradeFee, protocolFee);
+        return (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee);
     }
 
     /**
@@ -663,7 +666,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         int256 positionsValue;
 
         if (pools[_productId].positionPerpetuals != 0) {
-            (int256 tradePrice, , , ) = calculateTradePriceReadOnly(
+            (int256 tradePrice, , , , ) = calculateTradePriceReadOnly(
                 _productId,
                 _spotPrice,
                 pools[_productId].positionPerpetuals,

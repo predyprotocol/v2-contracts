@@ -15,7 +15,9 @@ import "./PerpetualMarketCore.sol";
  * The contract manages LP token, that decimal is 6.
  */
 contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
+    using SafeCast for int256;
     using SafeMath for uint256;
+    using SignedSafeMath for int256;
     using TraderVaultLib for TraderVaultLib.TraderVault;
 
     uint256 private constant MAX_PRODUCT_ID = 2;
@@ -340,20 +342,28 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
      * @notice Gets trade price
      * @param _productId product id
      * @param _tradeAmount amount of position to trade. positive to get long price and negative to get short price.
-     * @return trade price, funding rate, trade fee and protocol fee scaled by 1e8
+     * @return trade info
      */
-    function getTradePrice(uint256 _productId, int128 _tradeAmount)
-        external
-        view
-        override
-        returns (
-            int256,
-            int256,
-            int256,
-            int256
-        )
-    {
-        return perpetualMarketCore.getTradePrice(_productId, _tradeAmount);
+    function getTradePrice(uint256 _productId, int128 _tradeAmount) external view override returns (TradeInfo memory) {
+        (
+            int256 tradePrice,
+            int256 indexPrice,
+            int256 fundingRate,
+            int256 tradeFee,
+            int256 protocolFee
+        ) = perpetualMarketCore.getTradePrice(_productId, _tradeAmount);
+
+        return
+            TradeInfo(
+                tradePrice,
+                indexPrice,
+                fundingRate,
+                tradeFee,
+                protocolFee,
+                indexPrice.mul(fundingRate).div(1e8),
+                tradePrice.toUint256().mul(Math.abs(_tradeAmount)).div(1e8),
+                tradeFee.toUint256().mul(Math.abs(_tradeAmount)).div(1e8)
+            );
     }
 
     /**

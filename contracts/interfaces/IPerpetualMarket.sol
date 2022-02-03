@@ -32,6 +32,17 @@ interface IPerpetualMarket {
         TraderVaultLib.TraderVault rawVaultData;
     }
 
+    struct TradeInfo {
+        int256 tradePrice;
+        int256 indexPrice;
+        int256 fundingRate;
+        int256 tradeFee;
+        int256 protocolFee;
+        int256 fundingFee;
+        uint256 totalValue;
+        uint256 totalFee;
+    }
+
     function initialize(uint128 _depositAmount, int128 _initialFundingRate) external;
 
     function deposit(uint128 _depositAmount) external;
@@ -62,12 +73,7 @@ interface IPerpetualMarket {
     function getTradePrice(uint256 _productId, int128 _tradeAmount)
         external
         view
-        returns (
-            int256,
-            int256,
-            int256,
-            int256
-        );
+        returns (TradeInfo memory tradePriceInfo);
 
     function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view returns (VaultStatus memory);
 }
