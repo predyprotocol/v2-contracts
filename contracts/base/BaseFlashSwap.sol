@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// modified from following code
+// Original file is
 // https://github.com/opynfinance/squeeth-monorepo/blob/main/packages/hardhat/contracts/strategy/base/StrategyFlashSwap.sol
-//
 
 pragma solidity =0.7.6;
 pragma abicoder v2;

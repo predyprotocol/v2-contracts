@@ -14,16 +14,6 @@ interface IPerpetualMarket {
         uint256 deadline;
     }
 
-    struct SingleTradeParams {
-        uint256 productId;
-        uint256 vaultId;
-        uint256 subVaultIndex;
-        uint128 tradeAmount;
-        int128 collateralRatio;
-        uint256 limitPrice;
-        uint256 deadline;
-    }
-
     struct VaultStatus {
         int256 positionValue;
         int256 minCollateral;
@@ -50,10 +40,6 @@ interface IPerpetualMarket {
     function withdraw(uint128 _withdrawnAmount) external;
 
     function openPositions(MultiTradeParams memory _tradeParams) external;
-
-    function openLongPosition(SingleTradeParams memory _tradeParams) external;
-
-    function openShortPosition(SingleTradeParams memory _tradeParams) external;
 
     function liquidateByPool(address _vaultOwner, uint256 _vaultId) external;
 

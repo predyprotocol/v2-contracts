@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IFeePool.sol";
 import "./interfaces/IPerpetualMarket.sol";
 import "./base/BaseLiquidityPool.sol";
+import "./base/Multicall.sol";
 import "./lib/TraderVaultLib.sol";
 import "./PerpetualMarketCore.sol";
 
@@ -15,7 +16,7 @@ import "./PerpetualMarketCore.sol";
  * @notice Perpetual Market Contract
  * The contract manages LP token, that decimal is 6.
  */
-contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable {
+contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable, Multicall {
     using SafeCast for int256;
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -196,50 +197,6 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
             ERC20(collateral).approve(address(feeRecepient), totalProtocolFee);
             feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
         }
-    }
-
-    /**
-     * @notice Opens new long position of the perpetual contract
-     */
-    function openLongPosition(SingleTradeParams memory _tradeParams) external override {
-        int128[2] memory tradeAmounts;
-        uint256[2] memory limitPrices;
-
-        tradeAmounts[_tradeParams.productId] = int128(_tradeParams.tradeAmount);
-        limitPrices[_tradeParams.productId] = _tradeParams.limitPrice;
-
-        openPositions(
-            MultiTradeParams(
-                _tradeParams.vaultId,
-                _tradeParams.subVaultIndex,
-                tradeAmounts,
-                _tradeParams.collateralRatio,
-                limitPrices,
-                _tradeParams.deadline
-            )
-        );
-    }
-
-    /**
-     * @notice Opens new short position of the perpetual contract
-     */
-    function openShortPosition(SingleTradeParams memory _tradeParams) external override {
-        int128[2] memory tradeAmounts;
-        uint256[2] memory limitPrices;
-
-        tradeAmounts[_tradeParams.productId] = -int128(_tradeParams.tradeAmount);
-        limitPrices[_tradeParams.productId] = _tradeParams.limitPrice;
-
-        openPositions(
-            MultiTradeParams(
-                _tradeParams.vaultId,
-                _tradeParams.subVaultIndex,
-                tradeAmounts,
-                _tradeParams.collateralRatio,
-                limitPrices,
-                _tradeParams.deadline
-            )
-        );
     }
 
     /**
