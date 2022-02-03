@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { MockERC20, PerpetualMarket } from '../typechain'
-import { BigNumber, BigNumberish, Wallet } from 'ethers'
+import { BigNumber, Wallet } from 'ethers'
 import {
   deployTestContractSet,
   restoreSnapshot,
@@ -10,14 +10,10 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { scaledBN } from './utils/helpers'
+import { FUTURE_PRODUCT_ID, SQEETH_PRODUCT_ID } from './utils/constants'
 
-function checkEqRoughly(a: BigNumberish, b: BigNumberish) {
-  expect(a).to.be.lte(BigNumber.from(b).add(1))
-  expect(a).to.be.gte(BigNumber.from(b).sub(1))
-}
-
-describe('PerpetualMarket', function () {
-  let wallet: Wallet, other: Wallet
+describe('trade', function () {
+  let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
 
@@ -27,10 +23,10 @@ describe('PerpetualMarket', function () {
 
   let perpetualMarket: PerpetualMarket
 
-  const MaxInt128 = BigNumber.from(2).pow(127).sub(1)
+  const MaxInt128 = ethers.constants.MaxUint256
 
   before(async () => {
-    ;[wallet, other] = await (ethers as any).getSigners()
+    ;[wallet] = await (ethers as any).getSigners()
 
     testContractSet = await deployTestContractSet(wallet)
     testContractHelper = new TestContractHelper(testContractSet)
@@ -43,14 +39,8 @@ describe('PerpetualMarket', function () {
   beforeEach(async () => {
     snapshotId = await takeSnapshot()
 
-    // mint 2^127 - 1 ETH
-    const testAmount = MaxInt128
-    await weth.mint(wallet.address, testAmount)
-
-    // mint 2^127 - 1 USDC
-    const testUsdcAmount = MaxInt128
-    await usdc.mint(wallet.address, testUsdcAmount)
-    await usdc.mint(other.address, testUsdcAmount)
+    await weth.mint(wallet.address, MaxInt128)
+    await usdc.mint(wallet.address, MaxInt128)
 
     // approve
     await weth.approve(perpetualMarket.address, MaxInt128)
@@ -66,8 +56,7 @@ describe('PerpetualMarket', function () {
 
   describe('trade', () => {
     beforeEach(async () => {
-      await testContractHelper.updateSpot(scaledBN(1200, 8))
-      await perpetualMarket.initialize(scaledBN(200000, 6), scaledBN(2, 5))
+      await perpetualMarket.initialize(scaledBN(50000000, 6), scaledBN(2, 5))
     })
 
     describe('tokenPrice becomes high', () => {
@@ -76,8 +65,6 @@ describe('PerpetualMarket', function () {
 
       beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(1000, 8))
-
-        const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.openPositions({
           vaultId,
@@ -88,7 +75,6 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
 
-        //        await increaseTime(SAFETY_PERIOD * 2)
         await testContractHelper.updateSpot(scaledBN(950, 8))
 
         await perpetualMarket.openPositions({
@@ -101,16 +87,147 @@ describe('PerpetualMarket', function () {
         })
       })
 
-      it('withdraw all', async function () {
+      it('withdraw all and check balance of PerPetualMarket', async () => {
         const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
         const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
 
         await perpetualMarket.withdraw(withdrawnAmount)
 
-        expect(withdrawnAmount).to.gt(scaledBN(5000, 6))
+        expect(withdrawnAmount).to.gt(scaledBN(200000, 6))
 
-        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(160)
+        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(340000)
         expect(await perpetualMarket.balanceOf(wallet.address)).to.eq(0)
+      })
+    })
+
+    describe('large amount of trade', () => {
+      const vaultId = 0
+      const subVaultIndex = 0
+
+      beforeEach(async () => {
+        await testContractHelper.updateSpot(scaledBN(1000, 8))
+
+        await perpetualMarket.openPositions({
+          vaultId,
+          subVaultIndex,
+          tradeAmounts: [0, scaledBN(1, 12)],
+          collateralRatio: scaledBN(5, 7),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+
+        await testContractHelper.updateSpot(scaledBN(950, 8))
+
+        await perpetualMarket.openPositions({
+          vaultId,
+          subVaultIndex,
+          tradeAmounts: [0, scaledBN(-1, 12)],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+      })
+
+      it('withdraw all and check balance of PerPetualMarket', async () => {
+        const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
+        const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
+
+        await perpetualMarket.withdraw(withdrawnAmount)
+
+        expect(withdrawnAmount).to.gt(scaledBN(50000000, 6))
+
+        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(12300)
+        expect(await perpetualMarket.balanceOf(wallet.address)).to.eq(0)
+      })
+    })
+  })
+
+  describe('getTradePrice', () => {
+    beforeEach(async () => {
+      await testContractHelper.updateSpot(scaledBN(1200, 8))
+      await perpetualMarket.initialize(scaledBN(50000000, 6), scaledBN(3, 5))
+    })
+
+    it('get trade price of squared perpetual', async () => {
+      const tradePrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 100)
+
+      expect(tradePrice.tradePrice).to.be.eq(14457600000)
+      expect(tradePrice.indexPrice).to.be.eq(14400000000)
+      expect(tradePrice.fundingFee).to.be.eq(43200000)
+      expect(tradePrice.tradeFee).to.be.eq(14400000)
+      expect(tradePrice.protocolFee).to.be.eq(5760000)
+      expect(tradePrice.fundingRate).to.be.eq(300000)
+      expect(tradePrice.totalValue).to.be.eq(14457)
+      expect(tradePrice.totalFee).to.be.eq(14)
+    })
+
+    it('get trade price of perpetual future', async () => {
+      const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 100)
+
+      expect(tradePrice.tradePrice).to.be.eq(120120000000)
+      expect(tradePrice.indexPrice).to.be.eq(120000000000)
+      expect(tradePrice.fundingFee).to.be.eq(0)
+      expect(tradePrice.tradeFee).to.be.eq(120000000)
+      expect(tradePrice.protocolFee).to.be.eq(48000000)
+      expect(tradePrice.fundingRate).to.be.eq(0)
+      expect(tradePrice.totalValue).to.be.eq(120120)
+      expect(tradePrice.totalFee).to.be.eq(120)
+    })
+
+    describe('position increased', () => {
+      const vaultId = 0
+      const subVaultIndex = 0
+
+      beforeEach(async () => {
+        await testContractHelper.updateSpot(scaledBN(1000, 8))
+
+        await perpetualMarket.openPositions({
+          vaultId,
+          subVaultIndex,
+          tradeAmounts: [0, scaledBN(2, 8)],
+          collateralRatio: scaledBN(5, 7),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+      })
+
+      it('get trade price of small position', async () => {
+        const tradePrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 100)
+
+        expect(tradePrice.tradePrice).to.be.eq(10040000000)
+        expect(tradePrice.indexPrice).to.be.eq(10000000000)
+        expect(tradePrice.fundingFee).to.be.eq(30000000)
+        expect(tradePrice.tradeFee).to.be.eq(10000000)
+        expect(tradePrice.protocolFee).to.be.eq(4000000)
+        expect(tradePrice.fundingRate).to.be.eq(300000)
+        expect(tradePrice.totalValue).to.be.eq(10040)
+        expect(tradePrice.totalFee).to.be.eq(10)
+      })
+
+      it("get squared perpetual's trade price of large position", async () => {
+        const tradePrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 12))
+
+        expect(tradePrice.tradePrice).to.be.eq(10040588000)
+        expect(tradePrice.indexPrice).to.be.eq(10000000000)
+        expect(tradePrice.fundingFee).to.be.eq(30588000)
+        expect(tradePrice.tradeFee).to.be.eq(10000000)
+        expect(tradePrice.protocolFee).to.be.eq(4000000)
+        expect(tradePrice.fundingRate).to.be.eq(305880)
+        expect(tradePrice.totalValue).to.be.eq(100405880000000)
+        expect(tradePrice.totalFee).to.be.eq(100000000000)
+      })
+
+      it("get perpetual future's trade price of large position", async () => {
+        const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(1, 12))
+
+        expect(tradePrice.tradePrice).to.be.eq(100102801000)
+        expect(tradePrice.indexPrice).to.be.eq(100000000000)
+        expect(tradePrice.fundingFee).to.be.eq(2801000)
+        expect(tradePrice.tradeFee).to.be.eq(100000000)
+        expect(tradePrice.protocolFee).to.be.eq(40000000)
+        expect(tradePrice.fundingRate).to.be.eq(2801)
+        expect(tradePrice.totalValue).to.be.eq(1001028010000000)
+        expect(tradePrice.totalFee).to.be.eq(1000000000000)
       })
     })
   })

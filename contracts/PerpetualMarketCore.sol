@@ -60,6 +60,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     // trade fee is 0.1%
     int256 private constant TRADE_FEE = 10 * 1e4;
 
+    // protocol fee is 0.04%
+    int256 private constant PROTOCOL_FEE = 4 * 1e4;
+
     struct Pool {
         uint128 amountLockedLiquidity;
         int128 positionPerpetuals;
@@ -187,7 +190,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     function updatePoolPosition(uint256 _productId, int128 _tradeAmount)
         external
         onlyPerpetualMarket
-        returns (uint256, int256)
+        returns (
+            uint256 tradePrice,
+            int256,
+            uint256 protocolFee
+        )
     {
         require(amountLiquidity > 0, "PMC1");
 
@@ -203,7 +210,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         (int256 deltaM, int256 hedgePositionValue) = addCollateral(_productId, spotPrice);
 
         // Calculate trade price
-        int256 tradePrice = calculateTradePrice(_productId, spotPrice, _tradeAmount > 0, deltaM, 0);
+        (tradePrice, protocolFee) = calculateTradePrice(_productId, spotPrice, _tradeAmount > 0, deltaM, 0);
+
+        protocolFee = protocolFee.mul(Math.abs(_tradeAmount)).div(1e8);
 
         {
             // Calculate pool's new amountLiquidity
@@ -232,16 +241,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             (uint256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
                 pools[_productId].entryPrice,
                 pools[_productId].positionPerpetuals.add(_tradeAmount),
-                uint256(tradePrice),
+                tradePrice,
                 -_tradeAmount
             );
 
             pools[_productId].entryPrice = newEntryPrice.toUint128();
 
-            amountLiquidity = Math.addDelta(amountLiquidity, profitValue);
+            amountLiquidity = Math.addDelta(amountLiquidity, profitValue - protocolFee.toInt256());
         }
 
-        return (uint256(tradePrice), pools[_productId].amountFundingFeePerPosition.mul(_tradeAmount));
+        return (tradePrice, pools[_productId].amountFundingFeePerPosition.mul(_tradeAmount), protocolFee);
     }
 
     /**
@@ -363,7 +372,17 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
      * @param _productId product id
      * @param _tradeAmount amount of position to trade. positive for pool short and negative for pool long.
      */
-    function getTradePrice(uint256 _productId, int128 _tradeAmount) external view returns (int256, int256) {
+    function getTradePrice(uint256 _productId, int128 _tradeAmount)
+        external
+        view
+        returns (
+            int256,
+            int256,
+            int256,
+            int256,
+            int256
+        )
+    {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         return calculateTradePriceReadOnly(_productId, spotPrice, _tradeAmount, 0);
@@ -391,7 +410,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         int128[2] memory cumFundingFeePerPositionGlobals;
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
-            (tradePrices[i], ) = calculateTradePriceReadOnly(i, spotPrice, -amountAssets[i], 0);
+            (tradePrices[i], , , , ) = calculateTradePriceReadOnly(i, spotPrice, -amountAssets[i], 0);
             cumFundingFeePerPositionGlobals[i] = pools[i].amountFundingFeePerPosition;
         }
 
@@ -503,14 +522,18 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         }
     }
 
+    /**
+     * @notice Calculates trade price
+     * @return trade price and protocol fee
+     */
     function calculateTradePrice(
         uint256 _productId,
         int256 _spotPrice,
         bool _isLong,
         int256 _deltaM,
         int256 _deltaLiquidity
-    ) internal returns (int256) {
-        (int256 tradePrice, ) = calculateTradePriceWithFundingRate(
+    ) internal returns (uint256, uint256) {
+        (int256 tradePrice, , , , int256 protocolFee) = calculateTradePriceWithFundingRate(
             _productId,
             _spotPrice,
             _isLong,
@@ -520,18 +543,32 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
         tradePrice = spreadInfos[_productId].checkPrice(_isLong, tradePrice);
 
-        return tradePrice;
+        return (tradePrice.toUint256(), protocolFee.toUint256());
     }
 
+    /**
+     * @notice Calculates trade price
+     * @return tradePrice , indexPrice, fundingRate, tradeFee and protocolFee
+     */
     function calculateTradePriceReadOnly(
         uint256 _productId,
         int256 _spotPrice,
         int256 _tradeAmount,
         int256 _deltaLiquidity
-    ) internal view returns (int256, int256) {
+    )
+        internal
+        view
+        returns (
+            int256 tradePrice,
+            int256 indexPrice,
+            int256 fundingRate,
+            int256 tradeFee,
+            int256 protocolFee
+        )
+    {
         int256 deltaM = getReqiredCollateral(_productId, _spotPrice, _tradeAmount.toInt128());
 
-        (int256 tradePrice, int256 fundingRate) = calculateTradePriceWithFundingRate(
+        (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePriceWithFundingRate(
             _productId,
             _spotPrice,
             _tradeAmount > 0,
@@ -541,7 +578,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
         tradePrice = spreadInfos[_productId].getUpdatedPrice(_tradeAmount > 0, tradePrice, block.timestamp);
 
-        return (tradePrice, fundingRate);
+        return (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee);
     }
 
     /**
@@ -555,20 +592,34 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         bool _isLong,
         int256 _deltaM,
         int256 _deltaLiquidity
-    ) internal view returns (int256, int256) {
-        int256 fundingFee = calculateFundingRate(_productId, _deltaM, _deltaLiquidity);
+    )
+        internal
+        view
+        returns (
+            int256,
+            int256 indexPrice,
+            int256,
+            int256 tradeFee,
+            int256 protocolFee
+        )
+    {
+        int256 fundingRate = calculateFundingRate(_productId, _deltaM, _deltaLiquidity);
 
-        int256 indexPrice = IndexPricer.calculateIndexPrice(_productId, _spotPrice);
+        indexPrice = IndexPricer.calculateIndexPrice(_productId, _spotPrice);
 
-        int256 tradePrice = ((indexPrice.mul(int256(1e8).add(fundingFee))) / 1e8).toInt128();
+        int256 tradePrice = ((indexPrice.mul(int256(1e8).add(fundingRate))) / 1e8).toInt128();
 
-        tradePrice = tradePrice + getTradeFee(_isLong, indexPrice);
+        tradeFee = getTradeFee(_isLong, indexPrice);
 
-        return (tradePrice, fundingFee);
+        tradePrice = tradePrice.add(tradeFee);
+
+        protocolFee = getProtocolFee(indexPrice);
+
+        return (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee);
     }
 
     /**
-     * @notice apply trade fee to trade price
+     * @notice Gets trade fee
      * TradeFee = IndxPrice * TRADE_FEE
      */
     function getTradeFee(bool _isLong, int256 _indexPrice) internal pure returns (int256) {
@@ -579,6 +630,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         } else {
             return -_indexPrice.mul(TRADE_FEE) / 1e8;
         }
+    }
+
+    /**
+     * @notice Gets protocol fee
+     * ProtocolFee = IndxPrice * PROTOCOL_FEE
+     */
+    function getProtocolFee(int256 _indexPrice) internal pure returns (int256) {
+        require(_indexPrice > 0);
+
+        return _indexPrice.mul(PROTOCOL_FEE) / 1e8;
     }
 
     function getDeltas(
@@ -605,7 +666,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         int256 positionsValue;
 
         if (pools[_productId].positionPerpetuals != 0) {
-            (int256 tradePrice, ) = calculateTradePriceReadOnly(
+            (int256 tradePrice, , , , ) = calculateTradePriceReadOnly(
                 _productId,
                 _spotPrice,
                 pools[_productId].positionPerpetuals,

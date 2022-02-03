@@ -3,6 +3,7 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./interfaces/IFeePool.sol";
 import "./interfaces/IPerpetualMarket.sol";
 import "./base/BaseLiquidityPool.sol";
 import "./lib/TraderVaultLib.sol";
@@ -14,11 +15,15 @@ import "./PerpetualMarketCore.sol";
  * The contract manages LP token, that decimal is 6.
  */
 contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
+    using SafeCast for int256;
+    using SafeMath for uint256;
+    using SignedSafeMath for int256;
     using TraderVaultLib for TraderVaultLib.TraderVault;
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
     PerpetualMarketCore private immutable perpetualMarketCore;
+    IFeePool private immutable feeRecepient;
 
     // trader's vaults storage
     mapping(address => mapping(uint256 => TraderVaultLib.TraderVault)) private traderVaults;
@@ -46,9 +51,11 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
     constructor(
         PerpetualMarketCore _perpetualMarketCore,
         address _collateral,
-        address _underlying
+        address _underlying,
+        address _feeRecepient
     ) ERC20("Predy V2 LP Token", "PREDY-V2-LP") BaseLiquidityPool(_collateral, _underlying) {
         perpetualMarketCore = _perpetualMarketCore;
+        feeRecepient = IFeePool(_feeRecepient);
 
         // The decimals of LP token is 6
         _setupDecimals(6);
@@ -111,12 +118,14 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
         // check the transaction not exceed deadline
         require(_tradeParams.deadline == 0 || _tradeParams.deadline >= block.number, "PM0");
 
+        uint256 totalProtocolFee;
+
         for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
             if (_tradeParams.tradeAmounts[productId] != 0) {
-                (uint256 tradePrice, int256 valueFundingFeeEntry) = perpetualMarketCore.updatePoolPosition(
-                    productId,
-                    _tradeParams.tradeAmounts[productId]
-                );
+                (uint256 tradePrice, int256 valueFundingFeeEntry, uint256 protocolFee) = perpetualMarketCore
+                    .updatePoolPosition(productId, _tradeParams.tradeAmounts[productId]);
+
+                totalProtocolFee = totalProtocolFee.add(protocolFee / 1e2);
 
                 require(
                     checkPrice(
@@ -164,6 +173,12 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
             ERC20(collateral).transferFrom(msg.sender, address(this), uint256(finalDepositOrWithdrawAmount / 1e2));
         } else if (finalDepositOrWithdrawAmount < 0) {
             sendLiquidity(msg.sender, uint256(-finalDepositOrWithdrawAmount) / 1e2);
+        }
+
+        // Sends protocol fee
+        if (totalProtocolFee > 0) {
+            ERC20(collateral).approve(address(feeRecepient), totalProtocolFee);
+            feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
         }
     }
 
@@ -327,10 +342,28 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
      * @notice Gets trade price
      * @param _productId product id
      * @param _tradeAmount amount of position to trade. positive to get long price and negative to get short price.
-     * @return trade price and funding rate scaled by 1e8
+     * @return trade info
      */
-    function getTradePrice(uint256 _productId, int128 _tradeAmount) external view override returns (int256, int256) {
-        return perpetualMarketCore.getTradePrice(_productId, _tradeAmount);
+    function getTradePrice(uint256 _productId, int128 _tradeAmount) external view override returns (TradeInfo memory) {
+        (
+            int256 tradePrice,
+            int256 indexPrice,
+            int256 fundingRate,
+            int256 tradeFee,
+            int256 protocolFee
+        ) = perpetualMarketCore.getTradePrice(_productId, _tradeAmount);
+
+        return
+            TradeInfo(
+                tradePrice,
+                indexPrice,
+                fundingRate,
+                tradeFee,
+                protocolFee,
+                indexPrice.mul(fundingRate).div(1e8),
+                tradePrice.toUint256().mul(Math.abs(_tradeAmount)).div(1e8),
+                tradeFee.toUint256().mul(Math.abs(_tradeAmount)).div(1e8)
+            );
     }
 
     /**

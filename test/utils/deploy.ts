@@ -1,12 +1,14 @@
 import { BigNumber, BigNumberish, Contract, Wallet } from 'ethers'
 import { ethers } from 'hardhat'
 import {
+  MockFeePool,
   FlashHedge,
   PerpetualMarket,
   PerpetualMarketCore,
   MockERC20,
   MockWETH,
   MockChainlinkAggregator,
+  IFeePool,
 } from '../../typechain'
 import { scaledBN } from './helpers'
 import {
@@ -28,6 +30,7 @@ export type TestContractSet = {
   priceFeed: MockChainlinkAggregator
   perpetualMarket: PerpetualMarket
   perpetualMarketCore: PerpetualMarketCore
+  feePool: IFeePool
   usdc: MockERC20
   weth: MockWETH
 }
@@ -100,11 +103,15 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
   const perpetualMarketCore = (await PerpetualMarketCore.deploy(priceFeed.address)) as PerpetualMarketCore
 
+  const MockFeePool = await ethers.getContractFactory('MockFeePool')
+  const mockFeePool = (await MockFeePool.deploy(usdc.address)) as MockFeePool
+
   const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
   const perpetualMarket = (await PerpetualMarket.deploy(
     perpetualMarketCore.address,
     usdc.address,
     weth.address,
+    mockFeePool.address,
   )) as PerpetualMarket
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
@@ -115,6 +122,7 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     priceFeed,
     perpetualMarket,
     perpetualMarketCore,
+    feePool: mockFeePool,
   }
 }
 
