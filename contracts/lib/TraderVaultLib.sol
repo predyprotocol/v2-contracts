@@ -208,7 +208,6 @@ library TraderVaultLib {
 
     /**
      * @notice Gets min collateral of the vault
-     * MinCollateral = 0.075 * S * (|2*S*PositionSqeeth+PositionFuture| + 0.15*S*|PositionSqeeth|)
      * @param _traderVault trader vault object
      * @param _spotPrice spot price
      * @return MinCollateral scaled by 1e8
@@ -216,13 +215,28 @@ library TraderVaultLib {
     function getMinCollateral(TraderVault memory _traderVault, uint256 _spotPrice) internal pure returns (int256) {
         int128[2] memory assetAmounts = getPositionPerpetuals(_traderVault);
 
-        uint256 maxDelta = Math.abs(((2 * int256(_spotPrice).mul(assetAmounts[0])) / 1e12).add(assetAmounts[1])) +
-            (2 * RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(Math.abs(assetAmounts[0] / 1e12))) /
-            1e4;
+        return calculateMinCollateral(assetAmounts, _spotPrice);
+    }
 
-        uint256 minCollateral = (RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(maxDelta)) / (1e12);
+    /**
+     * @notice Calculates min collateral
+     * MinCollateral = 0.075 * S * (|2*S*PositionSqeeth+PositionFuture| + 0.15*S*|PositionSqeeth|)
+     * @param positionPerpetuals amount of perpetual positions
+     * @param _spotPrice spot price
+     * @return MinCollateral scaled by 1e8
+     */
+    function calculateMinCollateral(int128[2] memory positionPerpetuals, uint256 _spotPrice)
+        internal
+        pure
+        returns (int256)
+    {
+        uint256 maxDelta = Math.abs(
+            ((2 * int256(_spotPrice).mul(positionPerpetuals[0])) / 1e12).add(positionPerpetuals[1])
+        ) + (2 * RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(Math.abs(positionPerpetuals[0] / 1e12))) / 1e4;
 
-        return (minCollateral).toInt256();
+        uint256 minCollateral = (RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(maxDelta)) / 1e12;
+
+        return minCollateral.toInt256();
     }
 
     /**

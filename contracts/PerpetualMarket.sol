@@ -18,6 +18,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
     using SafeCast for int256;
     using SafeMath for uint256;
     using SignedSafeMath for int256;
+    using SignedSafeMath for int128;
     using TraderVaultLib for TraderVaultLib.TraderVault;
 
     uint256 private constant MAX_PRODUCT_ID = 2;
@@ -364,6 +365,30 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
                 tradePrice.toUint256().mul(Math.abs(_tradeAmount)).div(1e8),
                 tradeFee.toUint256().mul(Math.abs(_tradeAmount)).div(1e8)
             );
+    }
+
+    /**
+     * @notice Gets min collateral
+     * @param _vaultOwner The address of vault owner
+     * @param _vaultId The id of target vault
+     * @param _tradeAmounts amounts to trade
+     * @return min collateral
+     */
+    function getMinCollateral(
+        address _vaultOwner,
+        uint256 _vaultId,
+        int128[2] memory _tradeAmounts,
+        uint256 _spotPrice
+    ) external view override returns (int256) {
+        TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
+
+        int128[2] memory positionPerpetuals = traderVault.getPositionPerpetuals();
+
+        for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
+            positionPerpetuals[i] = positionPerpetuals[i].add(_tradeAmounts[i]).toInt128();
+        }
+
+        return TraderVaultLib.calculateMinCollateral(positionPerpetuals, _spotPrice);
     }
 
     /**

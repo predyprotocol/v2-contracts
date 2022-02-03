@@ -75,5 +75,12 @@ interface IPerpetualMarket {
         view
         returns (TradeInfo memory tradePriceInfo);
 
+    function getMinCollateral(
+        address _vaultOwner,
+        uint256 _vaultId,
+        int128[2] memory tradeAmounts,
+        uint256 _spotPrice
+    ) external view returns (int256);
+
     function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view returns (VaultStatus memory);
 }
