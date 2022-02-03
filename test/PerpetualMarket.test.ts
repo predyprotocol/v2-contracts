@@ -1217,4 +1217,70 @@ describe('PerpetualMarket', function () {
       expect(vaultStatus.fundingPaid[0][FUTURE_PRODUCT_ID]).to.be.lt(0)
     })
   })
+
+  describe('getMinCollateral', () => {
+    const vaultId = 0
+    const subVaultIndex = 0
+
+    beforeEach(async () => {
+      const amount = scaledBN(5000, 6)
+
+      await perpetualMarket.initialize(amount, scaledBN(2, 5))
+
+      await testContractHelper.updateSpot(scaledBN(1000, 8))
+    })
+
+    it('get min collateral of 0 positions', async () => {
+      expect(await perpetualMarket.getMinCollateral(wallet.address, vaultId, [0, 0], scaledBN(1000, 8))).to.be.eq(0)
+    })
+
+    it('get min collateral of the vault that has no positions', async () => {
+      expect(
+        await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(1, 8), 0], scaledBN(1000, 8)),
+      ).to.be.eq(1500000000)
+    })
+
+    it('get min collateral with $2,000 spot price', async () => {
+      expect(
+        await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(1, 8), 0], scaledBN(2000, 8)),
+      ).to.be.eq(6000000000)
+    })
+
+    it('get min collateral of squared perpetual and perpetual future', async () => {
+      expect(
+        await perpetualMarket.getMinCollateral(
+          wallet.address,
+          vaultId,
+          [scaledBN(1, 8), scaledBN(-1, 8)],
+          scaledBN(1000, 8),
+        ),
+      ).to.be.eq(6000000000)
+    })
+
+    it('get min collateral of squared perpetual and perpetual future with $2,000 spot price', async () => {
+      expect(
+        await perpetualMarket.getMinCollateral(
+          wallet.address,
+          vaultId,
+          [scaledBN(1, 8), scaledBN(-1, 8)],
+          scaledBN(2000, 8),
+        ),
+      ).to.be.eq(9000000000)
+    })
+
+    it('get min collateral of the vault that has positions', async () => {
+      await perpetualMarket.openPositions({
+        vaultId,
+        subVaultIndex,
+        tradeAmounts: [scaledBN(1, 8), 0],
+        collateralRatio: scaledBN(1, 8),
+        limitPrices: [0, 0],
+        deadline: 0,
+      })
+
+      expect(
+        await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(1, 8), 0], scaledBN(1000, 8)),
+      ).to.be.eq(3000000000)
+    })
+  })
 })
