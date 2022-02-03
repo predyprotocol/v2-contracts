@@ -42,9 +42,6 @@ library TraderVaultLib {
     /// @dev risk parameter for MinCollateral calculation is 7.5%
     uint256 private constant RISK_PARAM_FOR_VAULT = 750;
 
-    /// @dev liquidation fee is 50%
-    int128 private constant LIQUIDATION_FEE = 5000;
-
     struct SubVault {
         int128[2] positionPerpetuals;
         uint128[2] entryPrices;
@@ -175,16 +172,18 @@ library TraderVaultLib {
      * @notice Liquidates the vault whose PositionValue is less than MinCollateral
      * @param _traderVault trader vault object
      */
-    function liquidate(TraderVault storage _traderVault, IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
-        internal
-        returns (uint128)
-    {
+    function liquidate(
+        TraderVault storage _traderVault,
+        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo,
+        int256 liquidationFee
+    ) internal returns (uint256) {
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
 
         require(positionValue < getMinCollateral(_traderVault, _tradePriceInfo.spotPrice), "T1");
 
         if (positionValue < 0) {
             _traderVault.isInsolvent = true;
+            _traderVault.positionUsdc = 0;
             positionValue = 0;
         }
 
@@ -197,13 +196,13 @@ library TraderVaultLib {
             }
         }
 
-        int128 reward = (positionValue.mul(LIQUIDATION_FEE) / 1e4).toInt128();
+        int256 reward = (positionValue.mul(liquidationFee).div(1e4));
 
         // reduce collateral
         // sub is safe because we know reward is less than positionUsdc
-        _traderVault.positionUsdc -= reward;
+        _traderVault.positionUsdc -= reward.toInt128();
 
-        return uint128(reward);
+        return reward.toUint256();
     }
 
     /**

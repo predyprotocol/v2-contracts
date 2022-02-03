@@ -3,6 +3,7 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import "@chainlink/contracts/src/v0.7/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
@@ -22,8 +23,9 @@ import "hardhat/console.sol";
  * PMC2: caller must be PerpetualMarket contract
  * PMC3: underlying price must not be 0
  * PMC4: pool delta must be negative
+ * PMC5: invalid params
  */
-contract PerpetualMarketCore is IPerpetualMarketCore {
+contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     using NettingLib for NettingLib.Info;
     using SpreadLib for SpreadLib.Info;
     using SafeCast for uint256;
@@ -36,32 +38,35 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
-    // max ratio of (IV/RV)^2 for sqeeth pool is 50 %
-    int128 private constant BETA_UR = 50 * 1e6;
-
     // λ for exponentially weighted moving average is 94%
     int128 private constant LAMBDA = 94 * 1e6;
-
-    // max funding rate of future pool is 0.02 %
-    int128 private constant MAX_FUNDING_RATE = 2 * 1e4;
 
     // funding period is 1 days
     int128 private constant FUNDING_PERIOD = 1 days;
 
-    // min slippage tolerance of a hedge is 0.4%
-    uint256 private constant MIN_SLIPPAGE_TOLERANCE = 40;
+    // max ratio of (IV/RV)^2 for sqeeth pool
+    int256 private squaredPerpFundingMultiplier;
 
-    // max slippage tolerance of a hedge is 0.8%
-    uint256 private constant MAX_SLIPPAGE_TOLERANCE = 80;
+    // max funding rate of future pool
+    int256 private perpFutureMaxFundingRate;
 
-    // rate of return threshold of a hedge is 2.5 %
-    uint256 private constant HEDGE_RATE_OF_RETURN_THRESHOLD = 25 * 1e5;
+    // min slippage tolerance of a hedge
+    uint256 private minSlippageToleranceOfHedge;
+
+    // max slippage tolerance of a hedge
+    uint256 private maxSlippageToleranceOfHedge;
+
+    // rate of return threshold of a hedge
+    uint256 private hedgeRateOfReturnThreshold;
+
+    // allowable percentage of movement in the underlying spot price
+    int256 private poolCollateralRiskParam;
 
     // trade fee is 0.1%
-    int256 private constant TRADE_FEE = 10 * 1e4;
+    int256 private tradeFeeRate;
 
     // protocol fee is 0.04%
-    int256 private constant PROTOCOL_FEE = 4 * 1e4;
+    int256 private protocolFeeRate;
 
     struct Pool {
         uint128 amountLockedLiquidity;
@@ -107,6 +112,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     event FundingPayment(uint256 productId, int256 fundingRate, int256 fundingPaidPerPosition, int256 poolReceived);
 
+    event SetSquaredPerpFundingMultiplier(int256 squaredPerpFundingMultiplier);
+    event SetPerpFutureMaxFundingRate(int256 perpFutureMaxFundingRate);
+    event SetHedgeParams(
+        uint256 minSlippageToleranceOfHedge,
+        uint256 maxSlippageToleranceOfHedge,
+        uint256 hedgeRateOfReturnThreshold
+    );
+    event SetPoolCollateralRiskParam(int256 poolCollateralRiskParam);
+    event SetTradeFeeRate(int256 tradeFeeRate, int256 protocolFeeRate);
+
     modifier onlyPerpetualMarket() {
         require(msg.sender == perpetualMarket, "PMC2");
         _;
@@ -120,6 +135,23 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         spreadInfos[1].init();
 
         perpetualMarket = msg.sender;
+
+        // 50%
+        squaredPerpFundingMultiplier = 50 * 1e6;
+        // 0.02%
+        perpFutureMaxFundingRate = 2 * 1e4;
+        // min slippage tolerance of a hedge is 0.4%
+        minSlippageToleranceOfHedge = 40;
+        // max slippage tolerance of a hedge is 0.8%
+        maxSlippageToleranceOfHedge = 80;
+        // rate of return threshold of a hedge is 2.5 %
+        hedgeRateOfReturnThreshold = 25 * 1e5;
+        // Pool collateral risk param is 40%
+        poolCollateralRiskParam = 4000;
+        // Trade fee is 0.1%
+        tradeFeeRate = 10 * 1e4;
+        // Protocol fee is 0.04%
+        protocolFeeRate = 4 * 1e4;
     }
 
     function setPerpetualMarket(address _perpetualMarket) external onlyPerpetualMarket {
@@ -178,7 +210,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         supply = supply.sub(burnAmount);
     }
 
-    function addLiquidity(uint128 _amount) external onlyPerpetualMarket {
+    function addLiquidity(uint256 _amount) external onlyPerpetualMarket {
         amountLiquidity = amountLiquidity.add(_amount);
     }
 
@@ -340,6 +372,54 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     }
 
     /////////////////////////
+    //  Admin Functions    //
+    /////////////////////////
+
+    function setSquaredPerpFundingMultiplier(int256 _squaredPerpFundingMultiplier) external onlyOwner {
+        require(_squaredPerpFundingMultiplier >= 0 && _squaredPerpFundingMultiplier <= 200 * 1e6);
+        squaredPerpFundingMultiplier = _squaredPerpFundingMultiplier;
+        emit SetSquaredPerpFundingMultiplier(_squaredPerpFundingMultiplier);
+    }
+
+    function setPerpFutureMaxFundingRate(int256 _perpFutureMaxFundingRate) external onlyOwner {
+        require(_perpFutureMaxFundingRate >= 0 && _perpFutureMaxFundingRate <= 1 * 1e6);
+        perpFutureMaxFundingRate = _perpFutureMaxFundingRate;
+        emit SetPerpFutureMaxFundingRate(_perpFutureMaxFundingRate);
+    }
+
+    function setHedgeParams(
+        uint256 _minSlippageToleranceOfHedge,
+        uint256 _maxSlippageToleranceOfHedge,
+        uint256 _hedgeRateOfReturnThreshold
+    ) external onlyOwner {
+        require(
+            _minSlippageToleranceOfHedge >= 0 && _maxSlippageToleranceOfHedge >= 0 && _hedgeRateOfReturnThreshold >= 0
+        );
+        require(
+            _minSlippageToleranceOfHedge < _maxSlippageToleranceOfHedge && _maxSlippageToleranceOfHedge <= 200,
+            "PMC5"
+        );
+
+        minSlippageToleranceOfHedge = _minSlippageToleranceOfHedge;
+        maxSlippageToleranceOfHedge = _maxSlippageToleranceOfHedge;
+        hedgeRateOfReturnThreshold = _hedgeRateOfReturnThreshold;
+        emit SetHedgeParams(_minSlippageToleranceOfHedge, _maxSlippageToleranceOfHedge, _hedgeRateOfReturnThreshold);
+    }
+
+    function setPoolCollateralRiskParam(int256 _poolCollateralRiskParam) external onlyOwner {
+        require(_poolCollateralRiskParam >= 0);
+        poolCollateralRiskParam = _poolCollateralRiskParam;
+        emit SetPoolCollateralRiskParam(_poolCollateralRiskParam);
+    }
+
+    function setTradeFeeRate(int256 _tradeFeeRate, int256 _protocolFeeRate) external onlyOwner {
+        require(0 <= _protocolFeeRate && _tradeFeeRate <= 30 * 1e4 && _protocolFeeRate < _tradeFeeRate, "PMC5");
+        tradeFeeRate = _tradeFeeRate;
+        protocolFeeRate = _protocolFeeRate;
+        emit SetTradeFeeRate(_tradeFeeRate, _protocolFeeRate);
+    }
+
+    /////////////////////////
     //  Getter Functions   //
     /////////////////////////
 
@@ -459,7 +539,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         (int256 delta0, int256 delta1) = getDeltas(_spot, pools[0].positionPerpetuals, pools[1].positionPerpetuals);
         int256 gamma = (IndexPricer.calculateGamma(0).mul(pools[0].positionPerpetuals)) / 1e8;
 
-        return nettingInfo.addCollateral(_productId, NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot));
+        return
+            nettingInfo.addCollateral(
+                _productId,
+                NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot, poolCollateralRiskParam)
+            );
     }
 
     /**
@@ -490,7 +574,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
             gamma = (IndexPricer.calculateGamma(0).mul(tradeAmount0)) / 1e8;
         }
 
-        NettingLib.AddCollateralParams memory params = NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot);
+        NettingLib.AddCollateralParams memory params = NettingLib.AddCollateralParams(
+            delta0,
+            delta1,
+            gamma,
+            _spot,
+            poolCollateralRiskParam
+        );
 
         int256 totalRequiredCollateral = NettingLib.getRequiredCollateral(_productId, params);
 
@@ -620,26 +710,26 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     /**
      * @notice Gets trade fee
-     * TradeFee = IndxPrice * TRADE_FEE
+     * TradeFee = IndxPrice * tradeFeeRate
      */
-    function getTradeFee(bool _isLong, int256 _indexPrice) internal pure returns (int256) {
+    function getTradeFee(bool _isLong, int256 _indexPrice) internal view returns (int256) {
         require(_indexPrice > 0);
 
         if (_isLong) {
-            return _indexPrice.mul(TRADE_FEE) / 1e8;
+            return _indexPrice.mul(tradeFeeRate) / 1e8;
         } else {
-            return -_indexPrice.mul(TRADE_FEE) / 1e8;
+            return -_indexPrice.mul(tradeFeeRate) / 1e8;
         }
     }
 
     /**
      * @notice Gets protocol fee
-     * ProtocolFee = IndxPrice * PROTOCOL_FEE
+     * ProtocolFee = IndxPrice * protocolFeeRate
      */
-    function getProtocolFee(int256 _indexPrice) internal pure returns (int256) {
+    function getProtocolFee(int256 _indexPrice) internal view returns (int256) {
         require(_indexPrice > 0);
 
-        return _indexPrice.mul(PROTOCOL_FEE) / 1e8;
+        return _indexPrice.mul(protocolFeeRate) / 1e8;
     }
 
     function getDeltas(
@@ -688,8 +778,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
 
     /**
      * @notice Calculates perpetual's funding rate
-     * Sqeeth: FundingRate = variance * (1 + BETA_UR * m / L)
-     * Future: FundingRate = BASE_FUNDING_RATE + MAX_FUNDING_RATE * (m / L)
+     * Sqeeth: FundingRate = variance * (1 + squaredPerpFundingMultiplier * m / L)
+     * Future: FundingRate = BASE_FUNDING_RATE + perpFutureMaxFundingRate * (m / L)
      * @param _productId product id
      * @param _deltaMargin difference of required margin
      * @param _deltaLiquidity difference of liquidity
@@ -711,7 +801,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
                 return ((
                     poolSnapshot.ethVariance.mul(
                         (
-                            BETA_UR.mul(
+                            squaredPerpFundingMultiplier.mul(
                                 calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity)
                             )
                         ).div(1e8).add(1e8)
@@ -721,11 +811,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
         } else if (_productId == 1) {
             int256 fundingRate;
             if (pools[_productId].positionPerpetuals > 0) {
-                fundingRate = -MAX_FUNDING_RATE
+                fundingRate = -perpFutureMaxFundingRate
                     .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
                     .div(1e8);
             } else {
-                fundingRate = MAX_FUNDING_RATE
+                fundingRate = perpFutureMaxFundingRate
                     .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
                     .div(1e8);
             }
@@ -762,12 +852,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore {
     function calculateSlippageToleranceForHedging(int256 _spotPrice) internal view returns (uint256 slippageTolerance) {
         uint256 rateOfReturn = Math.abs(_spotPrice.sub(lastHedgeSpotPrice).mul(1e8).div(lastHedgeSpotPrice));
 
-        slippageTolerance = MIN_SLIPPAGE_TOLERANCE.add(
-            (MAX_SLIPPAGE_TOLERANCE - MIN_SLIPPAGE_TOLERANCE).mul(rateOfReturn).div(HEDGE_RATE_OF_RETURN_THRESHOLD)
+        slippageTolerance = minSlippageToleranceOfHedge.add(
+            (maxSlippageToleranceOfHedge - minSlippageToleranceOfHedge).mul(rateOfReturn).div(
+                hedgeRateOfReturnThreshold
+            )
         );
 
-        if (slippageTolerance < MIN_SLIPPAGE_TOLERANCE) slippageTolerance = MIN_SLIPPAGE_TOLERANCE;
-        if (slippageTolerance > MAX_SLIPPAGE_TOLERANCE) slippageTolerance = MAX_SLIPPAGE_TOLERANCE;
+        if (slippageTolerance < minSlippageToleranceOfHedge) slippageTolerance = minSlippageToleranceOfHedge;
+        if (slippageTolerance > maxSlippageToleranceOfHedge) slippageTolerance = maxSlippageToleranceOfHedge;
     }
 
     /**

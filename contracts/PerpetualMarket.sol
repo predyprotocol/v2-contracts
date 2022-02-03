@@ -2,6 +2,7 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IFeePool.sol";
 import "./interfaces/IPerpetualMarket.sol";
@@ -14,7 +15,7 @@ import "./PerpetualMarketCore.sol";
  * @notice Perpetual Market Contract
  * The contract manages LP token, that decimal is 6.
  */
-contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
+contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable {
     using SafeCast for int256;
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -22,6 +23,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
     using TraderVaultLib for TraderVaultLib.TraderVault;
 
     uint256 private constant MAX_PRODUCT_ID = 2;
+
+    /// @dev liquidation fee
+    int256 private liquidationFee;
 
     PerpetualMarketCore private immutable perpetualMarketCore;
     IFeePool private immutable feeRecepient;
@@ -44,7 +48,15 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
 
     event Liquidated(address liquidator, address indexed vaultOwner, uint256 vaultId);
 
-    event Hedged(address hedger, uint256 usdcAmount, uint256 underlyingAmount, int256[2] deltas);
+    event Hedged(
+        address hedger,
+        bool isBuyingUnderlying,
+        uint256 usdcAmount,
+        uint256 underlyingAmount,
+        int256[2] deltas
+    );
+
+    event SetLiquidationFee(int256 liquidationFee);
 
     /**
      * @notice Constructor of Perpetual Market contract
@@ -60,6 +72,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
 
         // The decimals of LP token is 6
         _setupDecimals(6);
+
+        // liquidation fee is 20%
+        liquidationFee = 2000;
     }
 
     /**
@@ -245,7 +260,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
             }
         }
 
-        uint128 reward = traderVaults[_vaultOwner][_vaultId].liquidate(tradePriceInfo);
+        uint256 reward = traderVaults[_vaultOwner][_vaultId].liquidate(tradePriceInfo, liquidationFee);
 
         // Sends a half of reward to the pool
         perpetualMarketCore.addLiquidity(reward / 2);
@@ -301,7 +316,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
-        emit Hedged(msg.sender, amountUsdc, amountUnderlying, completeParams.deltas);
+        emit Hedged(msg.sender, completeParams.isLong, amountUsdc, amountUnderlying, completeParams.deltas);
     }
 
     /**
@@ -430,5 +445,15 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool {
                 fundingPaid,
                 traderVault
             );
+    }
+
+    /////////////////////////
+    //  Admin Functions    //
+    /////////////////////////
+
+    function setLiquidationFee(int256 _liquidationFee) external onlyOwner {
+        require(_liquidationFee >= 0 && _liquidationFee <= 5000);
+        liquidationFee = _liquidationFee;
+        emit SetLiquidationFee(liquidationFee);
     }
 }

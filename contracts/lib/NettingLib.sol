@@ -23,14 +23,12 @@ library NettingLib {
     using SignedSafeMath for int256;
     using SignedSafeMath for int128;
 
-    /// @dev 40%
-    int128 private constant ALPHA = 4000;
-
     struct AddCollateralParams {
         int256 delta0;
         int256 delta1;
         int256 gamma0;
         int256 spotPrice;
+        int256 poolCollateralRiskParam;
     }
 
     struct CompleteParams {
@@ -127,25 +125,31 @@ library NettingLib {
         int256 requiredCollateral = (
             _params.spotPrice.mul(Math.abs(calculateWeightedDelta(1, _params.delta0, _params.delta1)).toInt256())
         ) / 1e8;
-        return ((1e4 + ALPHA).mul(requiredCollateral)) / 1e4;
+        return ((1e4 + _params.poolCollateralRiskParam).mul(requiredCollateral)) / 1e4;
     }
 
     /**
      * @notice Gets required collateral for sqeeth
      * RequiredCollateral_{sqeeth}
-     * = max((1-\alpha) * S * |WeightDelta_{sqeeth}-\alpha * S * gamma|, (1+\alpha) * S * |WeightDelta_{sqeeth}+\alpha * S * gamma|)
+     * = max((1-α) * S * |WeightDelta_{sqeeth}-α * S * gamma|, (1+α) * S * |WeightDelta_{sqeeth}+α * S * gamma|)
      * @return RequiredCollateral scaled by 1e8
      */
     function getRequiredCollateralOfSqeeth(AddCollateralParams memory _params) internal pure returns (int256) {
         int256 weightedDelta = calculateWeightedDelta(0, _params.delta0, _params.delta1);
-        int256 deltaFromGamma = (ALPHA.mul(_params.spotPrice).mul(_params.gamma0)) / 1e12;
+        int256 deltaFromGamma = (_params.poolCollateralRiskParam.mul(_params.spotPrice).mul(_params.gamma0)) / 1e12;
 
         return
             Math.max(
-                ((1e4 - ALPHA).mul(_params.spotPrice).mul(Math.abs(weightedDelta.sub(deltaFromGamma)).toInt256())) /
-                    1e12,
-                ((1e4 + ALPHA).mul(_params.spotPrice).mul(Math.abs(weightedDelta.add(deltaFromGamma)).toInt256())) /
-                    1e12
+                (
+                    (1e4 - _params.poolCollateralRiskParam).mul(_params.spotPrice).mul(
+                        Math.abs(weightedDelta.sub(deltaFromGamma)).toInt256()
+                    )
+                ) / 1e12,
+                (
+                    (1e4 + _params.poolCollateralRiskParam).mul(_params.spotPrice).mul(
+                        Math.abs(weightedDelta.add(deltaFromGamma)).toInt256()
+                    )
+                ) / 1e12
             );
     }
 

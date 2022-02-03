@@ -16,6 +16,8 @@ async function main() {
   let usdcAddress
   let feePoolAddress
 
+  const operatorAddress = '0x1c745d31A084a14Ba30E7c9F4B14EA762d44f194'
+
   console.log(network.name)
 
   if (network.name === 'kovan') {
@@ -61,6 +63,9 @@ async function main() {
   console.log(`PerpetualMarket deployed to ${perpetualMarket.address}`)
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
+
+  await perpetualMarket.transferOwnership(operatorAddress)
+  await perpetualMarketCore.transferOwnership(operatorAddress)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
