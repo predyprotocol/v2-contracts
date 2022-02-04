@@ -260,15 +260,16 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
         require(traderVault.checkVaultIsLiquidatable(tradePriceInfo), "vault is not danger");
 
         // Close all positions in the vault
+        uint256 totalProtocolFee;
         for (uint256 subVaultIndex = 0; subVaultIndex < traderVault.subVaults.length; subVaultIndex++) {
             for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
                 int128 amountAssetInVault = traderVault.subVaults[subVaultIndex].positionPerpetuals[productId];
 
                 if (amountAssetInVault != 0) {
-                    (uint256 tradePrice, int256 valueFundingFeeEntry, ) = perpetualMarketCore.updatePoolPosition(
-                        productId,
-                        -amountAssetInVault
-                    );
+                    (uint256 tradePrice, int256 valueFundingFeeEntry, uint256 protocolFee) = perpetualMarketCore
+                        .updatePoolPosition(productId, -amountAssetInVault);
+
+                    totalProtocolFee = totalProtocolFee.add(protocolFee / 1e2);
 
                     traderVault.updateVault(
                         subVaultIndex,
@@ -290,6 +291,12 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
 
         // Sends a half of reward to the liquidator
         sendLiquidity(msg.sender, reward / (2 * 1e2));
+
+        // Sends protocol fee
+        if (totalProtocolFee > 0) {
+            ERC20(collateral).approve(address(feeRecepient), totalProtocolFee);
+            feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
+        }
 
         emit Liquidated(msg.sender, _vaultOwner, _vaultId);
     }
