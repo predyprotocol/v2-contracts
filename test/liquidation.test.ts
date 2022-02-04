@@ -55,9 +55,9 @@ describe('liquidation', function () {
     await usdc.connect(other).approve(perpetualMarket.address, MaxUint256)
 
     // spot price is $100
-    await updateSpotPrice(100)
+    await updateSpotPrice(1000)
 
-    const amount = scaledBN(2000, 6)
+    const amount = scaledBN(20000, 6)
     await perpetualMarket.initialize(amount, scaledBN(2, 5))
   })
 
@@ -72,14 +72,14 @@ describe('liquidation', function () {
       await perpetualMarket.openPositions({
         vaultId,
         subVaultIndex,
-        tradeAmounts: [scaledBN(1, 8), 0],
+        tradeAmounts: [scaledBN(10, 8), 0],
         collateralRatio: scaledBN(1, 8),
         limitPrices: [0, 0],
         deadline: 0,
       })
 
       const vault = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
-      expect(vault.rawVaultData.positionUsdc).to.be.eq(15200000)
+      expect(vault.rawVaultData.positionUsdc).to.be.eq(15200000000)
     })
 
     it('reverts if the vault has enough collateral', async () => {
@@ -97,7 +97,7 @@ describe('liquidation', function () {
     })
 
     it('liquidate an insolvent vault', async () => {
-      await updateSpotPrice(90)
+      await updateSpotPrice(900)
 
       await perpetualMarket.liquidateByPool(wallet.address, vaultId)
 
@@ -130,7 +130,7 @@ describe('liquidation', function () {
       })
 
       it('liquidate a vault', async () => {
-        await updateSpotPrice(98)
+        await updateSpotPrice(980)
 
         const protocolFeeBefore = await usdc.balanceOf(testContractSet.feePool.address)
         await perpetualMarket.liquidateByPool(wallet.address, vaultId)
@@ -173,7 +173,7 @@ describe('liquidation', function () {
 
       describe('usdc position is negative', () => {
         beforeEach(async () => {
-          await updateSpotPrice(120)
+          await updateSpotPrice(1200)
 
           // Withdraw unrequired USDC
           await perpetualMarket.openPositions({
@@ -190,7 +190,7 @@ describe('liquidation', function () {
         })
 
         it('liquidate a vault', async () => {
-          await updateSpotPrice(118)
+          await updateSpotPrice(1180)
 
           await perpetualMarket.liquidateByPool(wallet.address, vaultId)
 
@@ -221,7 +221,7 @@ describe('liquidation', function () {
       await perpetualMarket.openPositions({
         vaultId,
         subVaultIndex: 0,
-        tradeAmounts: [scaledBN(1, 6), 0],
+        tradeAmounts: [scaledBN(10, 8), 0],
         collateralRatio: scaledBN(1, 8),
         limitPrices: [0, 0],
         deadline: 0,
@@ -229,7 +229,7 @@ describe('liquidation', function () {
       await perpetualMarket.openPositions({
         vaultId,
         subVaultIndex: 1,
-        tradeAmounts: [scaledBN(1, 6), 0],
+        tradeAmounts: [scaledBN(10, 8), 0],
         collateralRatio: scaledBN(1, 8),
         limitPrices: [0, 0],
         deadline: 0,
@@ -237,7 +237,7 @@ describe('liquidation', function () {
     })
 
     it('liquidate a vault', async () => {
-      await updateSpotPrice(98)
+      await updateSpotPrice(980)
 
       await perpetualMarket.liquidateByPool(wallet.address, vaultId)
 
@@ -256,7 +256,7 @@ describe('liquidation', function () {
     })
 
     it('liquidate an insolvent vault', async () => {
-      await updateSpotPrice(90)
+      await updateSpotPrice(900)
 
       await perpetualMarket.liquidateByPool(wallet.address, vaultId)
 
@@ -276,6 +276,16 @@ describe('liquidation', function () {
     })
 
     it('reverts if the vault has enough collateral', async () => {
+      // Deposit USDC
+      await perpetualMarket.openPositions({
+        vaultId,
+        subVaultIndex: 0,
+        tradeAmounts: [0, 0],
+        collateralRatio: scaledBN(5, 7),
+        limitPrices: [0, 0],
+        deadline: 0,
+      })
+
       await expect(perpetualMarket.liquidateByPool(wallet.address, vaultId)).revertedWith('vault is not danger')
     })
   })

@@ -41,7 +41,7 @@ library TraderVaultLib {
     uint256 private constant MAX_PRODUCT_ID = 2;
 
     /// @dev minimum collateral is 100 USDC
-    uint256 private constant MIN_COLLATERAL = 100 * 1e6;
+    uint256 private constant MIN_COLLATERAL = 100 * 1e8;
 
     /// @dev risk parameter for MinCollateral calculation is 7.5%
     uint256 private constant RISK_PARAM_FOR_VAULT = 750;
@@ -270,6 +270,10 @@ library TraderVaultLib {
         ) + (2 * RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(Math.abs(positionPerpetuals[0] / 1e12))) / 1e4;
 
         uint256 minCollateral = (RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(maxDelta)) / 1e12;
+
+        if ((positionPerpetuals[0] != 0 || positionPerpetuals[1] != 0) && minCollateral < MIN_COLLATERAL) {
+            minCollateral = MIN_COLLATERAL;
+        }
 
         return minCollateral.toInt256();
     }
