@@ -43,7 +43,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
         uint256 productId,
         int256 tradeAmount,
         uint256 entryPrice,
-        uint256 fundingFeeEntryValuePerSize
+        int256 fundingFeePerPosition
     );
 
     event Liquidated(address liquidator, address indexed vaultOwner, uint256 vaultId);
@@ -138,7 +138,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
 
         for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
             if (_tradeParams.tradeAmounts[productId] != 0) {
-                (uint256 tradePrice, int256 valueFundingFeeEntry, uint256 protocolFee) = perpetualMarketCore
+                (uint256 tradePrice, int256 fundingFeePerPosition, uint256 protocolFee) = perpetualMarketCore
                     .updatePoolPosition(productId, _tradeParams.tradeAmounts[productId]);
 
                 totalProtocolFee = totalProtocolFee.add(protocolFee / 1e2);
@@ -157,7 +157,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
                     productId,
                     _tradeParams.tradeAmounts[productId],
                     tradePrice,
-                    valueFundingFeeEntry
+                    fundingFeePerPosition
                 );
 
                 emit PositionUpdated(
@@ -166,7 +166,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
                     productId,
                     _tradeParams.tradeAmounts[productId],
                     tradePrice,
-                    uint256(valueFundingFeeEntry / _tradeParams.tradeAmounts[productId])
+                    fundingFeePerPosition
                 );
             }
         }
@@ -244,23 +244,46 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
 
     /**
      * @notice Liquidates a vault by Pool
+     * Anyone can liquidata a vault whose PositionValue is less than MinCollateral.
+     * The caller gets part of collateral as reward.
      * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
      */
     function liquidateByPool(address _vaultOwner, uint256 _vaultId) external override {
+        TraderVaultLib.TraderVault storage traderVault = traderVaults[_vaultOwner][_vaultId];
+
         PerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
-            traderVaults[_vaultOwner][_vaultId].getPositionPerpetuals()
+            traderVault.getPositionPerpetuals()
         );
 
-        for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
-            int128 amountAssetInVault = traderVaults[_vaultOwner][_vaultId].getPositionPerpetual(productId);
+        // Check if PositionValue is less than MinCollateral or not
+        require(traderVault.checkVaultIsLiquidatable(tradePriceInfo), "vault is not danger");
 
-            if (amountAssetInVault != 0) {
-                perpetualMarketCore.updatePoolPosition(productId, -amountAssetInVault);
+        // Close all positions in the vault
+        for (uint256 subVaultIndex = 0; subVaultIndex < traderVault.subVaults.length; subVaultIndex++) {
+            for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
+                int128 amountAssetInVault = traderVault.subVaults[subVaultIndex].positionPerpetuals[productId];
+
+                if (amountAssetInVault != 0) {
+                    (uint256 tradePrice, int256 valueFundingFeeEntry, ) = perpetualMarketCore.updatePoolPosition(
+                        productId,
+                        -amountAssetInVault
+                    );
+
+                    traderVault.updateVault(
+                        subVaultIndex,
+                        productId,
+                        -amountAssetInVault,
+                        tradePrice,
+                        valueFundingFeeEntry
+                    );
+                }
             }
         }
 
-        uint256 reward = traderVaults[_vaultOwner][_vaultId].liquidate(tradePriceInfo, liquidationFee);
+        traderVault.setInsolvencyFlagIfNeeded();
+
+        uint256 reward = traderVault.decreaseLiquidationReward(liquidationFee);
 
         // Sends a half of reward to the pool
         perpetualMarketCore.addLiquidity(reward / 2);

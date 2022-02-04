@@ -13,6 +13,10 @@ contract TraderVaultLibTester {
     TraderVaultLib.TraderVault public traderVault;
     int128 public r;
 
+    function getNumOfSubVault() external view returns (uint256) {
+        return traderVault.subVaults.length;
+    }
+
     function getSubVault(uint256 _subVaultId) external view returns (TraderVaultLib.SubVault memory) {
         return traderVault.subVaults[_subVaultId];
     }
@@ -46,8 +50,20 @@ contract TraderVaultLibTester {
         TraderVaultLib.updateUsdcPosition(traderVault, _amount);
     }
 
-    function testLiquidate(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo, int256 liquidationFee) external {
-        r = int128(TraderVaultLib.liquidate(traderVault, _tradePriceInfo, liquidationFee));
+    function testCheckVaultIsLiquidatable(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
+        external
+        view
+        returns (bool)
+    {
+        return TraderVaultLib.checkVaultIsLiquidatable(traderVault, _tradePriceInfo);
+    }
+
+    function testSetInsolvencyFlagIfNeeded() external {
+        TraderVaultLib.setInsolvencyFlagIfNeeded(traderVault);
+    }
+
+    function testDecreaseLiquidationReward(int256 liquidationFee) external {
+        r = int128(TraderVaultLib.decreaseLiquidationReward(traderVault, liquidationFee));
     }
 
     function getMinCollateral(uint128 _spot) external view returns (int256) {

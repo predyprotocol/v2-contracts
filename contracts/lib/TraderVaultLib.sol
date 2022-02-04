@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/IPerpetualMarketCore.sol";
 import "./Math.sol";
 import "./EntryPriceMath.sol";
+import "hardhat/console.sol";
 
 /**
  * @title TraderVaultLib
@@ -14,13 +15,13 @@ import "./EntryPriceMath.sol";
  * Data Structure
  *  Vault
  *  - PositionUSDC
- *  - SubVault0(PositionPerpetuals, EntryPrices, FundingFeeEntryValues)
- *  - SubVault1(PositionPerpetuals, EntryPrices, FundingFeeEntryValues)
+ *  - SubVault0(PositionPerpetuals, EntryPrices, entryFundingFee)
+ *  - SubVault1(PositionPerpetuals, EntryPrices, entryFundingFee)
  *  - ...
  *
  *  PositionPerpetuals = [PositionSqeeth, PositionFuture]
  *  EntryPrices = [EntryPriceSqeeth, EntryPriceFuture]
- *  FundingFeeEntryValues = [FundingFeeEntryValueSqeeth, FundingFeeEntryValueFuture]
+ *  entryFundingFee = [entryFundingFeeqeeth, FundingFeeEntryValueFuture]
  *
  *
  * Error codes
@@ -39,13 +40,16 @@ library TraderVaultLib {
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
+    /// @dev minimum collateral is 100 USDC
+    uint256 private constant MIN_COLLATERAL = 100 * 1e6;
+
     /// @dev risk parameter for MinCollateral calculation is 7.5%
     uint256 private constant RISK_PARAM_FOR_VAULT = 750;
 
     struct SubVault {
         int128[2] positionPerpetuals;
         uint128[2] entryPrices;
-        int128[2] fundingFeeEntryValues;
+        int128[2] entryFundingFee;
     }
 
     struct TraderVault {
@@ -124,7 +128,7 @@ library TraderVaultLib {
      * @param _productId product id
      * @param _positionPerpetual amount of position to increase or decrease
      * @param _tradePrice trade price
-     * @param _valueFundingFeeEntry entry value of funding fee
+     * @param _fundingFeePerPosition entry funding fee paid per position
      */
     function updateVault(
         TraderVault storage _traderVault,
@@ -132,71 +136,102 @@ library TraderVaultLib {
         uint256 _productId,
         int128 _positionPerpetual,
         uint256 _tradePrice,
-        int256 _valueFundingFeeEntry
+        int256 _fundingFeePerPosition
     ) internal {
         require(!_traderVault.isInsolvent, "T2");
+        require(_positionPerpetual != 0, "T4");
 
         if (_traderVault.subVaults.length == _subVaultIndex) {
             int128[2] memory positionPerpetuals;
             uint128[2] memory entryPrices;
-            int128[2] memory fundingFeeEntryValues;
+            int128[2] memory entryFundingFee;
 
-            _traderVault.subVaults.push(SubVault(positionPerpetuals, entryPrices, fundingFeeEntryValues));
+            _traderVault.subVaults.push(SubVault(positionPerpetuals, entryPrices, entryFundingFee));
         } else {
             require(_traderVault.subVaults.length > _subVaultIndex, "T3");
         }
 
         SubVault storage subVault = _traderVault.subVaults[_subVaultIndex];
 
-        (uint256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
-            subVault.entryPrices[_productId],
-            subVault.positionPerpetuals[_productId],
-            _tradePrice,
-            _positionPerpetual
-        );
+        {
+            (int256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
+                int256(subVault.entryPrices[_productId]),
+                subVault.positionPerpetuals[_productId],
+                int256(_tradePrice),
+                _positionPerpetual
+            );
 
-        subVault.entryPrices[_productId] = newEntryPrice.toUint128();
-        _traderVault.positionUsdc = _traderVault.positionUsdc.add(profitValue).toInt128();
+            subVault.entryPrices[_productId] = newEntryPrice.toUint256().toUint128();
+            _traderVault.positionUsdc = _traderVault.positionUsdc.add(profitValue).toInt128();
+        }
+
+        {
+            (int256 newEntryFundingFee, int256 profitValue) = EntryPriceMath.updateEntryPrice(
+                int256(subVault.entryFundingFee[_productId]),
+                subVault.positionPerpetuals[_productId],
+                _fundingFeePerPosition,
+                _positionPerpetual
+            );
+
+            subVault.entryFundingFee[_productId] = newEntryFundingFee.toInt128();
+            _traderVault.positionUsdc = _traderVault.positionUsdc.add(-profitValue).toInt128();
+        }
 
         subVault.positionPerpetuals[_productId] = subVault
             .positionPerpetuals[_productId]
             .add(_positionPerpetual)
             .toInt128();
-        subVault.fundingFeeEntryValues[_productId] = subVault
-            .fundingFeeEntryValues[_productId]
-            .add(_valueFundingFeeEntry)
-            .toInt128();
     }
 
     /**
-     * @notice Liquidates the vault whose PositionValue is less than MinCollateral
+     * @notice Checks the vault is liquidatable and return result
+     * if PositionValue is less than MinCollateral return true
+     * otherwise return false
      * @param _traderVault trader vault object
+     * @return if true the vault is liquidatable, if false the vault is not liquidatable
      */
-    function liquidate(
+    function checkVaultIsLiquidatable(
         TraderVault storage _traderVault,
-        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo,
-        int256 liquidationFee
-    ) internal returns (uint256) {
+        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
+    ) internal pure returns (bool) {
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
 
-        require(positionValue < getMinCollateral(_traderVault, _tradePriceInfo.spotPrice), "T1");
+        return positionValue < getMinCollateral(_traderVault, _tradePriceInfo.spotPrice);
+    }
 
-        if (positionValue < 0) {
-            _traderVault.isInsolvent = true;
-            _traderVault.positionUsdc = 0;
-            positionValue = 0;
-        }
-
-        // clean positions
+    /**
+     * @notice Set insolvency flag if needed
+     * If PositionValue is negative, set insolvency flag.
+     * @param _traderVault trader vault object
+     */
+    function setInsolvencyFlagIfNeeded(TraderVault storage _traderVault) internal {
+        // Confirm that there are no positions
         for (uint256 i = 0; i < _traderVault.subVaults.length; i++) {
             for (uint256 j = 0; j < MAX_PRODUCT_ID; j++) {
-                _traderVault.subVaults[i].positionPerpetuals[j] = 0;
-                _traderVault.subVaults[i].entryPrices[j] = 0;
-                _traderVault.subVaults[i].fundingFeeEntryValues[j] = 0;
+                require(_traderVault.subVaults[i].positionPerpetuals[j] == 0);
             }
         }
 
-        int256 reward = (positionValue.mul(liquidationFee).div(1e4));
+        // If there are no positions, PositionUSDC is equal to PositionValue.
+        if (_traderVault.positionUsdc < 0) {
+            _traderVault.isInsolvent = true;
+        }
+    }
+
+    /**
+     * @notice Decreases liquidation reward from usdc position
+     * @param _traderVault trader vault object
+     * @param _liquidationFee liquidation fee rate
+     */
+    function decreaseLiquidationReward(TraderVault storage _traderVault, int256 _liquidationFee)
+        internal
+        returns (uint256)
+    {
+        if (_traderVault.positionUsdc <= 0) {
+            return 0;
+        }
+
+        int256 reward = (_traderVault.positionUsdc.mul(_liquidationFee).div(1e4));
 
         // reduce collateral
         // sub is safe because we know reward is less than positionUsdc
@@ -349,8 +384,8 @@ library TraderVaultLib {
         uint256 _productId,
         int128[2] memory _amountFundingFeesPerPosition
     ) internal pure returns (int256) {
-        int256 fundingFee = _subVault.fundingFeeEntryValues[_productId].sub(
-            _amountFundingFeesPerPosition[_productId].mul(_subVault.positionPerpetuals[_productId])
+        int256 fundingFee = _subVault.entryFundingFee[_productId].sub(_amountFundingFeesPerPosition[_productId]).mul(
+            _subVault.positionPerpetuals[_productId]
         );
 
         return fundingFee / 1e8;

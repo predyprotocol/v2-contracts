@@ -270,19 +270,19 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         pools[_productId].lastTradeTime = uint128(block.timestamp);
 
         {
-            (uint256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
-                pools[_productId].entryPrice,
+            (int256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
+                int256(pools[_productId].entryPrice),
                 pools[_productId].positionPerpetuals.add(_tradeAmount),
-                tradePrice,
+                int256(tradePrice),
                 -_tradeAmount
             );
 
-            pools[_productId].entryPrice = newEntryPrice.toUint128();
+            pools[_productId].entryPrice = newEntryPrice.toUint256().toUint128();
 
             amountLiquidity = Math.addDelta(amountLiquidity, profitValue - protocolFee.toInt256());
         }
 
-        return (tradePrice, pools[_productId].amountFundingFeePerPosition.mul(_tradeAmount), protocolFee);
+        return (tradePrice, pools[_productId].amountFundingFeePerPosition, protocolFee);
     }
 
     /**
