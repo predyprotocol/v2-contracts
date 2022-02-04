@@ -455,7 +455,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
                 fundingPaid[i][j] = TraderVaultLib.getFundingFeePaidOfSubVault(
                     traderVault.subVaults[i],
                     j,
-                    tradePriceInfo.amountFundingFeesPerPosition
+                    tradePriceInfo.amountsFundingPaidPerPosition
                 );
             }
         }

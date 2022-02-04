@@ -209,7 +209,7 @@ describe('TraderVaultLib', function () {
       const positionValue = await tester.getPositionValue({
         spotPrice: '100000000000',
         tradePrices: ['10000000000', '100000000000'],
-        amountFundingFeesPerPosition: [1000, 1000],
+        amountsFundingPaidPerPosition: [1000, 1000],
       })
 
       expect((await tester.traderVault()).positionUsdc).to.be.eq(positionValue)
@@ -222,7 +222,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '11000000000',
           tradePrices: ['12100000000', '110000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(positionValue).to.be.eq(2100000000)
       })
@@ -233,7 +233,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
           tradePrices: ['12100000000', '110000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(positionValue).to.be.eq(-2100000000)
       })
@@ -244,7 +244,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
           tradePrices: ['12100000000', '110000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(positionValue).to.be.eq(10000000000)
       })
@@ -255,7 +255,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
           tradePrices: ['12100000000', '110000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(positionValue).to.be.eq(-10000000000)
       })
@@ -267,7 +267,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
           tradePrices: ['12100000000', '110000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(positionValue).to.be.eq(100000000)
       })
@@ -279,7 +279,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
           tradePrices: ['12100000000', '110000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(positionValue).to.be.eq(7900000000)
       })
@@ -292,7 +292,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '110000000000',
           tradePrices: ['12100000000', '110000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(positionValue).to.be.eq(7900000000)
       })
@@ -305,7 +305,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [1000000, 0],
+          amountsFundingPaidPerPosition: [1000000, 0],
         })
         expect(positionValue).to.be.eq(-1000000)
       })
@@ -316,7 +316,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [1000000, 0],
+          amountsFundingPaidPerPosition: [1000000, 0],
         })
         expect(positionValue).to.be.eq(1000000)
       })
@@ -327,7 +327,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, 1000000],
+          amountsFundingPaidPerPosition: [0, 1000000],
         })
         expect(positionValue).to.be.eq(-1000000)
       })
@@ -338,7 +338,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, 1000000],
+          amountsFundingPaidPerPosition: [0, 1000000],
         })
         expect(positionValue).to.be.eq(1000000)
       })
@@ -349,7 +349,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, -1000000],
+          amountsFundingPaidPerPosition: [0, -1000000],
         })
         expect(positionValue).to.be.eq(1000000)
       })
@@ -360,7 +360,7 @@ describe('TraderVaultLib', function () {
         const positionValue = await tester.getPositionValue({
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, -1000000],
+          amountsFundingPaidPerPosition: [0, -1000000],
         })
         expect(positionValue).to.be.eq(-1000000)
       })
@@ -377,7 +377,7 @@ describe('TraderVaultLib', function () {
         const usdcAmount = await tester.testGetAmountRequired('100000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(usdcAmount).to.be.eq(1500000000)
       })
@@ -386,13 +386,13 @@ describe('TraderVaultLib', function () {
         const usdcAmount = await tester.testGetAmountRequired('100000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         await tester.testUpdateUsdcPosition(usdcAmount)
         const usdcAmount2 = await tester.testGetAmountRequired('100000000', {
           spotPrice: '110000000000',
           tradePrices: ['12100000000', '110000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(usdcAmount2).to.be.eq(-1785000000)
       })
@@ -408,7 +408,7 @@ describe('TraderVaultLib', function () {
         const usdcAmount = await tester.testGetAmountRequired('100000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(usdcAmount).to.be.eq(1500000000)
       })
@@ -417,13 +417,13 @@ describe('TraderVaultLib', function () {
         const usdcAmount = await tester.testGetAmountRequired('100000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         await tester.testUpdateUsdcPosition(usdcAmount)
         const usdcAmount2 = await tester.testGetAmountRequired('100000000', {
           spotPrice: '110000000000',
           tradePrices: ['12100000000', '110000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         expect(usdcAmount2).to.be.eq(-1785000000)
       })
@@ -437,7 +437,7 @@ describe('TraderVaultLib', function () {
         const usdcAmount = await tester.testGetAmountRequired('100000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         await tester.testUpdateUsdcPosition(usdcAmount)
       })
@@ -447,7 +447,7 @@ describe('TraderVaultLib', function () {
           await tester.testCheckVaultIsLiquidatable({
             spotPrice: '95000000000',
             tradePrices: ['9025000000', '95000000000'],
-            amountFundingFeesPerPosition: [0, 0],
+            amountsFundingPaidPerPosition: [0, 0],
           }),
         ).to.be.true
       })
@@ -457,7 +457,7 @@ describe('TraderVaultLib', function () {
           await tester.testCheckVaultIsLiquidatable({
             spotPrice: '100000000000',
             tradePrices: ['10000000000', '100000000000'],
-            amountFundingFeesPerPosition: [100, 100],
+            amountsFundingPaidPerPosition: [100, 100],
           }),
         ).to.be.true
       })
@@ -467,7 +467,7 @@ describe('TraderVaultLib', function () {
           await tester.testCheckVaultIsLiquidatable({
             spotPrice: '100000000000',
             tradePrices: ['10000000000', '100000000000'],
-            amountFundingFeesPerPosition: [0, 0],
+            amountsFundingPaidPerPosition: [0, 0],
           }),
         ).to.be.false
       })
@@ -481,7 +481,7 @@ describe('TraderVaultLib', function () {
         const usdcAmount = await tester.testGetAmountRequired('100000000', {
           spotPrice: '95000000000',
           tradePrices: ['9025000000', '95000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         await tester.testUpdateUsdcPosition(usdcAmount)
       })
@@ -491,7 +491,7 @@ describe('TraderVaultLib', function () {
           await tester.testCheckVaultIsLiquidatable({
             spotPrice: '100000000000',
             tradePrices: ['10000000000', '100000000000'],
-            amountFundingFeesPerPosition: [0, 0],
+            amountsFundingPaidPerPosition: [0, 0],
           }),
         ).to.be.false
       })
@@ -501,7 +501,7 @@ describe('TraderVaultLib', function () {
           await tester.testCheckVaultIsLiquidatable({
             spotPrice: '100000000000',
             tradePrices: ['10000000000', '100000000000'],
-            amountFundingFeesPerPosition: [0, 0],
+            amountsFundingPaidPerPosition: [0, 0],
           }),
         ).to.be.false
       })
@@ -515,12 +515,16 @@ describe('TraderVaultLib', function () {
         const usdcAmount = await tester.testGetAmountRequired('100000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         await tester.testUpdateUsdcPosition(usdcAmount)
       })
 
-      it('liquidate a vault', async function () {
+      it('reverts if there are positions', async function () {
+        await expect(tester.testSetInsolvencyFlagIfNeeded()).to.be.reverted
+      })
+
+      it('vault is not insolvent', async function () {
         await tester.testUpdateVault(0, SQEETH_PRODUCT_ID, '-100000000', '10000000000', '0')
 
         await tester.testSetInsolvencyFlagIfNeeded()
@@ -528,7 +532,7 @@ describe('TraderVaultLib', function () {
         expect((await tester.traderVault()).isInsolvent).to.be.false
       })
 
-      it('liquidate a vault', async function () {
+      it('vault is insolvent', async function () {
         await tester.testUpdateVault(0, SQEETH_PRODUCT_ID, '-100000000', '8000000000', '0')
 
         await tester.testSetInsolvencyFlagIfNeeded()
@@ -545,12 +549,12 @@ describe('TraderVaultLib', function () {
         const usdcAmount = await tester.testGetAmountRequired('100000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [0, 0],
+          amountsFundingPaidPerPosition: [0, 0],
         })
         await tester.testUpdateUsdcPosition(usdcAmount)
       })
 
-      it('liquidate a vault', async function () {
+      it('vault is not insolvent', async function () {
         await tester.testUpdateVault(0, SQEETH_PRODUCT_ID, '-50000000', '10000000000', '0')
         await tester.testUpdateVault(1, SQEETH_PRODUCT_ID, '-50000000', '10000000000', '0')
 
@@ -559,7 +563,7 @@ describe('TraderVaultLib', function () {
         expect((await tester.traderVault()).isInsolvent).to.be.false
       })
 
-      it('liquidate a vault', async function () {
+      it('vault is insolvent', async function () {
         await tester.testUpdateVault(0, SQEETH_PRODUCT_ID, '-50000000', '8000000000', '0')
         await tester.testUpdateVault(1, SQEETH_PRODUCT_ID, '-50000000', '8000000000', '0')
 

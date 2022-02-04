@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/IPerpetualMarketCore.sol";
 import "./Math.sol";
 import "./EntryPriceMath.sol";
-import "hardhat/console.sol";
 
 /**
  * @title TraderVaultLib
@@ -306,7 +305,7 @@ library TraderVaultLib {
     ) internal pure returns (int256) {
         return
             getTotalPerpetualValueOfSubVault(_subVault, _tradePriceInfo).add(
-                getTotalFundingFeePaidOfSubVault(_subVault, _tradePriceInfo.amountFundingFeesPerPosition)
+                getTotalFundingFeePaidOfSubVault(_subVault, _tradePriceInfo.amountsFundingPaidPerPosition)
             );
     }
 
@@ -354,18 +353,17 @@ library TraderVaultLib {
      * @notice Gets total funding fee in the sub-vault
      * TotalFundingFeePaidOfSubVault = Σ(FundingFeePaidOfSubVault_i)
      * @param _subVault sub-vault object
-     * @param _amountFundingFeesPerPosition cumulative funding fee per position
+     * @param _amountsFundingPaidPerPosition the cumulative funding fee paid by long per position
      * @return TotalFundingFeePaidOfSubVault scaled by 1e8
      */
-    function getTotalFundingFeePaidOfSubVault(SubVault memory _subVault, int128[2] memory _amountFundingFeesPerPosition)
-        internal
-        pure
-        returns (int256)
-    {
+    function getTotalFundingFeePaidOfSubVault(
+        SubVault memory _subVault,
+        int128[2] memory _amountsFundingPaidPerPosition
+    ) internal pure returns (int256) {
         int256 fundingFee;
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
-            fundingFee = fundingFee.add(getFundingFeePaidOfSubVault(_subVault, i, _amountFundingFeesPerPosition));
+            fundingFee = fundingFee.add(getFundingFeePaidOfSubVault(_subVault, i, _amountsFundingPaidPerPosition));
         }
 
         return fundingFee;
@@ -373,18 +371,18 @@ library TraderVaultLib {
 
     /**
      * @notice Gets funding fee in the sub-vault
-     * FundingFeePaidOfSubVault_i = FundingEntryValue_i - Position_i*cumFundingGlobal_i
+     * FundingFeePaidOfSubVault_i = Position_i*(EntryFundingFee_i - FundingFeeGlobal_i)
      * @param _subVault sub-vault object
      * @param _productId product id
-     * @param _amountFundingFeesPerPosition cumulative funding fee per position
+     * @param _amountsFundingPaidPerPosition cumulative funding fee paid by long per position.
      * @return FundingFeePaidOfSubVault_i scaled by 1e8
      */
     function getFundingFeePaidOfSubVault(
         SubVault memory _subVault,
         uint256 _productId,
-        int128[2] memory _amountFundingFeesPerPosition
+        int128[2] memory _amountsFundingPaidPerPosition
     ) internal pure returns (int256) {
-        int256 fundingFee = _subVault.entryFundingFee[_productId].sub(_amountFundingFeesPerPosition[_productId]).mul(
+        int256 fundingFee = _subVault.entryFundingFee[_productId].sub(_amountsFundingPaidPerPosition[_productId]).mul(
             _subVault.positionPerpetuals[_productId]
         );
 
