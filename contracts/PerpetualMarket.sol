@@ -331,6 +331,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
         /// Update variance before hedging
         perpetualMarketCore.updatePoolSnapshot();
 
+        // execute funding payment
+        perpetualMarketCore.executeFundingPayment();
+
         NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
 
         perpetualMarketCore.completeHedgingProcedure(completeParams);

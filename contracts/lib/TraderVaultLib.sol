@@ -28,6 +28,7 @@ import "./EntryPriceMath.sol";
  *  T1: PositionValue must be less than MinCollateral
  *  T2: Vault is insolvent
  *  T3: subVaultIndex is too large
+ *  T4: ratio is too large
  */
 library TraderVaultLib {
     using SafeCast for int256;
@@ -69,6 +70,7 @@ library TraderVaultLib {
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal view returns (int256 amount) {
         require(!_traderVault.isInsolvent, "T2");
+        require(_ratio <= 1e8, "T4");
 
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
         int256 minCollateral = getMinCollateral(_traderVault, _tradePriceInfo.spotPrice);
