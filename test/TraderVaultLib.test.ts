@@ -2,6 +2,7 @@ import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { TraderVaultLibTester } from '../typechain'
 import { FUTURE_PRODUCT_ID, SQEETH_PRODUCT_ID } from './utils/constants'
+import { scaledBN } from './utils/helpers'
 
 describe('TraderVaultLib', function () {
   let tester: TraderVaultLibTester
@@ -302,6 +303,8 @@ describe('TraderVaultLib', function () {
   })
 
   describe('liquidate', () => {
+    const liquidationFee = 2000
+
     describe('single sub-vault', () => {
       beforeEach(async () => {
         await tester.testUpdateVault(0, SQEETH_PRODUCT_ID, '100000000', '10000000000', '0')
@@ -315,43 +318,55 @@ describe('TraderVaultLib', function () {
 
       it('reverts if position value is greater than min collateral', async function () {
         await expect(
-          tester.testLiquidate({
-            spotPrice: '100000000000',
-            tradePrices: ['10000000000', '100000000000'],
-            amountFundingFeesPerPosition: [0, 0],
-          }),
+          tester.testLiquidate(
+            {
+              spotPrice: '100000000000',
+              tradePrices: ['10000000000', '100000000000'],
+              amountFundingFeesPerPosition: [0, 0],
+            },
+            liquidationFee,
+          ),
         ).to.be.revertedWith('T1')
 
         expect((await tester.traderVault()).positionUsdc).to.be.eq(1500000000)
       })
 
       it('liquidate a vault', async function () {
-        await tester.testLiquidate({
-          spotPrice: '95000000000',
-          tradePrices: ['9025000000', '95000000000'],
-          amountFundingFeesPerPosition: [0, 0],
-        })
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(1237500000)
+        await tester.testLiquidate(
+          {
+            spotPrice: '95000000000',
+            tradePrices: ['9025000000', '95000000000'],
+            amountFundingFeesPerPosition: [0, 0],
+          },
+          liquidationFee,
+        )
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(1395000000)
       })
 
       it('vault is insolvency', async function () {
-        await tester.testLiquidate({
-          spotPrice: '90000000000',
-          tradePrices: ['8100000000', '90000000000'],
-          amountFundingFeesPerPosition: [0, 0],
-        })
+        await tester.testLiquidate(
+          {
+            spotPrice: '90000000000',
+            tradePrices: ['8100000000', '90000000000'],
+            amountFundingFeesPerPosition: [0, 0],
+          },
+          liquidationFee,
+        )
         const traderVault = await tester.traderVault()
-        expect(traderVault.positionUsdc).to.be.eq(1500000000)
+        expect(traderVault.positionUsdc).to.be.eq(0)
         expect(traderVault.isInsolvent).to.be.eq(true)
       })
 
       it('position value is decreased by funding fee', async function () {
-        await tester.testLiquidate({
-          spotPrice: '100000000000',
-          tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [100, 100],
-        })
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(750000050)
+        await tester.testLiquidate(
+          {
+            spotPrice: '100000000000',
+            tradePrices: ['10000000000', '100000000000'],
+            amountFundingFeesPerPosition: [100, 100],
+          },
+          liquidationFee,
+        )
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(1200000020)
       })
     })
 
@@ -370,43 +385,55 @@ describe('TraderVaultLib', function () {
 
       it('reverts if position value is greater than min collateral', async function () {
         await expect(
-          tester.testLiquidate({
-            spotPrice: '100000000000',
-            tradePrices: ['10000000000', '100000000000'],
-            amountFundingFeesPerPosition: [0, 0],
-          }),
+          tester.testLiquidate(
+            {
+              spotPrice: '100000000000',
+              tradePrices: ['10000000000', '100000000000'],
+              amountFundingFeesPerPosition: [0, 0],
+            },
+            liquidationFee,
+          ),
         ).to.be.revertedWith('T1')
 
         expect((await tester.traderVault()).positionUsdc).to.be.eq(1500000000)
       })
 
       it('liquidate a vault', async function () {
-        await tester.testLiquidate({
-          spotPrice: '95000000000',
-          tradePrices: ['9025000000', '95000000000'],
-          amountFundingFeesPerPosition: [0, 0],
-        })
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(1237500000)
+        await tester.testLiquidate(
+          {
+            spotPrice: '95000000000',
+            tradePrices: ['9025000000', '95000000000'],
+            amountFundingFeesPerPosition: [0, 0],
+          },
+          liquidationFee,
+        )
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(1395000000)
       })
 
       it('vault is insolvency', async function () {
-        await tester.testLiquidate({
-          spotPrice: '90000000000',
-          tradePrices: ['8100000000', '90000000000'],
-          amountFundingFeesPerPosition: [0, 0],
-        })
+        await tester.testLiquidate(
+          {
+            spotPrice: '90000000000',
+            tradePrices: ['8100000000', '90000000000'],
+            amountFundingFeesPerPosition: [0, 0],
+          },
+          liquidationFee,
+        )
         const traderVault = await tester.traderVault()
-        expect(traderVault.positionUsdc).to.be.eq(1500000000)
+        expect(traderVault.positionUsdc).to.be.eq(0)
         expect(traderVault.isInsolvent).to.be.eq(true)
       })
 
       it('position value is decreased by funding fee', async function () {
-        await tester.testLiquidate({
-          spotPrice: '100000000000',
-          tradePrices: ['10000000000', '100000000000'],
-          amountFundingFeesPerPosition: [1000, 1000],
-        })
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(750000500)
+        await tester.testLiquidate(
+          {
+            spotPrice: '100000000000',
+            tradePrices: ['10000000000', '100000000000'],
+            amountFundingFeesPerPosition: [1000, 1000],
+          },
+          liquidationFee,
+        )
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(1200000200)
       })
     })
   })

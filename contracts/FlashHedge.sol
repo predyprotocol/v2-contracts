@@ -36,6 +36,8 @@ contract FlashHedge is BaseFlashSwap {
         FLASH_HEDGE_BUY
     }
 
+    event HedgeOnUniswap(address indexed hedger, uint256 hedgeTimestamp, uint256 minUsdc);
+
     constructor(
         address _collateral,
         address _underlying,
@@ -126,5 +128,7 @@ contract FlashHedge is BaseFlashSwap {
                 abi.encodePacked(amountUsdc, amountEth, _minUsdc)
             );
         }
+
+        emit HedgeOnUniswap(msg.sender, block.timestamp, _minUsdc);
     }
 }

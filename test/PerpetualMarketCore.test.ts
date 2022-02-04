@@ -348,4 +348,104 @@ describe('PerpetualMarketCore', function () {
       })
     })
   })
+
+  describe('setSquaredPerpFundingMultiplier', () => {
+    it('set squaredPerpFundingMultiplier', async () => {
+      await expect(perpetualMarketCore.setSquaredPerpFundingMultiplier(10))
+        .to.be.emit(perpetualMarketCore, 'SetSquaredPerpFundingMultiplier')
+        .withArgs(10)
+    })
+
+    it('reverts if caller is not owner', async () => {
+      await expect(perpetualMarketCore.connect(other).setSquaredPerpFundingMultiplier(10)).to.be.reverted
+    })
+
+    it('reverts if value is negative', async () => {
+      await expect(perpetualMarketCore.setSquaredPerpFundingMultiplier(-1)).to.be.reverted
+    })
+
+    it('reverts if value is greater than 200 * 1e6', async () => {
+      await expect(perpetualMarketCore.setSquaredPerpFundingMultiplier(scaledBN(200, 6).add(1))).to.be.reverted
+    })
+  })
+
+  describe('setPerpFutureMaxFundingRate', () => {
+    it('set perpFutureMaxFundingRate', async () => {
+      await expect(perpetualMarketCore.setPerpFutureMaxFundingRate(10))
+        .to.be.emit(perpetualMarketCore, 'SetPerpFutureMaxFundingRate')
+        .withArgs(10)
+    })
+
+    it('reverts if caller is not owner', async () => {
+      await expect(perpetualMarketCore.connect(other).setPerpFutureMaxFundingRate(10)).to.be.reverted
+    })
+
+    it('reverts if value is negative', async () => {
+      await expect(perpetualMarketCore.setPerpFutureMaxFundingRate(-1)).to.be.reverted
+    })
+
+    it('reverts if value is greater than 1 * 1e6', async () => {
+      await expect(perpetualMarketCore.setPerpFutureMaxFundingRate(scaledBN(1, 6).add(1))).to.be.reverted
+    })
+  })
+
+  describe('setHedgeParams', () => {
+    it('set hedge params', async () => {
+      await expect(perpetualMarketCore.setHedgeParams(10, 20, 30))
+        .to.be.emit(perpetualMarketCore, 'SetHedgeParams')
+        .withArgs(10, 20, 30)
+    })
+
+    it('reverts if caller is not owner', async () => {
+      await expect(perpetualMarketCore.connect(other).setHedgeParams(10, 20, 30)).to.be.reverted
+    })
+
+    it('reverts if value is negative', async () => {
+      await expect(perpetualMarketCore.setHedgeParams(10, 20, -1)).to.be.reverted
+    })
+
+    it('reverts if slippageTolerance is greater than 200', async () => {
+      await expect(perpetualMarketCore.setHedgeParams(10, 300, 100)).to.be.revertedWith('PMC5')
+    })
+
+    it('reverts if min is greater than max', async () => {
+      await expect(perpetualMarketCore.setHedgeParams(20, 10, 100)).to.be.revertedWith('PMC5')
+    })
+  })
+
+  describe('setPoolCollateralRiskParam', () => {
+    it('set poolCollateralRiskParam', async () => {
+      await expect(perpetualMarketCore.setPoolCollateralRiskParam(10))
+        .to.be.emit(perpetualMarketCore, 'SetPoolCollateralRiskParam')
+        .withArgs(10)
+    })
+
+    it('reverts if caller is not owner', async () => {
+      await expect(perpetualMarketCore.connect(other).setPoolCollateralRiskParam(10)).to.be.reverted
+    })
+
+    it('reverts if value is negative', async () => {
+      await expect(perpetualMarketCore.setPoolCollateralRiskParam(-1)).to.be.reverted
+    })
+  })
+
+  describe('setTradeFeeRate', () => {
+    it('set trade fee', async () => {
+      await expect(perpetualMarketCore.setTradeFeeRate(20, 10))
+        .to.be.emit(perpetualMarketCore, 'SetTradeFeeRate')
+        .withArgs(20, 10)
+    })
+
+    it('reverts if caller is not owner', async () => {
+      await expect(perpetualMarketCore.connect(other).setTradeFeeRate(20, 10)).to.be.reverted
+    })
+
+    it('reverts if value is negative', async () => {
+      await expect(perpetualMarketCore.setTradeFeeRate(-1, -1)).to.be.reverted
+    })
+
+    it('reverts if trade fee rate is less than protocol fee rate', async () => {
+      await expect(perpetualMarketCore.setTradeFeeRate(10, 20)).to.be.revertedWith('PMC5')
+    })
+  })
 })

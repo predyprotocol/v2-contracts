@@ -46,8 +46,8 @@ contract TraderVaultLibTester {
         TraderVaultLib.updateUsdcPosition(traderVault, _amount);
     }
 
-    function testLiquidate(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo) external {
-        r = int128(TraderVaultLib.liquidate(traderVault, _tradePriceInfo));
+    function testLiquidate(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo, int256 liquidationFee) external {
+        r = int128(TraderVaultLib.liquidate(traderVault, _tradePriceInfo, liquidationFee));
     }
 
     function getMinCollateral(uint128 _spot) external view returns (int256) {
