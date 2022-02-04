@@ -72,7 +72,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         uint128 amountLockedLiquidity;
         int128 positionPerpetuals;
         uint128 entryPrice;
-        int128 amountFundingFeePerPosition;
+        int128 amountFundingPaidPerPosition;
         uint128 lastTradeTime;
     }
 
@@ -270,19 +270,19 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         pools[_productId].lastTradeTime = uint128(block.timestamp);
 
         {
-            (uint256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
-                pools[_productId].entryPrice,
+            (int256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
+                int256(pools[_productId].entryPrice),
                 pools[_productId].positionPerpetuals.add(_tradeAmount),
-                tradePrice,
+                int256(tradePrice),
                 -_tradeAmount
             );
 
-            pools[_productId].entryPrice = newEntryPrice.toUint128();
+            pools[_productId].entryPrice = newEntryPrice.toUint256().toUint128();
 
             amountLiquidity = Math.addDelta(amountLiquidity, profitValue - protocolFee.toInt256());
         }
 
-        return (tradePrice, pools[_productId].amountFundingFeePerPosition.mul(_tradeAmount), protocolFee);
+        return (tradePrice, pools[_productId].amountFundingPaidPerPosition, protocolFee);
     }
 
     /**
@@ -487,14 +487,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         int256[2] memory tradePrices;
-        int128[2] memory cumFundingFeePerPositionGlobals;
+        int128[2] memory amountFundingPaidPerPositionGlobals;
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
             (tradePrices[i], , , , ) = calculateTradePriceReadOnly(i, spotPrice, -amountAssets[i], 0);
-            cumFundingFeePerPositionGlobals[i] = pools[i].amountFundingFeePerPosition;
+            amountFundingPaidPerPositionGlobals[i] = pools[i].amountFundingPaidPerPosition;
         }
 
-        return TradePriceInfo(uint128(spotPrice), tradePrices, cumFundingFeePerPositionGlobals);
+        return TradePriceInfo(uint128(spotPrice), tradePrices, amountFundingPaidPerPositionGlobals);
     }
 
     /////////////////////////
@@ -503,7 +503,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
 
     /**
      * @notice Executes funding payment
-     * FundingPerPosition = Price * FundingRate * (T-t) / 1 days
+     * FundingPaidPerPosition = Price * FundingRate * (T-t) / 1 days
+     * FundingPaidPerPosition is the cumulative funding fee paid by long per position.
      */
     function executeFundingPayment(uint256 _productId, int256 _spotPrice) internal {
         if (pools[_productId].lastTradeTime == 0) {
@@ -520,8 +521,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
             (fundingFeePerPosition * int128(uint128(block.timestamp) - pools[_productId].lastTradeTime)) /
             FUNDING_PERIOD;
 
-        pools[_productId].amountFundingFeePerPosition = pools[_productId]
-            .amountFundingFeePerPosition
+        pools[_productId].amountFundingPaidPerPosition = pools[_productId]
+            .amountFundingPaidPerPosition
             .add(fundingFeePerPosition)
             .toInt128();
 
