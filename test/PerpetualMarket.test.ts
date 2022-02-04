@@ -531,7 +531,7 @@ describe('PerpetualMarket', function () {
         })
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-1921')
+        expect(after.sub(before)).to.be.eq('-1922')
       })
     })
 
@@ -624,7 +624,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-101900')
+        expect(after.sub(before)).to.be.eq('-101901')
       })
     })
 
@@ -694,7 +694,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-77020')
+        expect(after.sub(before)).to.be.eq('-100002020')
       })
 
       it('close Future', async () => {
@@ -719,7 +719,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-3520')
+        expect(after.sub(before)).to.be.eq('-100002020')
       })
 
       it('close positions with price move', async () => {
@@ -849,7 +849,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-100019')
+        expect(after.sub(before)).to.be.eq('-100020')
       })
 
       it('price becomes low and close positions', async () => {
@@ -1089,7 +1089,7 @@ describe('PerpetualMarket', function () {
     const subVaultIndex = 0
 
     beforeEach(async () => {
-      const amount = scaledBN(5000, 6)
+      const amount = scaledBN(50000, 6)
 
       await perpetualMarket.initialize(amount, scaledBN(2, 5))
 
@@ -1102,14 +1102,14 @@ describe('PerpetualMarket', function () {
 
     it('get min collateral of the vault that has no positions', async () => {
       expect(
-        await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(1, 8), 0], scaledBN(1000, 8)),
-      ).to.be.eq(1500000000)
+        await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(10, 8), 0], scaledBN(1000, 8)),
+      ).to.be.eq(15000000000)
     })
 
     it('get min collateral with $2,000 spot price', async () => {
       expect(
-        await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(1, 8), 0], scaledBN(2000, 8)),
-      ).to.be.eq(6000000000)
+        await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(10, 8), 0], scaledBN(2000, 8)),
+      ).to.be.eq(60000000000)
     })
 
     it('get min collateral of squared perpetual and perpetual future', async () => {
@@ -1117,10 +1117,10 @@ describe('PerpetualMarket', function () {
         await perpetualMarket.getMinCollateral(
           wallet.address,
           vaultId,
-          [scaledBN(1, 8), scaledBN(-1, 8)],
+          [scaledBN(10, 8), scaledBN(-10, 8)],
           scaledBN(1000, 8),
         ),
-      ).to.be.eq(6000000000)
+      ).to.be.eq(60000000000)
     })
 
     it('get min collateral of squared perpetual and perpetual future with $2,000 spot price', async () => {
@@ -1128,17 +1128,17 @@ describe('PerpetualMarket', function () {
         await perpetualMarket.getMinCollateral(
           wallet.address,
           vaultId,
-          [scaledBN(1, 8), scaledBN(-1, 8)],
+          [scaledBN(10, 8), scaledBN(-10, 8)],
           scaledBN(2000, 8),
         ),
-      ).to.be.eq(9000000000)
+      ).to.be.eq(90000000000)
     })
 
     it('get min collateral of the vault that has positions', async () => {
       await perpetualMarket.openPositions({
         vaultId,
         subVaultIndex,
-        tradeAmounts: [scaledBN(1, 8), 0],
+        tradeAmounts: [scaledBN(10, 8), 0],
         collateralRatio: scaledBN(1, 8),
         limitPrices: [0, 0],
         deadline: 0,
@@ -1146,7 +1146,7 @@ describe('PerpetualMarket', function () {
 
       expect(
         await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(1, 8), 0], scaledBN(1000, 8)),
-      ).to.be.eq(3000000000)
+      ).to.be.eq(16500000000)
     })
   })
 
