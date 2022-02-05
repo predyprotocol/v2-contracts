@@ -349,7 +349,13 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable 
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
-        emit Hedged(msg.sender, completeParams.isLong, amountUsdc, amountUnderlying, completeParams.deltas);
+        emit Hedged(
+            msg.sender,
+            completeParams.isLong,
+            amountUsdc,
+            amountUnderlying,
+            completeParams.amountsRequiredUnderlying
+        );
     }
 
     /**

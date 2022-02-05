@@ -95,6 +95,11 @@ describe('FlashHedge', function () {
       const after = await usdc.balanceOf(wallet.address)
 
       expect(after.sub(before)).to.be.gt(0)
+
+      // net delta must be neutral
+      const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
+      expect(tokenAmounts[1]).to.be.eq(0)
+      expect(tokenAmounts[2]).to.be.eq(0)
     })
 
     it('reverts if net delta is positive', async () => {
@@ -107,7 +112,7 @@ describe('FlashHedge', function () {
         deadline: 0,
       })
 
-      await expect(flashHedge.hedgeOnUniswap(0)).to.be.revertedWith('PMC4')
+      await expect(flashHedge.hedgeOnUniswap(0)).to.be.revertedWith('FH3')
     })
 
     it('reverts if ETH price in Uniswap is too high', async () => {
@@ -171,6 +176,45 @@ describe('FlashHedge', function () {
         await testContractHelper.updateSpot(scaledBN(101, 8))
 
         await expect(flashHedge.hedgeOnUniswap(0)).to.be.revertedWith('FH0')
+      })
+    })
+
+    describe('net delta is negative because the pool has short perpetual future positions', () => {
+      beforeEach(async () => {
+        await perpetualMarket.openPositions({
+          vaultId,
+          subVaultIndex,
+          tradeAmounts: [0, scaledBN(1, 6)],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+
+        await perpetualMarket.execHedge()
+
+        await increaseTime(60 * 60 * 12)
+      })
+
+      it('net delta is positive and sell all ETH to hedge', async () => {
+        await perpetualMarket.openPositions({
+          vaultId,
+          subVaultIndex,
+          tradeAmounts: [0, scaledBN(-2, 6)],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+
+        const before = await usdc.balanceOf(wallet.address)
+        await flashHedge.hedgeOnUniswap(0)
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.gt(0)
+
+        // net delta must be neutral
+        const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
+        expect(tokenAmounts[1]).to.be.eq(0)
+        expect(tokenAmounts[2]).to.be.eq(0)
       })
     })
   })

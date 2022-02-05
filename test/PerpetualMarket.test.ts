@@ -922,7 +922,7 @@ describe('PerpetualMarket', function () {
       expect(afterTokenAmounts[2]).to.be.eq(0)
     })
 
-    it('reverts if net delta is positive', async () => {
+    it('nothing happens if net delta is positive', async () => {
       await perpetualMarket.openPositions({
         vaultId,
         subVaultIndex,
@@ -932,7 +932,11 @@ describe('PerpetualMarket', function () {
         deadline: 0,
       })
 
-      await expect(perpetualMarket.execHedge()).to.be.revertedWith('PMC4')
+      const before = await usdc.balanceOf(wallet.address)
+      await perpetualMarket.execHedge()
+      const after = await usdc.balanceOf(wallet.address)
+
+      expect(after.sub(before)).to.be.eq(0)
     })
 
     describe('net delta is negative', () => {

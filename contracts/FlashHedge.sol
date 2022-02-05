@@ -12,6 +12,7 @@ import "./base/BaseFlashSwap.sol";
  * FH0: no enough usdc amount
  * FH1: no enough usdc amount
  * FH2: profit is less than minUsdc
+ * FH3: amounts must not be 0
  */
 contract FlashHedge is BaseFlashSwap {
     using LowGasSafeMath for uint256;
@@ -106,6 +107,8 @@ contract FlashHedge is BaseFlashSwap {
      */
     function hedgeOnUniswap(uint256 _minUsdc) external {
         (bool isBuyingETH, uint256 amountUsdc, uint256 amountEth) = perpetualMarket.getTokenAmountForHedging();
+
+        require(amountUsdc > 0 && amountEth > 0, "FH3");
 
         if (isBuyingETH) {
             _exactOutFlashSwap(

@@ -313,7 +313,7 @@ describe('PerpetualMarketCore', function () {
           amountUsdc: beforeTokenAmounts[0],
           amountUnderlying: beforeTokenAmounts[1],
           isLong: true,
-          deltas: beforeTokenAmounts.deltas,
+          amountsRequiredUnderlying: beforeTokenAmounts.amountsRequiredUnderlying,
         })
 
         await updateSpot(scaledBN(1000, 8))
@@ -334,7 +334,7 @@ describe('PerpetualMarketCore', function () {
           amountUsdc: beforeTokenAmounts[0],
           amountUnderlying: beforeTokenAmounts[1],
           isLong: true,
-          deltas: beforeTokenAmounts.deltas,
+          amountsRequiredUnderlying: beforeTokenAmounts.amountsRequiredUnderlying,
         })
 
         await updateSpot(scaledBN(1000, 8))
