@@ -22,13 +22,21 @@ contract NettingLibTester {
         return NettingLib.addCollateral(info, _productId, _params);
     }
 
+    function getRequiredTokenAmountsForHedge(
+        int128[2] memory _amountsUnderlying,
+        int256[2] memory _deltas,
+        int256 _spotPrice
+    ) external pure returns (NettingLib.CompleteParams memory) {
+        return NettingLib.getRequiredTokenAmountsForHedge(_amountsUnderlying, _deltas, _spotPrice);
+    }
+
     function complete(NettingLib.CompleteParams memory _params) external {
         NettingLib.complete(info, _params);
     }
 
     function getRequiredCollateral(uint256 _productId, NettingLib.AddCollateralParams memory _params)
         external
-        view
+        pure
         returns (int256)
     {
         return NettingLib.getRequiredCollateral(_productId, _params);

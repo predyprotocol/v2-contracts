@@ -297,19 +297,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
             pools[1].positionPerpetuals
         );
 
-        require(sqeethPoolDelta.add(futurePoolDelta) <= 0, "PMC4");
+        int256[2] memory deltas;
 
-        completeParams.deltas[0] = sqeethPoolDelta;
-        completeParams.deltas[1] = futurePoolDelta;
+        deltas[0] = sqeethPoolDelta;
+        deltas[1] = futurePoolDelta;
 
-        // 1. Calculate net delta
-        int256 netDelta = sqeethPoolDelta.add(futurePoolDelta).add(nettingInfo.getTotalUnderlyingPosition());
-
-        completeParams.isLong = netDelta < 0;
-
-        // 2. Calculate USDC and ETH amounts.
-        completeParams.amountUnderlying = Math.abs(netDelta);
-        completeParams.amountUsdc = (Math.abs(netDelta).mul(uint128(spotPrice))) / 1e8;
+        completeParams = NettingLib.getRequiredTokenAmountsForHedge(nettingInfo.amountsUnderlying, deltas, spotPrice);
 
         uint256 slippageTolerance = calculateSlippageToleranceForHedging(spotPrice);
 

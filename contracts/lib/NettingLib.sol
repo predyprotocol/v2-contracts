@@ -9,10 +9,9 @@ import "./Math.sol";
 /**
  * @title NettingLib
  * Error codes
- * N0: unknown product id
+ * N0: Unknown product id
  * N1: Total delta must be greater than 0
- * N2: Total delta must not be 0
- * N3: Net delta must be negative
+ * N2: No enough USDC
  */
 library NettingLib {
     using SafeCast for int256;
@@ -34,7 +33,7 @@ library NettingLib {
     struct CompleteParams {
         uint256 amountUsdc;
         uint256 amountUnderlying;
-        int256[2] deltas;
+        int256[2] amountsRequiredUnderlying;
         bool isLong;
     }
 
@@ -70,24 +69,63 @@ library NettingLib {
             .toUint128();
     }
 
+    function getRequiredTokenAmountsForHedge(
+        int128[2] memory _amountsUnderlying,
+        int256[2] memory _deltas,
+        int256 _spotPrice
+    ) internal pure returns (CompleteParams memory completeParams) {
+        completeParams.amountsRequiredUnderlying[0] = -_amountsUnderlying[0] - _deltas[0];
+        completeParams.amountsRequiredUnderlying[1] = -_amountsUnderlying[1] - _deltas[1];
+
+        int256 totalUnderlyingPosition = getTotalUnderlyingPosition(_amountsUnderlying);
+
+        // 1. Calculate required amount of underlying token
+        int256 requiredUnderlyingAmount;
+        {
+            // required amount is -(net delta)
+            requiredUnderlyingAmount = -_deltas[0].add(_deltas[1]).add(totalUnderlyingPosition);
+
+            if (_deltas[0].add(_deltas[1]) > 0) {
+                // if pool delta is positive
+                requiredUnderlyingAmount = -totalUnderlyingPosition;
+
+                completeParams.amountsRequiredUnderlying[1] = -_amountsUnderlying[1] + _deltas[0];
+            }
+
+            completeParams.isLong = requiredUnderlyingAmount > 0;
+        }
+
+        // 2. Calculate USDC and ETH amounts.
+        completeParams.amountUnderlying = Math.abs(requiredUnderlyingAmount);
+        completeParams.amountUsdc = (Math.abs(requiredUnderlyingAmount).mul(uint128(_spotPrice))) / 1e8;
+
+        return completeParams;
+    }
+
     /**
      * @notice Completes delta hedging procedure
      * and calculate entry price of hedge position
      */
     function complete(Info storage _info, CompleteParams memory _params) internal {
-        int256 netDelta = _params.deltas[0] + _params.deltas[1];
-        uint256 totalDelta = Math.abs(_params.deltas[0]).add(Math.abs(_params.deltas[1]));
+        uint256 totalUnderlying = Math.abs(_params.amountsRequiredUnderlying[0]).add(
+            Math.abs(_params.amountsRequiredUnderlying[1])
+        );
 
-        require(totalDelta > 0, "N2");
-        require(netDelta <= 0, "N3");
+        require(totalUnderlying > 0, "N1");
 
         for (uint256 i = 0; i < 2; i++) {
-            _info.amountsUnderlying[i] = -_params.deltas[i].toInt128();
+            _info.amountsUnderlying[i] = _info
+                .amountsUnderlying[i]
+                .add(_params.amountsRequiredUnderlying[i])
+                .toInt128();
 
             {
-                uint256 deltaUsdcAmount = (_params.amountUsdc.mul(Math.abs(_params.deltas[i]))).div(totalDelta);
+                uint256 deltaUsdcAmount = (_params.amountUsdc.mul(Math.abs(_params.amountsRequiredUnderlying[i]))).div(
+                    totalUnderlying
+                );
 
                 if (_params.isLong) {
+                    require(_info.amountsUsdc[i] >= deltaUsdcAmount, "N2");
                     _info.amountsUsdc[i] = _info.amountsUsdc[i].sub(deltaUsdcAmount).toUint128();
                 } else {
                     _info.amountsUsdc[i] = _info.amountsUsdc[i].add(deltaUsdcAmount).toUint128();
@@ -168,9 +206,13 @@ library NettingLib {
         return _info.amountsUsdc[_productId].toInt256().add(hedgeNotional);
     }
 
-    function getTotalUnderlyingPosition(Info memory _info) internal pure returns (int256 underlyingPosition) {
+    function getTotalUnderlyingPosition(int128[2] memory _amountsUnderlying)
+        internal
+        pure
+        returns (int256 underlyingPosition)
+    {
         for (uint256 i = 0; i < 2; i++) {
-            underlyingPosition = underlyingPosition.add(_info.amountsUnderlying[i]);
+            underlyingPosition = underlyingPosition.add(_amountsUnderlying[i]);
         }
 
         return underlyingPosition;
