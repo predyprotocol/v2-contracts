@@ -81,7 +81,7 @@ const config: HardhatUserConfig = {
     },
     optimism: {
       url: `https://optimism-mainnet.infura.io/v3/${InfuraKey}`,
-      gasPrice: 0,
+      gasPrice: 1000000000,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       ovm: true,
