@@ -218,13 +218,12 @@ describe('PerpetualMarket', function () {
     })
 
     it('reverts if withdraw with closing but there are no liquidity', async function () {
-      await perpetualMarket.openLongPosition({
-        productId: poolId,
+      await perpetualMarket.openPositions({
         vaultId: 0,
         subVaultIndex: 0,
         collateralRatio: scaledBN(1, 8),
-        tradeAmount: scaledBN(100, 6),
-        limitPrice: 0,
+        tradeAmounts: [scaledBN(100, 6), 0],
+        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -881,6 +880,67 @@ describe('PerpetualMarket', function () {
         expect(after.sub(before)).to.be.eq('96176')
       })
     })
+
+    describe('multicall', () => {
+      it('reverts multicall tx if a trade reverts', async () => {
+        const data = [
+          {
+            vaultId,
+            subVaultIndex: 0,
+            tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
+            collateralRatio: scaledBN(1, 8),
+            limitPrices: [0, 0],
+            deadline: 0,
+          },
+          {
+            vaultId,
+            subVaultIndex: 1,
+            tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
+            collateralRatio: scaledBN(1, 8),
+            limitPrices: [0, 0],
+            deadline: 1,
+          },
+        ].map((args: any) => perpetualMarket.interface.encodeFunctionData('openPositions', [args]))
+
+        await expect(perpetualMarket.multicall(data)).to.be.reverted
+      })
+
+      it('succeed to execute 2 trade txs', async () => {
+        const data = [
+          {
+            vaultId,
+            subVaultIndex: 0,
+            tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
+            collateralRatio: scaledBN(1, 8),
+            limitPrices: [0, 0],
+            deadline: 0,
+          },
+          {
+            vaultId,
+            subVaultIndex: 1,
+            tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
+            collateralRatio: scaledBN(1, 8),
+            limitPrices: [0, 0],
+            deadline: 0,
+          },
+        ].map((args: any) => perpetualMarket.interface.encodeFunctionData('openPositions', [args]))
+
+        const before = await usdc.balanceOf(wallet.address)
+        await perpetualMarket.multicall(data)
+        const after = await usdc.balanceOf(wallet.address)
+
+        const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
+        const rawVaultData = vaultStatus.rawVaultData
+
+        expect(vaultStatus.minCollateral).to.be.gt(0)
+        expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
+        expect(rawVaultData.positionUsdc).to.be.eq(before.sub(after).mul(100))
+        expect(rawVaultData.subVaults[0].positionPerpetuals[SQEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
+        expect(rawVaultData.subVaults[0].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(-1, 6))
+        expect(rawVaultData.subVaults[1].positionPerpetuals[SQEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
+        expect(rawVaultData.subVaults[1].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(-1, 6))
+      })
+    })
   })
 
   describe('execHedge', () => {
@@ -955,11 +1015,32 @@ describe('PerpetualMarket', function () {
         await increaseTime(60 * 60 * 12)
       })
 
-      it('net delta is increased', async () => {
+      it('net delta increased', async () => {
         await perpetualMarket.openPositions({
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-2, 6), 0],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+
+        const beforeTradePrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000)
+
+        const before = await weth.balanceOf(wallet.address)
+        await perpetualMarket.execHedge()
+        const after = await weth.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.gt(0)
+
+        expect((await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 1000))[0]).to.be.gt(beforeTradePrice[0])
+      })
+
+      it('net delta becomes 0', async () => {
+        await perpetualMarket.openPositions({
+          vaultId,
+          subVaultIndex,
+          tradeAmounts: [scaledBN(-1, 7), 0],
           collateralRatio: scaledBN(1, 8),
           limitPrices: [0, 0],
           deadline: 0,
