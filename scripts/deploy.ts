@@ -1,8 +1,9 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const signer = await ethers.getSigner('0x4f071924D66BBC71A5254217893CC7D49938B1c4')
-  const network = await signer?.provider?.getNetwork()
+  const signers = await ethers.getSigners()
+  const signer = signers[0]
+  const network = await signer.provider?.getNetwork()
 
   console.log('deployer: ', signer.address)
 
@@ -15,8 +16,10 @@ async function main() {
   let wethAddress
   let usdcAddress
   let feePoolAddress
+  let uniswapFactoryAddress
+  let ethUsdcPoolAddress
 
-  const operatorAddress = '0x1c745d31A084a14Ba30E7c9F4B14EA762d44f194'
+  let operatorAddress = '0x1c745d31A084a14Ba30E7c9F4B14EA762d44f194'
 
   console.log(network.name)
 
@@ -30,6 +33,9 @@ async function main() {
     // wethAddress = '0xAD5ce863aE3E4E9394Ab43d4ba0D80f419F61789'
 
     usdcAddress = '0xe22da380ee6b445bb8273c81944adeb6e8450422'
+    operatorAddress = signer.address
+    uniswapFactoryAddress = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+    ethUsdcPoolAddress = '0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8'
   } else if (network.name === 'rinkeby') {
     // rinkeby
     aggregatorAddress = '0x8A753747A1Fa494EC906cE90E9f37563A8AF630e'
@@ -42,10 +48,14 @@ async function main() {
     feePoolAddress = '0x66fBaAd82083716343B9413CAeB77aA13a8053a4'
   }
 
-  if (usdcAddress === undefined || wethAddress === undefined || aggregatorAddress === undefined || feePoolAddress === undefined) {
+  if (usdcAddress === undefined
+    || wethAddress === undefined
+    || aggregatorAddress === undefined
+    || feePoolAddress === undefined
+    || uniswapFactoryAddress === undefined
+    || ethUsdcPoolAddress === undefined) {
     return
   }
-
 
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
   const perpetualMarketCore = await PerpetualMarketCore.deploy(aggregatorAddress)
@@ -61,6 +71,16 @@ async function main() {
   )
   await perpetualMarket.deployed();
   console.log(`PerpetualMarket deployed to ${perpetualMarket.address}`)
+
+  const FlashHedge = await ethers.getContractFactory('FlashHedge')
+  const flashHedge = await FlashHedge.deploy(
+    usdcAddress,
+    wethAddress,
+    perpetualMarket.address,
+    uniswapFactoryAddress,
+    ethUsdcPoolAddress
+  )
+  await flashHedge.deployed();
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
 
