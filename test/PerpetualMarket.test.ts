@@ -195,7 +195,7 @@ describe('PerpetualMarket', function () {
         const afterLPTokenBalance = await perpetualMarket.balanceOf(wallet.address)
         const after = await usdc.balanceOf(perpetualMarket.address)
 
-        expect(beforeLPTokenBalance).to.be.eq(afterLPTokenBalance)
+        expect(beforeLPTokenBalance).to.be.lte(afterLPTokenBalance)
         expect(after.sub(before)).to.be.eq(0)
       })
     })
