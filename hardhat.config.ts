@@ -71,7 +71,7 @@ const config: HardhatUserConfig = {
     },
     kovanOptimism: {
       url: `https://optimism-kovan.infura.io/v3/${InfuraKey}`,
-      gasPrice: 0,
+      gasPrice: 1000000000,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       ovm: true,

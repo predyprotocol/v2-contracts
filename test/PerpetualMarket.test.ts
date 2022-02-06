@@ -450,7 +450,7 @@ describe('PerpetualMarket', function () {
           }),
         )
           .to.emit(perpetualMarket, 'PositionUpdated')
-          .withArgs(wallet.address, vaultId, SQEETH_PRODUCT_ID, scaledBN(1, 6), 100300009, 0)
+          .withArgs(wallet.address, vaultId, subVaultIndex, SQEETH_PRODUCT_ID, scaledBN(1, 6), 100300009, 0)
 
         // Check fee pool received protocol fee
         expect(await usdc.balanceOf(testContractSet.feePool.address)).to.be.gt(0)
@@ -458,22 +458,30 @@ describe('PerpetualMarket', function () {
 
       it('close position', async () => {
         const before = await usdc.balanceOf(wallet.address)
-        await perpetualMarket.openPositions({
-          vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), 0],
-          collateralRatio: scaledBN(1, 8),
-          limitPrices: [0, 0],
-          deadline: 0,
-        })
-        await perpetualMarket.openPositions({
-          vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), 0],
-          collateralRatio: scaledBN(1, 8),
-          limitPrices: [0, 0],
-          deadline: 0,
-        })
+        await expect(
+          perpetualMarket.openPositions({
+            vaultId,
+            subVaultIndex,
+            tradeAmounts: [scaledBN(1, 6), 0],
+            collateralRatio: scaledBN(1, 8),
+            limitPrices: [0, 0],
+            deadline: 0,
+          }),
+        )
+          .to.emit(perpetualMarket, 'DepositedToVault')
+          .withArgs(wallet.address, vaultId, '100000020')
+        await expect(
+          perpetualMarket.openPositions({
+            vaultId,
+            subVaultIndex,
+            tradeAmounts: [scaledBN(-1, 6), 0],
+            collateralRatio: scaledBN(1, 8),
+            limitPrices: [0, 0],
+            deadline: 0,
+          }),
+        )
+          .to.emit(perpetualMarket, 'WithdrawnFromVault')
+          .withArgs(wallet.address, vaultId, '100000000')
         const after = await usdc.balanceOf(wallet.address)
 
         expect(after.sub(before)).to.be.eq('-20')

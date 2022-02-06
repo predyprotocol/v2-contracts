@@ -41,21 +41,17 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     event PositionUpdated(
         address indexed trader,
         uint256 vaultId,
+        uint256 subVaultIndex,
         uint256 productId,
         int256 tradeAmount,
-        uint256 entryPrice,
+        uint256 tradePrice,
         int256 fundingFeePerPosition
     );
-
+    event DepositedToVault(address indexed trader, uint256 vaultId, uint256 amount);
+    event WithdrawnFromVault(address indexed trader, uint256 vaultId, uint256 amount);
     event Liquidated(address liquidator, address indexed vaultOwner, uint256 vaultId);
 
-    event Hedged(
-        address hedger,
-        bool isBuyingUnderlying,
-        uint256 usdcAmount,
-        uint256 underlyingAmount,
-        int256[2] deltas
-    );
+    event Hedged(address hedger, bool isBuyingUnderlying, uint256 usdcAmount, uint256 underlyingAmount);
 
     event SetLiquidationFee(int256 liquidationFee);
 
@@ -164,6 +160,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
                 emit PositionUpdated(
                     msg.sender,
                     _tradeParams.vaultId,
+                    _tradeParams.subVaultIndex,
                     productId,
                     _tradeParams.tradeAmounts[productId],
                     tradePrice,
@@ -187,9 +184,13 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
         perpetualMarketCore.updatePoolSnapshot();
 
         if (finalDepositOrWithdrawAmount > 0) {
-            ERC20(collateral).transferFrom(msg.sender, address(this), uint256(finalDepositOrWithdrawAmount / 1e2));
+            uint256 depositAmount = uint256(finalDepositOrWithdrawAmount / 1e2);
+            ERC20(collateral).transferFrom(msg.sender, address(this), depositAmount);
+            emit DepositedToVault(msg.sender, _tradeParams.vaultId, depositAmount);
         } else if (finalDepositOrWithdrawAmount < 0) {
-            sendLiquidity(msg.sender, uint256(-finalDepositOrWithdrawAmount) / 1e2);
+            uint256 withdrawAmount = uint256(-finalDepositOrWithdrawAmount) / 1e2;
+            sendLiquidity(msg.sender, withdrawAmount);
+            emit WithdrawnFromVault(msg.sender, _tradeParams.vaultId, withdrawAmount);
         }
 
         // Sends protocol fee
@@ -306,13 +307,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
-        emit Hedged(
-            msg.sender,
-            completeParams.isLong,
-            amountUsdc,
-            amountUnderlying,
-            completeParams.amountsRequiredUnderlying
-        );
+        emit Hedged(msg.sender, completeParams.isLong, amountUsdc, amountUnderlying);
     }
 
     /**
