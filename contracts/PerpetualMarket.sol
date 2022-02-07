@@ -10,6 +10,7 @@ import "./base/BaseLiquidityPool.sol";
 import "./base/Multicall.sol";
 import "./lib/TraderVaultLib.sol";
 import "./PerpetualMarketCore.sol";
+import {Math as PredyMath} from "./lib/Math.sol";
 
 /**
  * @title Perpetual Market
@@ -303,7 +304,11 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             ERC20(underlying).transferFrom(msg.sender, address(this), amountUnderlying);
             sendLiquidity(msg.sender, amountUsdc);
         } else {
-            ERC20(collateral).transferFrom(msg.sender, address(this), amountUsdc);
+            ERC20(collateral).transferFrom(
+                msg.sender,
+                address(this),
+                PredyMath.div(completeParams.amountUsdc, 1e2, true)
+            );
             sendUndrlying(msg.sender, amountUnderlying);
         }
 

@@ -189,7 +189,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     function deposit(uint128 _depositAmount) external onlyPerpetualMarket returns (uint256 mintAmount) {
         require(supply > 0);
 
-        mintAmount = _depositAmount.mul(1e8).div(getLPTokenPrice(_depositAmount.toInt256()));
+        mintAmount = _depositAmount.mul(1e16).div(getLPTokenPrice(_depositAmount.toInt256()));
 
         amountLiquidity = amountLiquidity.add(_depositAmount);
         supply = supply.add(mintAmount);
@@ -204,7 +204,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
             "PMC0"
         );
 
-        burnAmount = _withdrawnAmount.mul(1e8).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
+        burnAmount = _withdrawnAmount.mul(1e16).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
 
         amountLiquidity = amountLiquidity.sub(_withdrawnAmount);
         supply = supply.sub(burnAmount);
@@ -248,7 +248,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
 
         {
             // Calculate pool's new amountLiquidity
-            int256 poolPofit = calculatePoolProfit(_productId, deltaM, hedgePositionValue);
+            int256 poolProfit; // = calculatePoolProfit(_productId, deltaM, hedgePositionValue);
 
             // Updates locked liquidity amount
             if (deltaM > 0) {
@@ -258,12 +258,34 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
                     .add(uint128(deltaM))
                     .toUint128();
             } else if (deltaM < 0) {
-                pools[_productId].amountLockedLiquidity = (
-                    pools[_productId].amountLockedLiquidity.mul(uint128(hedgePositionValue + deltaM))
-                ).div(uint128(hedgePositionValue)).toUint128();
+                uint256 unlockAmount = uint256(
+                    -deltaM.mul(pools[_productId].amountLockedLiquidity).div(hedgePositionValue)
+                );
+                pools[_productId].amountLockedLiquidity = pools[_productId]
+                    .amountLockedLiquidity
+                    .sub(unlockAmount)
+                    .toUint128();
+
+                //pools[_productId].amountLockedLiquidity = (
+                //    pools[_productId].amountLockedLiquidity.mul(uint128(hedgePositionValue + deltaM))
+                //).div(uint128(hedgePositionValue)).toUint128();
+
+                // |Δm| * (1 - amountLockedLiquidity / HedgePositionValue)
+                poolProfit = -deltaM - int256(unlockAmount);
+                /*
+                poolProfit =
+                    (
+                        -deltaM.mul(
+                            int256(1e8).sub(
+                                (int128(pools[_productId].amountLockedLiquidity).mul(1e8)).div(hedgePositionValue)
+                            )
+                        )
+                    ) /
+                    1e8;
+                    */
             }
 
-            amountLiquidity = Math.addDelta(amountLiquidity, poolPofit);
+            amountLiquidity = Math.addDelta(amountLiquidity, poolProfit);
         }
 
         // Update trade time
@@ -279,7 +301,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
 
             pools[_productId].entryPrice = newEntryPrice.toUint256().toUint128();
 
-            amountLiquidity = Math.addDelta(amountLiquidity, profitValue - protocolFee.toInt256());
+            amountLiquidity = Math.addDelta(amountLiquidity, profitValue.sub(protocolFee.toInt256()));
         }
 
         return (tradePrice, pools[_productId].amountFundingPaidPerPosition, protocolFee);
@@ -445,7 +467,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
                     uint256(amountLiquidity.toInt256().add(unrealizedPnL)).sub(pools[0].amountLockedLiquidity).sub(
                         pools[1].amountLockedLiquidity
                     )
-                ).mul(1e8)
+                ).mul(1e16)
             ).div(supply);
     }
 

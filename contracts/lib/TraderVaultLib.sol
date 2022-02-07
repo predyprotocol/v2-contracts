@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/IPerpetualMarketCore.sol";
 import "./Math.sol";
 import "./EntryPriceMath.sol";
+import "hardhat/console.sol";
 
 /**
  * @title TraderVaultLib
@@ -78,6 +79,8 @@ library TraderVaultLib {
         int256 requiredPositionValue = minCollateral.mul(1e8).div(_ratio);
 
         amount = requiredPositionValue - positionValue;
+
+        console.log(2, uint256(amount));
     }
 
     /**
