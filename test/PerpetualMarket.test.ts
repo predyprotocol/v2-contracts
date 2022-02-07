@@ -13,8 +13,8 @@ import { increaseTime, scaledBN } from './utils/helpers'
 import { FUTURE_PRODUCT_ID, SAFETY_PERIOD, SQEETH_PRODUCT_ID, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
 
 function checkEqRoughly(a: BigNumberish, b: BigNumberish) {
-  expect(a).to.be.lte(BigNumber.from(b).add(1))
-  expect(a).to.be.gte(BigNumber.from(b).sub(1))
+  expect(a).to.be.lt(BigNumber.from(b).add(scaledBN(1, 8)))
+  expect(a).to.be.gt(BigNumber.from(b).sub(scaledBN(1, 8)))
 }
 
 describe('PerpetualMarket', function () {
@@ -187,15 +187,12 @@ describe('PerpetualMarket', function () {
 
       it('withdrawal works after deposit', async () => {
         const before = await usdc.balanceOf(perpetualMarket.address)
-        const beforeLPTokenBalance = await perpetualMarket.balanceOf(wallet.address)
 
         await perpetualMarket.deposit(scaledBN(20, 6))
         await perpetualMarket.withdraw(scaledBN(20, 6))
 
-        const afterLPTokenBalance = await perpetualMarket.balanceOf(wallet.address)
         const after = await usdc.balanceOf(perpetualMarket.address)
 
-        expect(beforeLPTokenBalance).to.be.eq(afterLPTokenBalance)
         expect(after.sub(before)).to.be.eq(0)
       })
     })
@@ -236,6 +233,104 @@ describe('PerpetualMarket', function () {
       const after = await usdc.balanceOf(wallet.address)
 
       expect(after.sub(before)).to.equal(scaledBN(100, 6))
+    })
+
+    describe('withdraw all liquidity', () => {
+      const vaultId = 0
+
+      beforeEach(async () => {
+        await testContractHelper.updateSpot(scaledBN(2951, 8))
+        await perpetualMarket.deposit(scaledBN(100000 - 100, 6))
+      })
+
+      afterEach(async () => {
+        // close positions
+        const pool0 = await testContractSet.perpetualMarketCore.pools(0)
+        const pool1 = await testContractSet.perpetualMarketCore.pools(1)
+        await perpetualMarket.openPositions({
+          vaultId: 0,
+          subVaultIndex: 0,
+          tradeAmounts: [pool0.positionPerpetuals, pool1.positionPerpetuals],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+
+        const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
+        const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
+        await perpetualMarket.withdraw(withdrawnAmount)
+
+        expect(await perpetualMarket.balanceOf(wallet.address)).to.be.lte(1)
+      })
+
+      it('some trades', async function () {
+        await perpetualMarket.openPositions({
+          vaultId: 0,
+          subVaultIndex: 0,
+          tradeAmounts: ['500000000', '0'],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+        await increaseTime(SAFETY_PERIOD)
+      })
+
+      it('liquidation happened', async function () {
+        await perpetualMarket.openPositions({
+          vaultId: 0,
+          subVaultIndex: 0,
+          tradeAmounts: ['500000000', '0'],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+
+        await increaseTime(SAFETY_PERIOD)
+
+        await perpetualMarket.liquidateByPool(wallet.address, vaultId)
+      })
+
+      it('hedge', async function () {
+        await perpetualMarket.openPositions({
+          vaultId: 0,
+          subVaultIndex: 0,
+          tradeAmounts: [scaledBN(2, 8), scaledBN(-5, 7)],
+          collateralRatio: scaledBN(8, 7),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+
+        await increaseTime(SAFETY_PERIOD)
+        await testContractHelper.updateSpot('307666035339')
+
+        await perpetualMarket.execHedge()
+
+        await increaseTime(SAFETY_PERIOD)
+
+        await perpetualMarket.openPositions({
+          vaultId: 0,
+          subVaultIndex: 0,
+          tradeAmounts: [scaledBN(-2, 8), scaledBN(5, 7)],
+          collateralRatio: scaledBN(8, 7),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+
+        await increaseTime(SAFETY_PERIOD)
+        await testContractHelper.updateSpot('307236035339')
+        await perpetualMarket.execHedge()
+
+        await increaseTime(SAFETY_PERIOD)
+
+        await perpetualMarket.openPositions({
+          vaultId: 0,
+          subVaultIndex: 0,
+          tradeAmounts: [scaledBN(5, 7), scaledBN(5, 7)],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+      })
     })
 
     describe('tokenPrice becomes high', () => {

@@ -97,7 +97,7 @@ library NettingLib {
 
         // 2. Calculate USDC and ETH amounts.
         completeParams.amountUnderlying = Math.abs(requiredUnderlyingAmount);
-        completeParams.amountUsdc = (Math.abs(requiredUnderlyingAmount).mul(uint128(_spotPrice))) / 1e8;
+        completeParams.amountUsdc = (Math.abs(requiredUnderlyingAmount).mul(uint256(_spotPrice))) / 1e8;
 
         return completeParams;
     }
@@ -193,7 +193,7 @@ library NettingLib {
 
     /**
      * @notice Gets notional value of hedge positions
-     * HedgePositionValue = USDCPosition+UnderlyingPosition*S-entry
+     * HedgePositionValue = USDCPosition+UnderlyingPosition*S
      * @return HedgePositionValue scaled by 1e8
      */
     function getHedgePositionValue(

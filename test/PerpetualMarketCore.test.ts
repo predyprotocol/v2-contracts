@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { MockChainlinkAggregator, PerpetualMarketCore } from '../typechain'
+import { MockChainlinkAggregator, PerpetualMarketCore, PerpetualMarketCoreTester } from '../typechain'
 import { BigNumberish, Wallet } from 'ethers'
 import { restoreSnapshot, takeSnapshot } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
@@ -11,6 +11,7 @@ describe('PerpetualMarketCore', function () {
 
   let priceFeed: MockChainlinkAggregator
   let perpetualMarketCore: PerpetualMarketCore
+  let tester: PerpetualMarketCoreTester
   let snapshotId: number
 
   async function updateRoundData(roundId: number, spot: BigNumberish) {
@@ -31,6 +32,9 @@ describe('PerpetualMarketCore', function () {
     perpetualMarketCore = (await PerpetualMarketCore.deploy(priceFeed.address)) as PerpetualMarketCore
 
     await perpetualMarketCore.setPerpetualMarket(wallet.address)
+
+    const PerpetualMarketCoreTester = await ethers.getContractFactory('PerpetualMarketCoreTester')
+    tester = (await PerpetualMarketCoreTester.deploy(priceFeed.address)) as PerpetualMarketCoreTester
   })
 
   beforeEach(async () => {
@@ -446,6 +450,43 @@ describe('PerpetualMarketCore', function () {
 
     it('reverts if trade fee rate is less than protocol fee rate', async () => {
       await expect(perpetualMarketCore.setTradeFeeRate(10, 20)).to.be.revertedWith('PMC5')
+    })
+  })
+
+  describe('calculateUnlockedLiquidity', () => {
+    it('liquidityAmount=1000, lockedLiquidityAmount=100, deltaM=100, hedgePositionValue=100', async () => {
+      const result = await tester.testCalculateUnlockedLiquidity(1000, 100, 100, 100)
+
+      expect(result[0]).to.be.eq(1000)
+      expect(result[1]).to.be.eq(0)
+    })
+
+    it('liquidityAmount=1000, lockedLiquidityAmount=100, deltaM=99, hedgePositionValue=99', async () => {
+      const result = await tester.testCalculateUnlockedLiquidity(1000, 100, 99, 99)
+
+      expect(result[0]).to.be.eq(999)
+      expect(result[1]).to.be.eq(0)
+    })
+
+    it('liquidityAmount=1000, lockedLiquidityAmount=100, deltaM=101, hedgePositionValue=101', async () => {
+      const result = await tester.testCalculateUnlockedLiquidity(1000, 100, 101, 101)
+
+      expect(result[0]).to.be.eq(1001)
+      expect(result[1]).to.be.eq(0)
+    })
+
+    it('liquidityAmount=1000, lockedLiquidityAmount=100, deltaM=50, hedgePositionValue=98', async () => {
+      const result = await tester.testCalculateUnlockedLiquidity(1000, 100, 50, 98)
+
+      expect(result[0]).to.be.eq(999)
+      expect(result[1]).to.be.eq(49)
+    })
+
+    it('liquidityAmount=1000, lockedLiquidityAmount=100, deltaM=50, hedgePositionValue=102', async () => {
+      const result = await tester.testCalculateUnlockedLiquidity(1000, 100, 50, 102)
+
+      expect(result[0]).to.be.eq(1001)
+      expect(result[1]).to.be.eq(51)
     })
   })
 })

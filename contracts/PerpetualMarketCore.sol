@@ -12,7 +12,6 @@ import "./lib/NettingLib.sol";
 import "./lib/IndexPricer.sol";
 import "./lib/SpreadLib.sol";
 import "./lib/EntryPriceMath.sol";
-import "hardhat/console.sol";
 
 /**
  * @title PerpetualMarketCore
@@ -189,7 +188,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     function deposit(uint128 _depositAmount) external onlyPerpetualMarket returns (uint256 mintAmount) {
         require(supply > 0);
 
-        mintAmount = _depositAmount.mul(1e8).div(getLPTokenPrice(_depositAmount.toInt256()));
+        mintAmount = _depositAmount.mul(1e16).div(getLPTokenPrice(_depositAmount.toInt256()));
 
         amountLiquidity = amountLiquidity.add(_depositAmount);
         supply = supply.add(mintAmount);
@@ -204,7 +203,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
             "PMC0"
         );
 
-        burnAmount = _withdrawnAmount.mul(1e8).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
+        burnAmount = _withdrawnAmount.mul(1e16).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
 
         amountLiquidity = amountLiquidity.sub(_withdrawnAmount);
         supply = supply.sub(burnAmount);
@@ -248,7 +247,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
 
         {
             // Calculate pool's new amountLiquidity
-            int256 poolPofit = calculatePoolProfit(_productId, deltaM, hedgePositionValue);
 
             // Updates locked liquidity amount
             if (deltaM > 0) {
@@ -258,12 +256,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
                     .add(uint128(deltaM))
                     .toUint128();
             } else if (deltaM < 0) {
-                pools[_productId].amountLockedLiquidity = (
-                    pools[_productId].amountLockedLiquidity.mul(uint128(hedgePositionValue + deltaM))
-                ).div(uint128(hedgePositionValue)).toUint128();
+                // Calculate new amounts of liquidity and locked liquidity
+                (amountLiquidity, pools[_productId].amountLockedLiquidity) = calculateUnlockedLiquidity(
+                    amountLiquidity,
+                    pools[_productId].amountLockedLiquidity,
+                    uint256(-deltaM),
+                    hedgePositionValue
+                );
             }
-
-            amountLiquidity = Math.addDelta(amountLiquidity, poolPofit);
         }
 
         // Update trade time
@@ -428,7 +428,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     /**
      * @notice Gets LP token price
      * LPTokenPrice = (L + ΣUnrealizedPnL_i - ΣAmountLockedLiquidity_i) / Supply
-     * @return LPTokenPrice scaled by 1e8
+     * @return LPTokenPrice scaled by 1e16
      */
     function getLPTokenPrice(int256 _deltaLiquidityAmount) public view returns (uint256) {
         (int256 spotPrice, ) = getUnderlyingPrice();
@@ -445,7 +445,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
                     uint256(amountLiquidity.toInt256().add(unrealizedPnL)).sub(pools[0].amountLockedLiquidity).sub(
                         pools[1].amountLockedLiquidity
                     )
-                ).mul(1e8)
+                ).mul(1e16)
             ).div(supply);
     }
 
@@ -613,26 +613,22 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     }
 
     /**
-     * @notice Calculates pool's profit
-     * @return poolProfit scaled by 1e8
+     * @notice Calculates new amounts of liquidity and locked liquidity
+     * UnlockAmount = Δm * amountLockedLiquidity / hedgePositionValue
+     * amountLockedLiquidity <- amountLockedLiquidity - UnlockAmount
+     * amountLiquidity <- amountLiquidity + Δm - UnlockAmount
      */
-    function calculatePoolProfit(
-        uint256 _productId,
-        int256 _deltaM,
+    function calculateUnlockedLiquidity(
+        uint256 _amountLiquidity,
+        uint256 _amountLockedLiquidity,
+        uint256 _deltaM,
         int256 _hedgePositionValue
-    ) internal view returns (int256 poolProfit) {
-        if (_deltaM < 0) {
-            // |Δm| * (1 - amountLockedLiquidity / HedgePositionValue)
-            poolProfit = poolProfit.add(
-                (
-                    -_deltaM.mul(
-                        int256(1e8).sub(
-                            (int128(pools[_productId].amountLockedLiquidity).mul(1e8)).div(_hedgePositionValue)
-                        )
-                    )
-                ) / 1e8
-            );
-        }
+    ) internal pure returns (uint128 newAmountLiquidity, uint128 newLockedLiquidity) {
+        uint256 unlockAmount = _deltaM.mul(_amountLockedLiquidity).div(_hedgePositionValue.toUint256());
+
+        newLockedLiquidity = _amountLockedLiquidity.sub(unlockAmount).toUint128();
+
+        newAmountLiquidity = Math.addDelta(_amountLiquidity, int256(_deltaM) - int256(unlockAmount)).toUint128();
     }
 
     /**
