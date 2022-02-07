@@ -27,6 +27,22 @@ library Math {
         return int128(a > b ? b : a);
     }
 
+    function div(
+        uint256 _x,
+        uint256 _d,
+        bool _roundUp
+    ) internal pure returns (uint256) {
+        uint256 tailing;
+        if (_roundUp) {
+            uint256 remainer = (_x) % _d;
+            if (remainer > 0) {
+                tailing = 1;
+            }
+        }
+
+        return (_x) / _d + tailing;
+    }
+
     function scale(
         uint256 _a,
         uint256 _from,

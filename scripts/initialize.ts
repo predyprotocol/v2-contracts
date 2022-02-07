@@ -41,8 +41,8 @@ async function main() {
     ethUsdcPoolAddress = '0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8'
     feePoolAddress = '0x7ddf1C3398911fe64459162269ECaB50235e1594'
 
-    perpetualMarketAddress = '0x11D5F87dDCAd95466BAf454586b5F0BF9ba191fB'
-    perpetualMarketCoreAddress = '0x3840587b8e2F289842c9de6FD113e9c1f5148D2e'
+    perpetualMarketAddress = '0xEeE521668253c9394bde99B0BA5970b0f15Dd6e9'
+    perpetualMarketCoreAddress = '0x69498D8328889679714552856974B35b4ab483A1'
   } else if (network.name === 'optimism') {
     aggregatorAddress = '0x13e3Ee699D1909E989722E753853AE30b17e08c5'
 
@@ -92,35 +92,74 @@ async function main() {
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
   const perpetualMarketCore = PerpetualMarketCore.attach(perpetualMarketCoreAddress)
 
+  const MockChainlinkAggregator = await ethers.getContractFactory('MockChainlinkAggregator')
+  const mockChainlinkAggregator = MockChainlinkAggregator.attach(aggregatorAddress)
+
+  const latest = await mockChainlinkAggregator.latestRoundData()
+
+  console.log(latest)
+
   //const approveTx = await usdc.approve(perpetualMarket.address, '100000000000')
   //await approveTx.wait()
 
-
-  //const approveTx = await weth.approve(perpetualMarket.address, '100000000000000000000')
-  //await approveTx.wait()
+  //const approveTx2 = await weth.approve(perpetualMarket.address, '100000000000000000000')
+  //await approveTx2.wait()
 
 
   //await perpetualMarket.initialize('10000000000', '500000')
 
-  //const tx = await perpetualMarket.openPositions({ vaultId: 0, subVaultIndex: 0, tradeAmounts: ['-100000000', '0'], collateralRatio: '80000000', limitPrices: [0, 0], deadline: 0 })
-  //await tx.wait()
-  // await perpetualMarket.execHedge()
+  /*
+  const tx1 = await perpetualMarket.openPositions({ vaultId: 0, subVaultIndex: 0, tradeAmounts: ['200000000', '-50000000'], collateralRatio: '80000000', limitPrices: [0, 0], deadline: 0 })
+  await tx1.wait()
+  await delay(15000)
+  await check(1)
 
-  const usdcAmount = await usdc.balanceOf(perpetualMarket.address)
-  console.log('usdcAmount', usdcAmount)
+  const tx2 = await perpetualMarket.execHedge()
+  await tx2.wait()
+  await delay(15000)
+  await check(2)
 
-  const amountLiquidity = await perpetualMarketCore.amountLiquidity()
+  const tx3 = await perpetualMarket.openPositions({ vaultId: 0, subVaultIndex: 0, tradeAmounts: ['-200000000', '50000000'], collateralRatio: '80000000', limitPrices: [0, 0], deadline: 0 })
+  await tx3.wait()
+  await delay(15000)
+  await check(3)
 
-  console.log('amountLiquidity', amountLiquidity)
+  const tx4 = await perpetualMarket.execHedge()
+  await tx4.wait()
+  await delay(15000)
+  await check(4)
 
-  const pool = await perpetualMarketCore.pools(0)
+  const tx5 = await perpetualMarket.openPositions({ vaultId: 0, subVaultIndex: 0, tradeAmounts: ['50000000', '50000000'], collateralRatio: '80000000', limitPrices: [0, 0], deadline: 0 })
+  await tx5.wait()
+  await delay(15000)
+  await check(5)
 
-  console.log(pool)
+  const tx6 = await perpetualMarket.openPositions({ vaultId: 0, subVaultIndex: 0, tradeAmounts: ['-50000000', '-50000000'], collateralRatio: '80000000', limitPrices: [0, 0], deadline: 0 })
+  await tx6.wait()
+  await delay(15000)
+  await check(6)
+  */
+
+  async function check(index: number) {
+    const usdcAmount = await usdc.balanceOf(perpetualMarket.address)
+    console.log('usdcAmount', usdcAmount)
+
+    const amountLiquidity = await perpetualMarketCore.amountLiquidity()
+
+    console.log('amountLiquidity', amountLiquidity)
+
+    console.log(index, 'sub', usdcAmount.mul(100).sub(amountLiquidity))
+  }
+
+  const pool0 = await perpetualMarketCore.pools(0)
+  //console.log(0, pool0)
+  const pool1 = await perpetualMarketCore.pools(1)
+  //console.log(1, pool1)
 
   const tokenAmount = await perpetualMarket.balanceOf(signer.address)
   const withdrawAmount = await getWithdrawalAmount(tokenAmount, 0)
   console.log('withdrawAmount', withdrawAmount)
-  await perpetualMarket.withdraw(withdrawAmount)
+  // await perpetualMarket.withdraw(withdrawAmount.sub(1000))
 
   async function getWithdrawalAmount(burnAmount: BigNumber, _withdrawnAmount: BigNumberish): Promise<BigNumber> {
     const withdrawnAmount = BigNumber.from(_withdrawnAmount)
@@ -136,6 +175,11 @@ async function main() {
 
     return getWithdrawalAmount(burnAmount, nextWithdrawnAmount)
   }
+}
+
+
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

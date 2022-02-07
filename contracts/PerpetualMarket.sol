@@ -10,6 +10,7 @@ import "./base/BaseLiquidityPool.sol";
 import "./base/Multicall.sol";
 import "./lib/TraderVaultLib.sol";
 import "./PerpetualMarketCore.sol";
+import {Math as PredyMath} from "./lib/Math.sol";
 
 /**
  * @title Perpetual Market
@@ -188,7 +189,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
         perpetualMarketCore.updatePoolSnapshot();
 
         if (finalDepositOrWithdrawAmount > 0) {
-            uint256 depositAmount = uint256(finalDepositOrWithdrawAmount / 1e2);
+            uint256 depositAmount = PredyMath.div(uint256(finalDepositOrWithdrawAmount), 1e2, true);
             ERC20(collateral).transferFrom(msg.sender, address(this), depositAmount);
             emit DepositedToVault(msg.sender, _tradeParams.vaultId, depositAmount);
         } else if (finalDepositOrWithdrawAmount < 0) {
@@ -307,7 +308,11 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             ERC20(underlying).transferFrom(msg.sender, address(this), amountUnderlying);
             sendLiquidity(msg.sender, amountUsdc);
         } else {
-            ERC20(collateral).transferFrom(msg.sender, address(this), amountUsdc);
+            ERC20(collateral).transferFrom(
+                msg.sender,
+                address(this),
+                PredyMath.div(uint256(completeParams.amountUsdc), 1e2, true)
+            );
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
