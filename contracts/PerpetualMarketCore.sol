@@ -12,7 +12,6 @@ import "./lib/NettingLib.sol";
 import "./lib/IndexPricer.sol";
 import "./lib/SpreadLib.sol";
 import "./lib/EntryPriceMath.sol";
-import "hardhat/console.sol";
 
 /**
  * @title PerpetualMarketCore
