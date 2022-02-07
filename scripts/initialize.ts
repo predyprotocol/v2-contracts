@@ -41,8 +41,8 @@ async function main() {
     ethUsdcPoolAddress = '0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8'
     feePoolAddress = '0x7ddf1C3398911fe64459162269ECaB50235e1594'
 
-    perpetualMarketAddress = '0xEeE521668253c9394bde99B0BA5970b0f15Dd6e9'
-    perpetualMarketCoreAddress = '0x69498D8328889679714552856974B35b4ab483A1'
+    perpetualMarketAddress = '0x332405a37ed911FFfFFEE9eDD1a46Fc74f698A21'
+    perpetualMarketCoreAddress = '0xCda1b7b3e04780A9B860564aA86077510694152E'
   } else if (network.name === 'optimism') {
     aggregatorAddress = '0x13e3Ee699D1909E989722E753853AE30b17e08c5'
 
@@ -99,16 +99,17 @@ async function main() {
 
   console.log(latest)
 
-  //const approveTx = await usdc.approve(perpetualMarket.address, '100000000000')
-  //await approveTx.wait()
-
-  //const approveTx2 = await weth.approve(perpetualMarket.address, '100000000000000000000')
-  //await approveTx2.wait()
-
-
-  //await perpetualMarket.initialize('10000000000', '500000')
-
   /*
+  const approveTx = await usdc.approve(perpetualMarket.address, '100000000000')
+  await approveTx.wait()
+
+  const approveTx2 = await weth.approve(perpetualMarket.address, '100000000000000000000')
+  await approveTx2.wait()
+
+
+  await perpetualMarket.initialize('10000000000', '500000')
+  */
+
   const tx1 = await perpetualMarket.openPositions({ vaultId: 0, subVaultIndex: 0, tradeAmounts: ['200000000', '-50000000'], collateralRatio: '80000000', limitPrices: [0, 0], deadline: 0 })
   await tx1.wait()
   await delay(15000)
@@ -138,7 +139,6 @@ async function main() {
   await tx6.wait()
   await delay(15000)
   await check(6)
-  */
 
   async function check(index: number) {
     const usdcAmount = await usdc.balanceOf(perpetualMarket.address)
