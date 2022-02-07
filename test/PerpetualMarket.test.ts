@@ -13,8 +13,8 @@ import { increaseTime, scaledBN } from './utils/helpers'
 import { FUTURE_PRODUCT_ID, SAFETY_PERIOD, SQEETH_PRODUCT_ID, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
 
 function checkEqRoughly(a: BigNumberish, b: BigNumberish) {
-  expect(a).to.be.lte(BigNumber.from(b).add(1))
-  expect(a).to.be.gte(BigNumber.from(b).sub(1))
+  expect(a).to.be.lt(BigNumber.from(b).add(scaledBN(1, 8)))
+  expect(a).to.be.gt(BigNumber.from(b).sub(scaledBN(1, 8)))
 }
 
 describe('PerpetualMarket', function () {

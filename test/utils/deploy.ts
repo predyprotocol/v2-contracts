@@ -80,7 +80,7 @@ export class TestContractHelper {
 
     const lpTokenPrice = await this.testContractSet.perpetualMarket.getLPTokenPrice(withdrawnAmount.mul(-1))
 
-    const nextWithdrawnAmount = lpTokenPrice.mul(burnAmount).div(scaledBN(1, 8))
+    const nextWithdrawnAmount = lpTokenPrice.mul(burnAmount).div(scaledBN(1, 16))
 
     if (withdrawnAmount.eq(nextWithdrawnAmount)) {
       return withdrawnAmount

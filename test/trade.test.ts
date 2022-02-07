@@ -87,7 +87,7 @@ describe('trade', function () {
         })
       })
 
-      it('withdraw all and check balance of PerPetualMarket', async () => {
+      it('withdraw all and check balance of PerpetualMarket', async () => {
         const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
         const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
 
@@ -95,7 +95,7 @@ describe('trade', function () {
 
         expect(withdrawnAmount).to.gt(scaledBN(200000, 6))
 
-        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(340000)
+        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(0)
         expect(await perpetualMarket.balanceOf(wallet.address)).to.eq(0)
       })
     })
@@ -136,7 +136,7 @@ describe('trade', function () {
 
         expect(withdrawnAmount).to.gt(scaledBN(50000000, 6))
 
-        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(12300)
+        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(0)
         expect(await perpetualMarket.balanceOf(wallet.address)).to.eq(0)
       })
     })

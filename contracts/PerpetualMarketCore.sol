@@ -189,7 +189,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     function deposit(uint128 _depositAmount) external onlyPerpetualMarket returns (uint256 mintAmount) {
         require(supply > 0);
 
-        mintAmount = _depositAmount.mul(1e8).div(getLPTokenPrice(_depositAmount.toInt256()));
+        mintAmount = _depositAmount.mul(1e16).div(getLPTokenPrice(_depositAmount.toInt256()));
 
         amountLiquidity = amountLiquidity.add(_depositAmount);
         supply = supply.add(mintAmount);
@@ -204,7 +204,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
             "PMC0"
         );
 
-        burnAmount = _withdrawnAmount.mul(1e8).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
+        burnAmount = _withdrawnAmount.mul(1e16).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
 
         amountLiquidity = amountLiquidity.sub(_withdrawnAmount);
         supply = supply.sub(burnAmount);
@@ -429,7 +429,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     /**
      * @notice Gets LP token price
      * LPTokenPrice = (L + ΣUnrealizedPnL_i - ΣAmountLockedLiquidity_i) / Supply
-     * @return LPTokenPrice scaled by 1e8
+     * @return LPTokenPrice scaled by 1e16
      */
     function getLPTokenPrice(int256 _deltaLiquidityAmount) public view returns (uint256) {
         (int256 spotPrice, ) = getUnderlyingPrice();
@@ -446,7 +446,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
                     uint256(amountLiquidity.toInt256().add(unrealizedPnL)).sub(pools[0].amountLockedLiquidity).sub(
                         pools[1].amountLockedLiquidity
                     )
-                ).mul(1e8)
+                ).mul(1e16)
             ).div(supply);
     }
 
