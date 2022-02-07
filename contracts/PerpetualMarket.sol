@@ -98,6 +98,8 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     function deposit(uint128 _depositAmount) external override {
         require(_depositAmount > 0);
 
+        perpetualMarketCore.executeFundingPayment();
+
         uint256 lpTokenAmount = perpetualMarketCore.deposit(_depositAmount * 1e2) / 1e2;
 
         ERC20(collateral).transferFrom(msg.sender, address(this), uint128(_depositAmount));
@@ -112,6 +114,8 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
      */
     function withdraw(uint128 _withdrawnAmount) external override {
         require(_withdrawnAmount > 0);
+
+        perpetualMarketCore.executeFundingPayment();
 
         uint256 lpTokenAmount = perpetualMarketCore.withdraw(_withdrawnAmount * 1e2) / 1e2;
 
@@ -185,7 +189,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
         perpetualMarketCore.updatePoolSnapshot();
 
         if (finalDepositOrWithdrawAmount > 0) {
-            uint256 depositAmount = uint256(finalDepositOrWithdrawAmount / 1e2);
+            uint256 depositAmount = PredyMath.div(uint256(finalDepositOrWithdrawAmount), 1e2, true);
             ERC20(collateral).transferFrom(msg.sender, address(this), depositAmount);
             emit DepositedToVault(msg.sender, _tradeParams.vaultId, depositAmount);
         } else if (finalDepositOrWithdrawAmount < 0) {
