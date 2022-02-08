@@ -28,7 +28,7 @@ contract LPToken is ERC20, ILPToken {
      * @param _perpetualMarket perpetual market address
      */
     function setPerpetualMarket(address _perpetualMarket) external onlyPerpetualMarket {
-        require(_perpetualMarket != address(0), "Invalid address");
+        require(_perpetualMarket != address(0), "Zero Address");
         perpetualMarket = _perpetualMarket;
     }
 

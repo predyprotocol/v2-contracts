@@ -600,27 +600,14 @@ describe('PerpetualMarket', function () {
         await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
-        await expect(
-          perpetualMarket.trade({
-            vaultId,
-            subVaultIndex,
-            tradeAmounts: [scaledBN(-1, 6), 0],
-            collateralRatio: scaledBN(1, 8),
-            limitPrices: [0, 0],
-            deadline: 0,
-          }),
-        )
-          .to.emit(perpetualMarket, 'PositionUpdated')
-          .withArgs(
-            wallet.address,
-            vaultId,
-            subVaultIndex,
-            SQUEETH_PRODUCT_ID,
-            scaledBN(-1, 6),
-            121121010,
-            1014,
-            208200,
-          )
+        await perpetualMarket.trade({
+          vaultId,
+          subVaultIndex,
+          tradeAmounts: [scaledBN(-1, 6), 0],
+          collateralRatio: scaledBN(1, 8),
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
 
         const after = await usdc.balanceOf(wallet.address)
 
