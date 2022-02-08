@@ -49,11 +49,12 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
         uint256 productId,
         int256 tradeAmount,
         uint256 tradePrice,
-        int256 fundingFeePerPosition
+        int256 fundingFeePerPosition,
+        int256 deltaUsdcPosition
     );
     event DepositedToVault(address indexed trader, uint256 vaultId, uint256 amount);
     event WithdrawnFromVault(address indexed trader, uint256 vaultId, uint256 amount);
-    event Liquidated(address liquidator, address indexed vaultOwner, uint256 vaultId);
+    event Liquidated(address liquidator, address indexed vaultOwner, uint256 vaultId, uint256 reward);
 
     event Hedged(address hedger, bool isBuyingUnderlying, uint256 usdcAmount, uint256 underlyingAmount);
 
@@ -162,7 +163,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
                     "PM1"
                 );
 
-                traderVaults[msg.sender][_tradeParams.vaultId].updateVault(
+                int256 deltaUsdcPosition = traderVaults[msg.sender][_tradeParams.vaultId].updateVault(
                     _tradeParams.subVaultIndex,
                     productId,
                     _tradeParams.tradeAmounts[productId],
@@ -177,7 +178,8 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
                     productId,
                     _tradeParams.tradeAmounts[productId],
                     tradePrice,
-                    fundingFeePerPosition
+                    fundingFeePerPosition,
+                    deltaUsdcPosition
                 );
             }
         }
@@ -234,17 +236,28 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
                 int128 amountAssetInVault = traderVault.subVaults[subVaultIndex].positionPerpetuals[productId];
 
                 if (amountAssetInVault != 0) {
-                    (uint256 tradePrice, int256 valueFundingFeeEntry, uint256 protocolFee) = perpetualMarketCore
+                    (uint256 tradePrice, int256 fundingFeePerPosition, uint256 protocolFee) = perpetualMarketCore
                         .updatePoolPosition(productId, -amountAssetInVault);
 
                     totalProtocolFee = totalProtocolFee.add(protocolFee / 1e2);
 
-                    traderVault.updateVault(
+                    int256 deltaUsdcPosition = traderVault.updateVault(
                         subVaultIndex,
                         productId,
                         -amountAssetInVault,
                         tradePrice,
-                        valueFundingFeeEntry
+                        fundingFeePerPosition
+                    );
+
+                    emit PositionUpdated(
+                        msg.sender,
+                        _vaultId,
+                        subVaultIndex,
+                        productId,
+                        -amountAssetInVault,
+                        tradePrice,
+                        fundingFeePerPosition,
+                        deltaUsdcPosition
                     );
                 }
             }
@@ -266,7 +279,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
         }
 
-        emit Liquidated(msg.sender, _vaultOwner, _vaultId);
+        emit Liquidated(msg.sender, _vaultOwner, _vaultId, reward);
     }
 
     /**
