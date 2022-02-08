@@ -11,11 +11,13 @@ It supports cross margin trading of Squared perpetual and Perpetual future.
 
 ### Contracts
 
-`PerpetualMarket.sol` is entry point of traders and liquidity providers. It manages LP tokens and traders' vault storage.
+`PerpetualMarket.sol` is entry point of traders and liquidity providers. It manages traders' vault storage.
 
 `PerpetualMarketCore.sol` is the contract to manage perpetual pool state, such as pool positions and collaterals.
 
 `FlashHedge.sol` is the contract to swap underlying assets and USDC tokens with Uniswap for delta hedging.
+
+`LPToken.sol` manages LP token.
 
 ### Libraries
 

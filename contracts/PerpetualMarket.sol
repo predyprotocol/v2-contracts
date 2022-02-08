@@ -7,15 +7,14 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@uniswap/v3-periphery/contracts/base/Multicall.sol";
 import "./interfaces/ILPToken.sol";
 import "./interfaces/IFeePool.sol";
+import "./interfaces/IPerpetualMarketCore.sol";
 import "./interfaces/IPerpetualMarket.sol";
 import "./base/BaseLiquidityPool.sol";
 import "./lib/TraderVaultLib.sol";
-import "./PerpetualMarketCore.sol";
 
 /**
  * @title Perpetual Market
  * @notice Perpetual Market Contract
- * The contract manages LP token, that decimal is 6.
  */
 contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multicall {
     using SafeCast for int256;
@@ -29,7 +28,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     /// @dev liquidation fee
     int256 private liquidationFee;
 
-    PerpetualMarketCore private immutable perpetualMarketCore;
+    IPerpetualMarketCore private immutable perpetualMarketCore;
 
     ILPToken private immutable lpToken;
 
@@ -68,7 +67,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
      * @notice Constructor of Perpetual Market contract
      */
     constructor(
-        PerpetualMarketCore _perpetualMarketCore,
+        address _perpetualMarketCoreAddress,
         address _lpTokenAddress,
         address _collateral,
         address _underlying,
@@ -78,7 +77,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         require(_underlying != address(0));
         require(_feeRecepient != address(0));
 
-        perpetualMarketCore = _perpetualMarketCore;
+        perpetualMarketCore = IPerpetualMarketCore(_perpetualMarketCoreAddress);
         lpToken = ILPToken(_lpTokenAddress);
         feeRecepient = IFeePool(_feeRecepient);
 
@@ -224,7 +223,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     function liquidateByPool(address _vaultOwner, uint256 _vaultId) external override {
         TraderVaultLib.TraderVault storage traderVault = traderVaults[_vaultOwner][_vaultId];
 
-        PerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
+        IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
             traderVault.getPositionPerpetuals()
         );
 
@@ -427,7 +426,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     ) external view override returns (int256 requiredCollateral, int256 minCollateral) {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
         int128[2] memory positionPerpetuals = traderVault.getPositionPerpetuals();
-        PerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
+        IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
             positionPerpetuals
         );
 
@@ -455,7 +454,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view override returns (VaultStatus memory) {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
 
-        PerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
+        IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
             traderVault.getPositionPerpetuals()
         );
 
