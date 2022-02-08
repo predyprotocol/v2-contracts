@@ -4,10 +4,10 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@uniswap/v3-periphery/contracts/base/Multicall.sol";
 import "./interfaces/IFeePool.sol";
 import "./interfaces/IPerpetualMarket.sol";
 import "./base/BaseLiquidityPool.sol";
-import "./base/Multicall.sol";
 import "./lib/TraderVaultLib.sol";
 import "./PerpetualMarketCore.sol";
 
