@@ -395,27 +395,40 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     }
 
     /**
-     * @notice Gets min collateral
+     * @notice Gets required collateral
      * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
+     * @param _ratio target MinCollateral / PositionValue ratio.
      * @param _tradeAmounts amounts to trade
-     * @return min collateral
+     * @param _spotPrice spot price if 0 current oracle price will be used
+     * @return requiredCollateral and minCollateral
      */
-    function getMinCollateral(
+    function getRequiredCollateral(
         address _vaultOwner,
         uint256 _vaultId,
+        int256 _ratio,
         int128[2] memory _tradeAmounts,
         uint256 _spotPrice
-    ) external view override returns (int256) {
+    ) external view override returns (int256 requiredCollateral, int256 minCollateral) {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
-
         int128[2] memory positionPerpetuals = traderVault.getPositionPerpetuals();
+        PerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
+            positionPerpetuals
+        );
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
             positionPerpetuals[i] = positionPerpetuals[i].add(_tradeAmounts[i]).toInt128();
         }
 
-        return TraderVaultLib.calculateMinCollateral(positionPerpetuals, _spotPrice);
+        int256 positionValue = traderVault.getPositionValue(tradePriceInfo);
+        minCollateral = TraderVaultLib.calculateMinCollateral(
+            positionPerpetuals,
+            _spotPrice == 0 ? tradePriceInfo.spotPrice : _spotPrice
+        );
+
+        int256 requiredPositionValue = minCollateral.mul(1e8).div(_ratio);
+
+        requiredCollateral = requiredPositionValue - positionValue;
     }
 
     /**

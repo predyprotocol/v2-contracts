@@ -1275,7 +1275,7 @@ describe('PerpetualMarket', function () {
     })
   })
 
-  describe('getMinCollateral', () => {
+  describe('getRequiredCollateral', () => {
     const vaultId = 0
     const subVaultIndex = 0
 
@@ -1288,41 +1288,63 @@ describe('PerpetualMarket', function () {
     })
 
     it('get min collateral of 0 positions', async () => {
-      expect(await perpetualMarket.getMinCollateral(wallet.address, vaultId, [0, 0], scaledBN(1000, 8))).to.be.eq(0)
+      const result = await perpetualMarket.getRequiredCollateral(
+        wallet.address,
+        vaultId,
+        scaledBN(1, 8),
+        [0, 0],
+        scaledBN(1000, 8),
+      )
+      expect(result[0]).to.be.eq(0)
+      expect(result[1]).to.be.eq(0)
     })
 
     it('get min collateral of the vault that has no positions', async () => {
-      expect(
-        await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(10, 8), 0], scaledBN(1000, 8)),
-      ).to.be.eq(15000000000)
+      const result = await perpetualMarket.getRequiredCollateral(
+        wallet.address,
+        vaultId,
+        scaledBN(1, 8),
+        [scaledBN(10, 8), 0],
+        scaledBN(1000, 8),
+      )
+      expect(result[0]).to.be.eq(15000000000)
+      expect(result[1]).to.be.eq(15000000000)
     })
 
     it('get min collateral with $2,000 spot price', async () => {
-      expect(
-        await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(10, 8), 0], scaledBN(2000, 8)),
-      ).to.be.eq(60000000000)
+      const result = await perpetualMarket.getRequiredCollateral(
+        wallet.address,
+        vaultId,
+        scaledBN(1, 8),
+        [scaledBN(10, 8), 0],
+        scaledBN(2000, 8),
+      )
+      expect(result[0]).to.be.eq(60000000000)
+      expect(result[1]).to.be.eq(60000000000)
     })
 
     it('get min collateral of squared perpetual and perpetual future', async () => {
-      expect(
-        await perpetualMarket.getMinCollateral(
-          wallet.address,
-          vaultId,
-          [scaledBN(10, 8), scaledBN(-10, 8)],
-          scaledBN(1000, 8),
-        ),
-      ).to.be.eq(60000000000)
+      const result = await perpetualMarket.getRequiredCollateral(
+        wallet.address,
+        vaultId,
+        scaledBN(1, 8),
+        [scaledBN(10, 8), scaledBN(-10, 8)],
+        scaledBN(1000, 8),
+      )
+      expect(result[0]).to.be.eq(60000000000)
+      expect(result[1]).to.be.eq(60000000000)
     })
 
     it('get min collateral of squared perpetual and perpetual future with $2,000 spot price', async () => {
-      expect(
-        await perpetualMarket.getMinCollateral(
-          wallet.address,
-          vaultId,
-          [scaledBN(10, 8), scaledBN(-10, 8)],
-          scaledBN(2000, 8),
-        ),
-      ).to.be.eq(90000000000)
+      const result = await perpetualMarket.getRequiredCollateral(
+        wallet.address,
+        vaultId,
+        scaledBN(1, 8),
+        [scaledBN(10, 8), scaledBN(-10, 8)],
+        scaledBN(2000, 8),
+      )
+      expect(result[0]).to.be.eq(90000000000)
+      expect(result[1]).to.be.eq(90000000000)
     })
 
     it('get min collateral of the vault that has positions', async () => {
@@ -1334,10 +1356,15 @@ describe('PerpetualMarket', function () {
         limitPrices: [0, 0],
         deadline: 0,
       })
-
-      expect(
-        await perpetualMarket.getMinCollateral(wallet.address, vaultId, [scaledBN(1, 8), 0], scaledBN(1000, 8)),
-      ).to.be.eq(16500000000)
+      const result = await perpetualMarket.getRequiredCollateral(
+        wallet.address,
+        vaultId,
+        scaledBN(1, 8),
+        [scaledBN(1, 8), 0],
+        scaledBN(1000, 8),
+      )
+      expect(result[0]).to.be.eq(1500000000)
+      expect(result[1]).to.be.eq(16500000000)
     })
   })
 
