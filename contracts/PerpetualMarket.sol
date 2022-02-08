@@ -36,6 +36,8 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     // trader's vaults storage
     mapping(address => mapping(uint256 => TraderVaultLib.TraderVault)) private traderVaults;
 
+    uint256 public cumulativeProtocolFee;
+
     event Deposited(address indexed account, uint256 issued, uint256 amount);
 
     event Withdrawn(address indexed account, uint256 burned, uint256 amount);
@@ -180,6 +182,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             }
         }
 
+        // Add protocol fee
+        cumulativeProtocolFee = cumulativeProtocolFee.add(totalProtocolFee);
+
         int256 finalDepositOrWithdrawAmount;
 
         if (_tradeParams.collateralRatio > 0) {
@@ -202,12 +207,6 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             uint256 withdrawAmount = uint256(-finalDepositOrWithdrawAmount) / 1e2;
             sendLiquidity(msg.sender, withdrawAmount);
             emit WithdrawnFromVault(msg.sender, _tradeParams.vaultId, withdrawAmount);
-        }
-
-        // Sends protocol fee
-        if (totalProtocolFee > 0) {
-            ERC20(collateral).approve(address(feeRecepient), totalProtocolFee);
-            feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
         }
     }
 
@@ -318,6 +317,8 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
+        sendProtocolFee();
+
         emit Hedged(msg.sender, completeParams.isLong, amountUsdc, amountUnderlying);
     }
 
@@ -342,6 +343,15 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             return _tradePrice <= _limitPrice;
         } else {
             return _tradePrice >= _limitPrice;
+        }
+    }
+
+    function sendProtocolFee() public {
+        if (cumulativeProtocolFee > 0) {
+            uint256 protocolFee = cumulativeProtocolFee;
+            cumulativeProtocolFee = 0;
+            ERC20(collateral).approve(address(feeRecepient), protocolFee);
+            feeRecepient.sendProfitERC20(address(this), protocolFee);
         }
     }
 

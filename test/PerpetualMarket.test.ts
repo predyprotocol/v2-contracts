@@ -549,6 +549,8 @@ describe('PerpetualMarket', function () {
           .withArgs(wallet.address, vaultId, subVaultIndex, SQEETH_PRODUCT_ID, scaledBN(1, 6), 100300009, 0)
 
         // Check fee pool received protocol fee
+        await perpetualMarket.sendProtocolFee()
+
         expect(await usdc.balanceOf(testContractSet.feePool.address)).to.be.gt(0)
       })
 
