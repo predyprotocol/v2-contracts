@@ -5,6 +5,7 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@uniswap/v3-periphery/contracts/base/Multicall.sol";
+import "./interfaces/ILPToken.sol";
 import "./interfaces/IFeePool.sol";
 import "./interfaces/IPerpetualMarket.sol";
 import "./base/BaseLiquidityPool.sol";
@@ -16,7 +17,7 @@ import "./PerpetualMarketCore.sol";
  * @notice Perpetual Market Contract
  * The contract manages LP token, that decimal is 6.
  */
-contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable, Multicall {
+contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multicall {
     using SafeCast for int256;
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -29,6 +30,8 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     int256 private liquidationFee;
 
     PerpetualMarketCore private immutable perpetualMarketCore;
+
+    ILPToken private immutable lpToken;
 
     // Fee recepient address
     IFeePool public feeRecepient;
@@ -66,19 +69,18 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
      */
     constructor(
         PerpetualMarketCore _perpetualMarketCore,
+        address _lpTokenAddress,
         address _collateral,
         address _underlying,
         address _feeRecepient
-    ) ERC20("Predy V2 LP Token", "PREDY-V2-LP") BaseLiquidityPool(_collateral, _underlying) {
+    ) BaseLiquidityPool(_collateral, _underlying) {
         require(_collateral != address(0));
         require(_underlying != address(0));
         require(_feeRecepient != address(0));
 
         perpetualMarketCore = _perpetualMarketCore;
+        lpToken = ILPToken(_lpTokenAddress);
         feeRecepient = IFeePool(_feeRecepient);
-
-        // The decimals of LP token is 6
-        _setupDecimals(6);
 
         // liquidation fee is 20%
         liquidationFee = 2000;
@@ -96,7 +98,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
 
         ERC20(collateral).transferFrom(msg.sender, address(this), uint128(_depositAmount));
 
-        _mint(msg.sender, lpTokenAmount);
+        lpToken.mint(msg.sender, lpTokenAmount);
 
         emit Deposited(msg.sender, lpTokenAmount, _depositAmount);
     }
@@ -113,7 +115,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
 
         ERC20(collateral).transferFrom(msg.sender, address(this), uint128(_depositAmount));
 
-        _mint(msg.sender, lpTokenAmount);
+        lpToken.mint(msg.sender, lpTokenAmount);
 
         emit Deposited(msg.sender, lpTokenAmount, _depositAmount);
     }
@@ -128,7 +130,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
 
         uint256 lpTokenAmount = perpetualMarketCore.withdraw(_withdrawnAmount * 1e2) / 1e2;
 
-        _burn(msg.sender, lpTokenAmount);
+        lpToken.burn(msg.sender, lpTokenAmount);
 
         // Send collateral to msg.sender
         sendLiquidity(msg.sender, _withdrawnAmount);

@@ -122,11 +122,11 @@ describe('liquidation', function () {
     describe('withdraw all USDC after the vault liquidated', () => {
       afterEach(async () => {
         // LP can withdraw USDC
-        const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
+        const tokenAmount = await testContractSet.lpToken.balanceOf(wallet.address)
         const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
         await perpetualMarket.withdraw(withdrawnAmount)
 
-        expect(await perpetualMarket.balanceOf(wallet.address)).to.be.eq(1)
+        expect(await testContractSet.lpToken.balanceOf(wallet.address)).to.be.eq(1)
       })
 
       it('liquidate a vault', async () => {

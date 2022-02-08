@@ -38,10 +38,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     uint256 private constant MAX_PRODUCT_ID = 2;
 
     // λ for exponentially weighted moving average is 94%
-    int128 private constant LAMBDA = 94 * 1e6;
+    int256 private constant LAMBDA = 94 * 1e6;
 
     // funding period is 1 days
-    int128 private constant FUNDING_PERIOD = 1 days;
+    int256 private constant FUNDING_PERIOD = 1 days;
 
     // max ratio of (IV/RV)^2 for squeeth pool
     int256 private squaredPerpFundingMultiplier;
