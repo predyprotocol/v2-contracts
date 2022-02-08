@@ -138,7 +138,7 @@ library TraderVaultLib {
         int128 _positionPerpetual,
         uint256 _tradePrice,
         int256 _fundingFeePerPosition
-    ) internal {
+    ) internal returns (int256 deltaUsdcPosition) {
         require(!_traderVault.isInsolvent, "T2");
         require(_positionPerpetual != 0, "T4");
 
@@ -163,7 +163,7 @@ library TraderVaultLib {
             );
 
             subVault.entryPrices[_productId] = newEntryPrice.toUint256().toUint128();
-            _traderVault.positionUsdc = _traderVault.positionUsdc.add(profitValue).toInt128();
+            deltaUsdcPosition = deltaUsdcPosition.add(profitValue);
         }
 
         {
@@ -175,8 +175,10 @@ library TraderVaultLib {
             );
 
             subVault.entryFundingFee[_productId] = newEntryFundingFee.toInt128();
-            _traderVault.positionUsdc = _traderVault.positionUsdc.add(-profitValue).toInt128();
+            deltaUsdcPosition = deltaUsdcPosition.sub(profitValue);
         }
+
+        _traderVault.positionUsdc = _traderVault.positionUsdc.add(deltaUsdcPosition).toInt128();
 
         subVault.positionPerpetuals[_productId] = subVault
             .positionPerpetuals[_productId]
@@ -328,7 +330,7 @@ library TraderVaultLib {
     ) internal pure returns (int256) {
         int256 pnl;
 
-        for (uint128 i = 0; i < MAX_PRODUCT_ID; i++) {
+        for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
             pnl = pnl.add(getPerpetualValueOfSubVault(_subVault, i, _tradePriceInfo));
         }
 

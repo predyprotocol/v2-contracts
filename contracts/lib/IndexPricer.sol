@@ -33,7 +33,7 @@ library IndexPricer {
      */
     function calculateDelta(uint256 _productId, int256 _spot) internal pure returns (int256) {
         if (_productId == 0) {
-            return int128((_spot.mul(2)) / 1e4);
+            return _spot.mul(2) / 1e4;
         } else if (_productId == 1) {
             return 1e8;
         } else {
