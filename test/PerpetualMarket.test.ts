@@ -11,6 +11,7 @@ import {
 } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
 import { FUTURE_PRODUCT_ID, SAFETY_PERIOD, SQEETH_PRODUCT_ID, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
+import { randomBytes } from 'crypto'
 
 function checkEqRoughly(a: BigNumberish, b: BigNumberish) {
   expect(a).to.be.lt(BigNumber.from(b).add(scaledBN(1, 8)))
@@ -1353,6 +1354,22 @@ describe('PerpetualMarket', function () {
 
     it('reverts if value is greater than 5000', async () => {
       await expect(perpetualMarket.setLiquidationFee(5001)).to.be.reverted
+    })
+  })
+
+  describe('setFeeRecepient', () => {
+    const feeRecepientAddress = randomBytes(20).toString('hex')
+
+    it('set recepient address', async () => {
+      await perpetualMarket.setFeeRecepient(feeRecepientAddress)
+    })
+
+    it('reverts if caller is not owner', async () => {
+      await expect(perpetualMarket.connect(other).setFeeRecepient(feeRecepientAddress)).to.be.reverted
+    })
+
+    it('reverts if address is 0', async () => {
+      await expect(perpetualMarket.setFeeRecepient(ethers.constants.AddressZero)).to.be.reverted
     })
   })
 })

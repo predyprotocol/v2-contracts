@@ -29,7 +29,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     int256 private liquidationFee;
 
     PerpetualMarketCore private immutable perpetualMarketCore;
-    IFeePool private immutable feeRecepient;
+
+    // Fee recepient address
+    IFeePool public feeRecepient;
 
     // trader's vaults storage
     mapping(address => mapping(uint256 => TraderVaultLib.TraderVault)) private traderVaults;
@@ -54,6 +56,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     event Hedged(address hedger, bool isBuyingUnderlying, uint256 usdcAmount, uint256 underlyingAmount);
 
     event SetLiquidationFee(int256 liquidationFee);
+    event SetFeeRecepient(address feeRecepient);
 
     /**
      * @notice Constructor of Perpetual Market contract
@@ -64,6 +67,10 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
         address _underlying,
         address _feeRecepient
     ) ERC20("Predy V2 LP Token", "PREDY-V2-LP") BaseLiquidityPool(_collateral, _underlying) {
+        require(_collateral != address(0));
+        require(_underlying != address(0));
+        require(_feeRecepient != address(0));
+
         perpetualMarketCore = _perpetualMarketCore;
         feeRecepient = IFeePool(_feeRecepient);
 
@@ -446,9 +453,23 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     //  Admin Functions    //
     /////////////////////////
 
+    /**
+     * @notice Sets liquidation fee
+     * @param _liquidationFee New liquidation fee
+     */
     function setLiquidationFee(int256 _liquidationFee) external onlyOwner {
         require(_liquidationFee >= 0 && _liquidationFee <= 5000);
         liquidationFee = _liquidationFee;
         emit SetLiquidationFee(liquidationFee);
+    }
+
+    /**
+     * @notice Sets new fee recepient
+     * @param _feeRecepient The address of new fee recepient
+     */
+    function setFeeRecepient(address _feeRecepient) external onlyOwner {
+        require(_feeRecepient != address(0));
+        feeRecepient = IFeePool(_feeRecepient);
+        emit SetFeeRecepient(_feeRecepient);
     }
 }
