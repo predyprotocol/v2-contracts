@@ -43,7 +43,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     // funding period is 1 days
     int128 private constant FUNDING_PERIOD = 1 days;
 
-    // max ratio of (IV/RV)^2 for sqeeth pool
+    // max ratio of (IV/RV)^2 for squeeth pool
     int256 private squaredPerpFundingMultiplier;
 
     // max funding rate of future pool
@@ -797,7 +797,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
 
     /**
      * @notice Calculates perpetual's funding rate
-     * Sqeeth: FundingRate = variance * (1 + squaredPerpFundingMultiplier * m / L)
+     * Squeeth: FundingRate = variance * (1 + squaredPerpFundingMultiplier * m / L)
      * Future: FundingRate = BASE_FUNDING_RATE + perpFutureMaxFundingRate * (m / L)
      * @param _productId product id
      * @param _deltaMargin difference of required margin

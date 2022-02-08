@@ -18,8 +18,8 @@ import "./EntryPriceMath.sol";
  *  - SubVault1(PositionPerpetuals, EntryPrices, entryFundingFee)
  *  - ...
  *
- *  PositionPerpetuals = [PositionSqeeth, PositionFuture]
- *  EntryPrices = [EntryPriceSqeeth, EntryPriceFuture]
+ *  PositionPerpetuals = [PositionSqueeth, PositionFuture]
+ *  EntryPrices = [EntryPriceSqueeth, EntryPriceFuture]
  *  entryFundingFee = [entryFundingFeeqeeth, FundingFeeEntryValueFuture]
  *
  *
@@ -255,7 +255,7 @@ library TraderVaultLib {
 
     /**
      * @notice Calculates min collateral
-     * MinCollateral = 0.075 * S * (|2*S*PositionSqeeth+PositionFuture| + 0.15*S*|PositionSqeeth|)
+     * MinCollateral = 0.075 * S * (|2*S*PositionSqueeth+PositionFuture| + 0.15*S*|PositionSqueeth|)
      * @param positionPerpetuals amount of perpetual positions
      * @param _spotPrice spot price
      * @return MinCollateral scaled by 1e8

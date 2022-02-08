@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { BigNumber, BigNumberish } from 'ethers'
 import { ethers } from 'hardhat'
 import { NettingLibTester } from '../typechain'
-import { FUTURE_PRODUCT_ID, SQEETH_PRODUCT_ID } from './utils/constants'
+import { FUTURE_PRODUCT_ID, SQUEETH_PRODUCT_ID } from './utils/constants'
 import { scaledBN } from './utils/helpers'
 
 describe('NettingLib', function () {
@@ -19,7 +19,7 @@ describe('NettingLib', function () {
   describe('getRequiredCollateral', () => {
     it('no positions', async function () {
       expect(
-        await tester.getRequiredCollateral(SQEETH_PRODUCT_ID, {
+        await tester.getRequiredCollateral(SQUEETH_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: 0,
@@ -31,7 +31,7 @@ describe('NettingLib', function () {
 
     it('short sqeeth', async function () {
       expect(
-        await tester.getRequiredCollateral(SQEETH_PRODUCT_ID, {
+        await tester.getRequiredCollateral(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
           delta0: -2000,
           delta1: 0,
@@ -55,7 +55,7 @@ describe('NettingLib', function () {
 
     it('short sqeeth and long future', async function () {
       expect(
-        await tester.getRequiredCollateral(SQEETH_PRODUCT_ID, {
+        await tester.getRequiredCollateral(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
           delta0: -2000,
           delta1: 2000,
@@ -82,25 +82,25 @@ describe('NettingLib', function () {
 
   describe('addCollateral', () => {
     it('no positions', async function () {
-      await tester.addCollateral(SQEETH_PRODUCT_ID, {
+      await tester.addCollateral(SQUEETH_PRODUCT_ID, {
         gamma0: 0,
         delta0: 0,
         delta1: 0,
         spotPrice: scaledBN(1000, 8),
         poolCollateralRiskParam,
       })
-      expect((await tester.getInfo()).amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('0')
+      expect((await tester.getInfo()).amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('0')
     })
 
     it('short sqeeth', async function () {
-      await tester.addCollateral(SQEETH_PRODUCT_ID, {
+      await tester.addCollateral(SQUEETH_PRODUCT_ID, {
         gamma0: -2,
         delta0: -10,
         delta1: 0,
         spotPrice: scaledBN(1000, 8),
         poolCollateralRiskParam,
       })
-      expect((await tester.getInfo()).amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1134000')
+      expect((await tester.getInfo()).amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1134000')
     })
 
     it('short future', async function () {
@@ -115,7 +115,7 @@ describe('NettingLib', function () {
     })
 
     it('short sqeeth and long future', async function () {
-      await tester.addCollateral(SQEETH_PRODUCT_ID, {
+      await tester.addCollateral(SQUEETH_PRODUCT_ID, {
         gamma0: -2,
         delta0: -10,
         delta1: 10,
@@ -123,7 +123,7 @@ describe('NettingLib', function () {
         poolCollateralRiskParam,
       })
 
-      expect((await tester.getInfo()).amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1120000')
+      expect((await tester.getInfo()).amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1120000')
     })
 
     describe('delta of perpetual future is negative', () => {
@@ -207,7 +207,7 @@ describe('NettingLib', function () {
 
     describe('deltas are negative', () => {
       beforeEach(async () => {
-        await tester.addCollateral(SQEETH_PRODUCT_ID, {
+        await tester.addCollateral(SQUEETH_PRODUCT_ID, {
           gamma0: 0,
           delta0: -100,
           delta1: -100,
@@ -234,8 +234,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('100')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('40000')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('100')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('40000')
       })
 
       it('delta increases', async function () {
@@ -293,7 +293,7 @@ describe('NettingLib', function () {
 
     describe('delta of squared is negative and delta of future is positive', () => {
       beforeEach(async () => {
-        await tester.addCollateral(SQEETH_PRODUCT_ID, {
+        await tester.addCollateral(SQUEETH_PRODUCT_ID, {
           gamma0: 0,
           delta0: -120,
           delta1: 100,
@@ -320,8 +320,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('120')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('3091')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('120')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('3091')
       })
 
       it('delta decreases', async function () {
@@ -457,7 +457,7 @@ describe('NettingLib', function () {
     }
 
     it('reverts if there are no positions', async function () {
-      await tester.addCollateral(SQEETH_PRODUCT_ID, {
+      await tester.addCollateral(SQUEETH_PRODUCT_ID, {
         gamma0: 0,
         delta0: 0,
         delta1: 0,
@@ -470,7 +470,7 @@ describe('NettingLib', function () {
 
     describe('short squared perpetual', () => {
       beforeEach(async () => {
-        await tester.addCollateral(SQEETH_PRODUCT_ID, {
+        await tester.addCollateral(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
           delta0: -100,
           delta1: 0,
@@ -484,8 +484,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('100')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1160000')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('100')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1160000')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('0')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
       })
@@ -495,8 +495,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('100')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1150000')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('100')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1150000')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('0')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
       })
@@ -510,8 +510,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('100')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1170000')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('100')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1170000')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('0')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
       })
@@ -533,8 +533,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('0')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('0')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('40000')
       })
@@ -544,8 +544,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('0')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('0')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('30000')
       })
@@ -555,8 +555,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('0')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('0')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('50000')
       })
@@ -564,7 +564,7 @@ describe('NettingLib', function () {
 
     describe('short squared perpetual and short perpetual future', () => {
       beforeEach(async () => {
-        await tester.addCollateral(SQEETH_PRODUCT_ID, {
+        await tester.addCollateral(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
           delta0: -100,
           delta1: -100,
@@ -585,8 +585,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('100')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1160000')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('100')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1160000')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('40000')
       })
@@ -596,8 +596,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('120')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1116000')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('120')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1116000')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('20000')
       })
@@ -607,8 +607,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('90')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1179000')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('90')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1179000')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('50000')
       })
@@ -616,7 +616,7 @@ describe('NettingLib', function () {
 
     describe('short squared perpetual and long perpetual future', () => {
       beforeEach(async () => {
-        await tester.addCollateral(SQEETH_PRODUCT_ID, {
+        await tester.addCollateral(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
           delta0: -120,
           delta1: 100,
@@ -637,8 +637,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('120')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1123091')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('120')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1123091')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('-100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('3510')
       })
@@ -648,8 +648,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('120')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1122000')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('120')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1122000')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('-100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('2600')
       })
@@ -659,8 +659,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQEETH_PRODUCT_ID]).to.be.eq('120')
-        expect(info.amountsUsdc[SQEETH_PRODUCT_ID]).to.be.eq('1124182')
+        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('120')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1124182')
         expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('-100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('4419')
       })

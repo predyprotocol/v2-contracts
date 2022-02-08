@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { PricerTester } from '../typechain'
 import { scaledBN } from './utils/helpers'
-import { FUTURE_PRODUCT_ID, SQEETH_PRODUCT_ID } from './utils/constants'
+import { FUTURE_PRODUCT_ID, SQUEETH_PRODUCT_ID } from './utils/constants'
 
 describe('IndexPricer', function () {
   let tester: PricerTester
@@ -15,7 +15,7 @@ describe('IndexPricer', function () {
 
   describe('calculatePrice', () => {
     describe('productId is 0', () => {
-      const productId = SQEETH_PRODUCT_ID
+      const productId = SQUEETH_PRODUCT_ID
 
       it('calculate price when spot is $2,000', async function () {
         const price = await tester.testCalculatePrice(productId, scaledBN(2000, 8))
@@ -55,7 +55,7 @@ describe('IndexPricer', function () {
 
   describe('calculateDelta', () => {
     describe('productId is 0', () => {
-      const productId = SQEETH_PRODUCT_ID
+      const productId = SQUEETH_PRODUCT_ID
 
       it('calculate delta when spot is $2,000', async function () {
         const delta = await tester.testCalculateDelta(productId, scaledBN(2000, 8))

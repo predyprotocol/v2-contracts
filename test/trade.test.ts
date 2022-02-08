@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { scaledBN } from './utils/helpers'
-import { FUTURE_PRODUCT_ID, SQEETH_PRODUCT_ID } from './utils/constants'
+import { FUTURE_PRODUCT_ID, SQUEETH_PRODUCT_ID } from './utils/constants'
 
 describe('trade', function () {
   let wallet: Wallet
@@ -153,7 +153,7 @@ describe('trade', function () {
     })
 
     it('get trade price of squared perpetual', async () => {
-      const tradePrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 100)
+      const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 100)
 
       expect(tradePrice.tradePrice).to.be.eq(14457600000)
       expect(tradePrice.indexPrice).to.be.eq(14400000000)
@@ -196,7 +196,7 @@ describe('trade', function () {
       })
 
       it('get trade price of small position', async () => {
-        const tradePrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, 100)
+        const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 100)
 
         expect(tradePrice.tradePrice).to.be.eq(10040000000)
         expect(tradePrice.indexPrice).to.be.eq(10000000000)
@@ -209,7 +209,7 @@ describe('trade', function () {
       })
 
       it("get squared perpetual's trade price of large position", async () => {
-        const tradePrice = await perpetualMarket.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 12))
+        const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 12))
 
         expect(tradePrice.tradePrice).to.be.eq(10040588000)
         expect(tradePrice.indexPrice).to.be.eq(10000000000)

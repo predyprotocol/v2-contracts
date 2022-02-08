@@ -146,7 +146,7 @@ library NettingLib {
         returns (int256)
     {
         if (_productId == 0) {
-            return getRequiredCollateralOfSqeeth(_params);
+            return getRequiredCollateralOfSqueeth(_params);
         } else if (_productId == 1) {
             return getRequiredCollateralOfFuture(_params);
         } else {
@@ -167,12 +167,12 @@ library NettingLib {
     }
 
     /**
-     * @notice Gets required collateral for sqeeth
-     * RequiredCollateral_{sqeeth}
+     * @notice Gets required collateral for squeeth
+     * RequiredCollateral_{squeeth}
      * = max((1-α) * S * |WeightDelta_{sqeeth}-α * S * gamma|, (1+α) * S * |WeightDelta_{sqeeth}+α * S * gamma|)
      * @return RequiredCollateral scaled by 1e8
      */
-    function getRequiredCollateralOfSqeeth(AddCollateralParams memory _params) internal pure returns (int256) {
+    function getRequiredCollateralOfSqueeth(AddCollateralParams memory _params) internal pure returns (int256) {
         int256 weightedDelta = calculateWeightedDelta(0, _params.delta0, _params.delta1);
         int256 deltaFromGamma = (_params.poolCollateralRiskParam.mul(_params.spotPrice).mul(_params.gamma0)) / 1e12;
 

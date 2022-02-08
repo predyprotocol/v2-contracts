@@ -11,7 +11,7 @@ library IndexPricer {
 
     /**
      * @notice Calculates index price of perpetuals
-     * Sqeeth: ETH^2 / 10000
+     * Squeeth: ETH^2 / 10000
      * Future: ETH
      * @return calculated index price scaled by 1e8
      */
@@ -27,7 +27,7 @@ library IndexPricer {
 
     /**
      * @notice Calculates delta of perpetuals
-     * Sqeeth: 2 * ETH / 10000
+     * Squeeth: 2 * ETH / 10000
      * Future: 1
      * @return calculated delta scaled by 1e8
      */
@@ -43,7 +43,7 @@ library IndexPricer {
 
     /**
      * @notice Calculates gamma of perpetuals
-     * Sqeeth: 2 / 10000
+     * Squeeth: 2 / 10000
      * Future: 0
      * @return calculated gamma scaled by 1e8
      */

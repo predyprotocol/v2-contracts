@@ -4,7 +4,7 @@ import { MockChainlinkAggregator, PerpetualMarketCore, PerpetualMarketCoreTester
 import { BigNumberish, Wallet } from 'ethers'
 import { restoreSnapshot, takeSnapshot } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
-import { FUTURE_PRODUCT_ID, SAFETY_PERIOD, SQEETH_PRODUCT_ID, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
+import { FUTURE_PRODUCT_ID, SAFETY_PERIOD, SQUEETH_PRODUCT_ID, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
 
 describe('PerpetualMarketCore', function () {
   let wallet: Wallet, other: Wallet
@@ -77,7 +77,7 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('deposits after that pool position increased', async () => {
-      await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
       await perpetualMarketCore.deposit(1000000)
 
@@ -86,7 +86,7 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('deposits after pool gets profit', async () => {
-      await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
       await updateSpot(scaledBN(995, 8))
 
@@ -97,7 +97,7 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('deposits after pool gets loss', async () => {
-      await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
       await increaseTime(SAFETY_PERIOD)
       await updateSpot(scaledBN(1005, 8))
@@ -133,13 +133,13 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('reverts withdrawal if there is little available liquidity', async () => {
-      await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
       await expect(perpetualMarketCore.withdraw(1000000)).to.be.revertedWith('PMC0')
     })
 
     it('withdraws after the pool gets profit', async () => {
-      await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
       await updateSpot(scaledBN(995, 8))
 
@@ -150,7 +150,7 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('withdraws after the pool gets loss', async () => {
-      await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
       await increaseTime(SAFETY_PERIOD)
       await updateSpot(scaledBN(1005, 8))
@@ -164,13 +164,13 @@ describe('PerpetualMarketCore', function () {
 
   describe('updatePoolPosition', () => {
     it('reverts if caller is not PerpetualMarket', async () => {
-      await expect(perpetualMarketCore.connect(other).updatePoolPosition(SQEETH_PRODUCT_ID, 1000)).to.be.revertedWith(
+      await expect(perpetualMarketCore.connect(other).updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)).to.be.revertedWith(
         'PMC2',
       )
     })
 
     it('reverts if pool has no liquidity', async () => {
-      await expect(perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 1000)).to.be.revertedWith('PMC1')
+      await expect(perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)).to.be.revertedWith('PMC1')
     })
 
     describe('after initialized', () => {
@@ -179,23 +179,23 @@ describe('PerpetualMarketCore', function () {
       })
 
       it('reverts if pool has no enough liquidity', async () => {
-        await expect(perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(100, 8))).to.be.revertedWith(
+        await expect(perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, scaledBN(100, 8))).to.be.revertedWith(
           'PMC1',
         )
       })
 
-      it('sqeeth position increased', async () => {
-        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 100000)
+      it('squeeth position increased', async () => {
+        await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 100000)
 
-        const pool = await perpetualMarketCore.pools(SQEETH_PRODUCT_ID)
+        const pool = await perpetualMarketCore.pools(SQUEETH_PRODUCT_ID)
         expect(pool.amountLockedLiquidity).to.be.gt(0)
       })
 
-      it('sqeeth position decreased', async () => {
-        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 100000)
-        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, -100000)
+      it('squeeth position decreased', async () => {
+        await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 100000)
+        await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, -100000)
 
-        const pool = await perpetualMarketCore.pools(SQEETH_PRODUCT_ID)
+        const pool = await perpetualMarketCore.pools(SQUEETH_PRODUCT_ID)
         expect(pool.amountLockedLiquidity).to.be.eq(0)
       })
 
@@ -221,7 +221,7 @@ describe('PerpetualMarketCore', function () {
       })
 
       it('utilization ratio becomes high', async () => {
-        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, 2000000)
+        await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 2000000)
 
         const utilizationRatio = await perpetualMarketCore.getUtilizationRatio()
         expect(utilizationRatio).to.be.eq(78406272)
@@ -239,35 +239,35 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('variance is not updated', async () => {
-      const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 6))
+      const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 6))
       await perpetualMarketCore.updatePoolSnapshot()
-      const afterTradePrice = await perpetualMarketCore.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 6))
+      const afterTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 6))
 
       expect(beforeTradePrice[0]).to.be.eq(afterTradePrice[0])
     })
 
     it('variance becomes low', async () => {
-      const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 6))
+      const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 6))
 
       await increaseTime(VARIANCE_UPDATE_INTERVAL)
       await updateSpot(scaledBN(1020, 8))
       await perpetualMarketCore.updatePoolSnapshot()
       await updateSpot(scaledBN(1000, 8))
 
-      const afterTradePrice = await perpetualMarketCore.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 6))
+      const afterTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 6))
 
       expect(beforeTradePrice[0]).to.be.gt(afterTradePrice[0])
     })
 
     it('variance becomes high', async () => {
-      const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 6))
+      const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 6))
 
       await increaseTime(VARIANCE_UPDATE_INTERVAL)
       await updateSpot(scaledBN(1050, 8))
       await perpetualMarketCore.updatePoolSnapshot()
       await updateSpot(scaledBN(1000, 8))
 
-      const afterTradePrice = await perpetualMarketCore.getTradePrice(SQEETH_PRODUCT_ID, scaledBN(1, 6))
+      const afterTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 6))
 
       expect(beforeTradePrice[0]).to.be.lt(afterTradePrice[0])
     })
@@ -281,7 +281,7 @@ describe('PerpetualMarketCore', function () {
     it('get token amounts with min slippage tolerance', async () => {
       await perpetualMarketCore.initialize(scaledBN(2000, 6), scaledBN(5, 5))
 
-      await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(1, 5))
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, scaledBN(1, 5))
 
       const tokenAmounts = await perpetualMarketCore.getTokenAmountForHedging()
 
@@ -296,7 +296,7 @@ describe('PerpetualMarketCore', function () {
 
       await updateSpot(scaledBN(1000, 8))
 
-      await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(1, 5))
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, scaledBN(1, 5))
 
       const tokenAmounts = await perpetualMarketCore.getTokenAmountForHedging()
 
@@ -308,7 +308,7 @@ describe('PerpetualMarketCore', function () {
       beforeEach(async () => {
         await perpetualMarketCore.initialize(scaledBN(2000, 6), scaledBN(5, 5))
 
-        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(1, 5))
+        await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, scaledBN(1, 5))
       })
 
       it('get token amounts with min slippage tolerance', async () => {
@@ -322,7 +322,7 @@ describe('PerpetualMarketCore', function () {
 
         await updateSpot(scaledBN(1000, 8))
 
-        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(-1, 5))
+        await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, scaledBN(-1, 5))
 
         const tokenAmounts = await perpetualMarketCore.getTokenAmountForHedging()
 
@@ -343,7 +343,7 @@ describe('PerpetualMarketCore', function () {
 
         await updateSpot(scaledBN(1000, 8))
 
-        await perpetualMarketCore.updatePoolPosition(SQEETH_PRODUCT_ID, scaledBN(-1, 5))
+        await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, scaledBN(-1, 5))
 
         const tokenAmounts = await perpetualMarketCore.getTokenAmountForHedging()
 
