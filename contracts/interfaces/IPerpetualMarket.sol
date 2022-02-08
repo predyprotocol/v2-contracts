@@ -39,7 +39,7 @@ interface IPerpetualMarket {
 
     function withdraw(uint128 _withdrawnAmount) external;
 
-    function openPositions(MultiTradeParams memory _tradeParams) external;
+    function trade(MultiTradeParams memory _tradeParams) external;
 
     function liquidateByPool(address _vaultOwner, uint256 _vaultId) external;
 

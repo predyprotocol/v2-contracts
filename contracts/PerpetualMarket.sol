@@ -4,10 +4,10 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@uniswap/v3-periphery/contracts/base/Multicall.sol";
 import "./interfaces/IFeePool.sol";
 import "./interfaces/IPerpetualMarket.sol";
 import "./base/BaseLiquidityPool.sol";
-import "./base/Multicall.sol";
 import "./lib/TraderVaultLib.sol";
 import "./PerpetualMarketCore.sol";
 
@@ -29,10 +29,14 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     int256 private liquidationFee;
 
     PerpetualMarketCore private immutable perpetualMarketCore;
-    IFeePool private immutable feeRecepient;
+
+    // Fee recepient address
+    IFeePool public feeRecepient;
 
     // trader's vaults storage
     mapping(address => mapping(uint256 => TraderVaultLib.TraderVault)) private traderVaults;
+
+    uint256 public cumulativeProtocolFee;
 
     event Deposited(address indexed account, uint256 issued, uint256 amount);
 
@@ -54,6 +58,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     event Hedged(address hedger, bool isBuyingUnderlying, uint256 usdcAmount, uint256 underlyingAmount);
 
     event SetLiquidationFee(int256 liquidationFee);
+    event SetFeeRecepient(address feeRecepient);
 
     /**
      * @notice Constructor of Perpetual Market contract
@@ -64,6 +69,10 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
         address _underlying,
         address _feeRecepient
     ) ERC20("Predy V2 LP Token", "PREDY-V2-LP") BaseLiquidityPool(_collateral, _underlying) {
+        require(_collateral != address(0));
+        require(_underlying != address(0));
+        require(_feeRecepient != address(0));
+
         perpetualMarketCore = _perpetualMarketCore;
         feeRecepient = IFeePool(_feeRecepient);
 
@@ -131,7 +140,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
      * and manage collaterals in the vault
      * @param _tradeParams trade parameters
      */
-    function openPositions(MultiTradeParams memory _tradeParams) public override {
+    function trade(MultiTradeParams memory _tradeParams) public override {
         // check the transaction not exceed deadline
         require(_tradeParams.deadline == 0 || _tradeParams.deadline >= block.number, "PM0");
 
@@ -173,6 +182,9 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             }
         }
 
+        // Add protocol fee
+        cumulativeProtocolFee = cumulativeProtocolFee.add(totalProtocolFee);
+
         int256 finalDepositOrWithdrawAmount;
 
         if (_tradeParams.collateralRatio > 0) {
@@ -195,12 +207,6 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             uint256 withdrawAmount = uint256(-finalDepositOrWithdrawAmount) / 1e2;
             sendLiquidity(msg.sender, withdrawAmount);
             emit WithdrawnFromVault(msg.sender, _tradeParams.vaultId, withdrawAmount);
-        }
-
-        // Sends protocol fee
-        if (totalProtocolFee > 0) {
-            ERC20(collateral).approve(address(feeRecepient), totalProtocolFee);
-            feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
         }
     }
 
@@ -311,6 +317,8 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
+        sendProtocolFee();
+
         emit Hedged(msg.sender, completeParams.isLong, amountUsdc, amountUnderlying);
     }
 
@@ -335,6 +343,15 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
             return _tradePrice <= _limitPrice;
         } else {
             return _tradePrice >= _limitPrice;
+        }
+    }
+
+    function sendProtocolFee() public {
+        if (cumulativeProtocolFee > 0) {
+            uint256 protocolFee = cumulativeProtocolFee;
+            cumulativeProtocolFee = 0;
+            ERC20(collateral).approve(address(feeRecepient), protocolFee);
+            feeRecepient.sendProfitERC20(address(this), protocolFee);
         }
     }
 
@@ -446,9 +463,23 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
     //  Admin Functions    //
     /////////////////////////
 
+    /**
+     * @notice Sets liquidation fee
+     * @param _liquidationFee New liquidation fee
+     */
     function setLiquidationFee(int256 _liquidationFee) external onlyOwner {
         require(_liquidationFee >= 0 && _liquidationFee <= 5000);
         liquidationFee = _liquidationFee;
         emit SetLiquidationFee(liquidationFee);
+    }
+
+    /**
+     * @notice Sets new fee recepient
+     * @param _feeRecepient The address of new fee recepient
+     */
+    function setFeeRecepient(address _feeRecepient) external onlyOwner {
+        require(_feeRecepient != address(0));
+        feeRecepient = IFeePool(_feeRecepient);
+        emit SetFeeRecepient(_feeRecepient);
     }
 }

@@ -69,7 +69,7 @@ describe('liquidation', function () {
     const subVaultIndex = 0
 
     beforeEach(async () => {
-      await perpetualMarket.openPositions({
+      await perpetualMarket.trade({
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(10, 8), 0],
@@ -84,7 +84,7 @@ describe('liquidation', function () {
 
     it('reverts if the vault has enough collateral', async () => {
       // Deposit USDC
-      await perpetualMarket.openPositions({
+      await perpetualMarket.trade({
         vaultId,
         subVaultIndex,
         tradeAmounts: [0, 0],
@@ -108,7 +108,7 @@ describe('liquidation', function () {
       expect(vault.rawVaultData.isInsolvent).to.be.true
 
       await expect(
-        perpetualMarket.openPositions({
+        perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, 0],
@@ -146,7 +146,7 @@ describe('liquidation', function () {
         expect(vault.rawVaultData.isInsolvent).to.be.false
 
         const before = await usdc.balanceOf(wallet.address)
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, 0],
@@ -176,7 +176,7 @@ describe('liquidation', function () {
           await updateSpotPrice(1200)
 
           // Withdraw unrequired USDC
-          await perpetualMarket.openPositions({
+          await perpetualMarket.trade({
             vaultId,
             subVaultIndex,
             tradeAmounts: [0, 0],
@@ -200,7 +200,7 @@ describe('liquidation', function () {
           expect(vault.rawVaultData.positionUsdc).to.be.eq(vault.positionValue)
 
           const before = await usdc.balanceOf(wallet.address)
-          await perpetualMarket.openPositions({
+          await perpetualMarket.trade({
             vaultId,
             subVaultIndex,
             tradeAmounts: [0, 0],
@@ -218,7 +218,7 @@ describe('liquidation', function () {
 
   describe('multiple sub-vaults', () => {
     beforeEach(async () => {
-      await perpetualMarket.openPositions({
+      await perpetualMarket.trade({
         vaultId,
         subVaultIndex: 0,
         tradeAmounts: [scaledBN(10, 8), 0],
@@ -226,7 +226,7 @@ describe('liquidation', function () {
         limitPrices: [0, 0],
         deadline: 0,
       })
-      await perpetualMarket.openPositions({
+      await perpetualMarket.trade({
         vaultId,
         subVaultIndex: 1,
         tradeAmounts: [scaledBN(10, 8), 0],
@@ -242,7 +242,7 @@ describe('liquidation', function () {
       await perpetualMarket.liquidateByPool(wallet.address, vaultId)
 
       const before = await usdc.balanceOf(wallet.address)
-      await perpetualMarket.openPositions({
+      await perpetualMarket.trade({
         vaultId,
         subVaultIndex: 0,
         tradeAmounts: [0, 0],
@@ -261,7 +261,7 @@ describe('liquidation', function () {
       await perpetualMarket.liquidateByPool(wallet.address, vaultId)
 
       await expect(
-        perpetualMarket.openPositions({
+        perpetualMarket.trade({
           vaultId,
           subVaultIndex: 0,
           tradeAmounts: [0, 0],
@@ -277,7 +277,7 @@ describe('liquidation', function () {
 
     it('reverts if the vault has enough collateral', async () => {
       // Deposit USDC
-      await perpetualMarket.openPositions({
+      await perpetualMarket.trade({
         vaultId,
         subVaultIndex: 0,
         tradeAmounts: [0, 0],

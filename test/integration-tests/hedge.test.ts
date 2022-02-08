@@ -81,7 +81,7 @@ describe('FlashHedge', function () {
     })
 
     it('buy ETH to hedge', async () => {
-      await perpetualMarket.openPositions({
+      await perpetualMarket.trade({
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), 0],
@@ -103,7 +103,7 @@ describe('FlashHedge', function () {
     })
 
     it('reverts if net delta is positive', async () => {
-      await perpetualMarket.openPositions({
+      await perpetualMarket.trade({
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 7)],
@@ -116,7 +116,7 @@ describe('FlashHedge', function () {
     })
 
     it('reverts if ETH price in Uniswap is too high', async () => {
-      await perpetualMarket.openPositions({
+      await perpetualMarket.trade({
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), 0],
@@ -132,7 +132,7 @@ describe('FlashHedge', function () {
 
     describe('net delta is negative', () => {
       beforeEach(async () => {
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 7), 0],
@@ -147,7 +147,7 @@ describe('FlashHedge', function () {
       })
 
       it('sell ETH to hedge', async () => {
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-2, 6), 0],
@@ -164,7 +164,7 @@ describe('FlashHedge', function () {
       })
 
       it('reverts if ETH price in Uniswap is too low', async () => {
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-2, 6), 0],
@@ -181,7 +181,7 @@ describe('FlashHedge', function () {
 
     describe('net delta is negative because the pool has short perpetual future positions', () => {
       beforeEach(async () => {
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 6)],
@@ -196,7 +196,7 @@ describe('FlashHedge', function () {
       })
 
       it('net delta is positive and sell all ETH to hedge', async () => {
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-2, 6)],
