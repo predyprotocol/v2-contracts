@@ -70,7 +70,7 @@ library TraderVaultLib {
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal view returns (int256 amount) {
         require(!_traderVault.isInsolvent, "T2");
-        require(_ratio <= 1e8, "T4");
+        require(0 < _ratio && _ratio <= 1e8, "T4");
 
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
         int256 minCollateral = getMinCollateral(_traderVault, _tradePriceInfo.spotPrice);
