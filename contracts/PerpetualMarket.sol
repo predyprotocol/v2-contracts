@@ -138,7 +138,7 @@ contract PerpetualMarket is IPerpetualMarket, ERC20, BaseLiquidityPool, Ownable,
      * and manage collaterals in the vault
      * @param _tradeParams trade parameters
      */
-    function openPositions(MultiTradeParams memory _tradeParams) public override {
+    function trade(MultiTradeParams memory _tradeParams) public override {
         // check the transaction not exceed deadline
         require(_tradeParams.deadline == 0 || _tradeParams.deadline >= block.number, "PM0");
 

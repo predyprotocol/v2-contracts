@@ -66,7 +66,7 @@ describe('trade', function () {
       beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(1000, 8))
 
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(2, 8)],
@@ -77,7 +77,7 @@ describe('trade', function () {
 
         await testContractHelper.updateSpot(scaledBN(950, 8))
 
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-2, 8)],
@@ -107,7 +107,7 @@ describe('trade', function () {
       beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(1000, 8))
 
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 12)],
@@ -118,7 +118,7 @@ describe('trade', function () {
 
         await testContractHelper.updateSpot(scaledBN(950, 8))
 
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-1, 12)],
@@ -181,7 +181,7 @@ describe('trade', function () {
       beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(1000, 8))
 
-        await perpetualMarket.openPositions({
+        await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(2, 8)],
