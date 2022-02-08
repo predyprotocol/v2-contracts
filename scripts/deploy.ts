@@ -57,6 +57,11 @@ async function main() {
     return
   }
 
+  const LPToken = await ethers.getContractFactory('LPToken')
+  const lpToken = await LPToken.deploy()
+  await lpToken.deployed();
+  console.log(`LPToken deployed to ${lpToken.address}`)
+
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
   const perpetualMarketCore = await PerpetualMarketCore.deploy(aggregatorAddress)
   await perpetualMarketCore.deployed();
@@ -65,6 +70,7 @@ async function main() {
   const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
   const perpetualMarket = await PerpetualMarket.deploy(
     perpetualMarketCore.address,
+    lpToken.address,
     usdcAddress,
     wethAddress,
     feePoolAddress
