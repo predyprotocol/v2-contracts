@@ -6,6 +6,11 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "./Math.sol";
 
+/**
+ * @title EntryPriceMath
+ * @notice Library contract which has functions to calculate new entry price and profit
+ * from previous entry price and trade price for implementing margin wallet.
+ */
 library EntryPriceMath {
     using SafeCast for uint256;
     using SafeMath for uint256;

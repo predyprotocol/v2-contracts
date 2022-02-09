@@ -8,6 +8,8 @@ import "./interfaces/IPerpetualMarket.sol";
 import "./base/BaseFlashSwap.sol";
 
 /**
+ * @title FlashHedge
+ * @notice FlashHedge helps to swap underlying assets and USDC tokens with Uniswap for delta hedging.
  * Error codes
  * FH0: no enough usdc amount
  * FH1: no enough usdc amount

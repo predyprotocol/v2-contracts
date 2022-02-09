@@ -14,7 +14,8 @@ import "./lib/TraderVaultLib.sol";
 
 /**
  * @title Perpetual Market
- * @notice Perpetual Market Contract
+ * @notice Perpetual Market Contract is entry point of traders and liquidity providers.
+ * It manages traders' vault storage and holds funds from traders and liquidity providers.
  */
 contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multicall {
     using SafeCast for int256;

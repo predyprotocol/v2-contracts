@@ -5,6 +5,10 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/ILPToken.sol";
 
+/**
+ * @title LPToken
+ * @notice ERC20 Token representing liquidity provider token
+ */
 contract LPToken is ERC20, ILPToken {
     address public perpetualMarket;
 

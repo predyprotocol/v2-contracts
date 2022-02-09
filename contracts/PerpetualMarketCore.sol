@@ -15,7 +15,7 @@ import "./lib/EntryPriceMath.sol";
 
 /**
  * @title PerpetualMarketCore
- * @notice Perpetual Market Core Contract
+ * @notice Perpetual Market Core Contract manages perpetual pool positions and calculates amount of collaterals.
  * Error Code
  * PMC0: No available liquidity
  * PMC1: No available liquidity
