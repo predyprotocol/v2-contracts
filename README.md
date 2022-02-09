@@ -11,11 +11,13 @@ It supports cross margin trading of Squared perpetual and Perpetual future.
 
 ### Contracts
 
-`PerpetualMarket.sol` is entry point of traders and liquidity providers. It manages LP tokens and traders' vault storage.
+`PerpetualMarket.sol` is entry point of traders and liquidity providers. It manages traders' vault storage and holds funds from traders and liquidity providers.
 
-`PerpetualMarketCore.sol` is the contract to manage perpetual pool state, such as pool positions and collaterals.
+`PerpetualMarketCore.sol` is the contract to manage perpetual pool positions and calculate amount of collaterals.
 
-`FlashHedge.sol` is the contract to swap underlying assets and USDC tokens with Uniswap for delta hedging.
+`FlashHedge.sol` is the contract helps to swap underlying assets and USDC tokens with Uniswap for delta hedging.
+
+`LPToken.sol` is ERC20 Token representing liquidity provider token.
 
 ### Libraries
 
@@ -27,9 +29,9 @@ It supports cross margin trading of Squared perpetual and Perpetual future.
 
 `lib/IndexPricer.sol` has functions to calculate index price, delta and gamma of Squared perpetual and Perpetual future.
 
-`lib/EntryPriceMath.sol` has functions to calculate new entry price from previous entry price for implementing margin wallet.
+`lib/EntryPriceMath.sol` has functions to calculate new entry price and profit from previous entry price and trade price for implementing margin wallet.
 
-`lib/Math.sol` has functions for basic mathematical calculations.
+`lib/Math.sol` has functions for basic mathematical calculation.
 
 ## Reference
 

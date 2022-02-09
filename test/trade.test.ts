@@ -11,6 +11,7 @@ import {
 } from './utils/deploy'
 import { scaledBN } from './utils/helpers'
 import { FUTURE_PRODUCT_ID, SQUEETH_PRODUCT_ID } from './utils/constants'
+import { LPToken } from '../typechain/LPToken'
 
 describe('trade', function () {
   let wallet: Wallet
@@ -22,6 +23,7 @@ describe('trade', function () {
   let snapshotId: number
 
   let perpetualMarket: PerpetualMarket
+  let lpToken: LPToken
 
   const MaxInt128 = ethers.constants.MaxUint256
 
@@ -34,6 +36,7 @@ describe('trade', function () {
     weth = testContractSet.weth
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
+    lpToken = testContractSet.lpToken
   })
 
   beforeEach(async () => {
@@ -88,7 +91,7 @@ describe('trade', function () {
       })
 
       it('withdraw all and check balance of PerpetualMarket', async () => {
-        const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
+        const tokenAmount = await lpToken.balanceOf(wallet.address)
         const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
 
         await perpetualMarket.withdraw(withdrawnAmount)
@@ -98,7 +101,7 @@ describe('trade', function () {
         expect(
           (await usdc.balanceOf(perpetualMarket.address)).sub(await perpetualMarket.cumulativeProtocolFee()),
         ).to.eq(0)
-        expect(await perpetualMarket.balanceOf(wallet.address)).to.eq(0)
+        expect(await lpToken.balanceOf(wallet.address)).to.eq(0)
       })
     })
 
@@ -131,7 +134,7 @@ describe('trade', function () {
       })
 
       it('withdraw all and check balance of PerPetualMarket', async () => {
-        const tokenAmount = await perpetualMarket.balanceOf(wallet.address)
+        const tokenAmount = await lpToken.balanceOf(wallet.address)
         const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
 
         await perpetualMarket.withdraw(withdrawnAmount)
@@ -141,7 +144,7 @@ describe('trade', function () {
         expect(
           (await usdc.balanceOf(perpetualMarket.address)).sub(await perpetualMarket.cumulativeProtocolFee()),
         ).to.eq(0)
-        expect(await perpetualMarket.balanceOf(wallet.address)).to.eq(0)
+        expect(await lpToken.balanceOf(wallet.address)).to.eq(0)
       })
     })
   })

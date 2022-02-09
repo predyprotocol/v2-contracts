@@ -10,6 +10,7 @@ import "./EntryPriceMath.sol";
 
 /**
  * @title TraderVaultLib
+ * @notice TraderVaultLib has functions to calculate position value and minimum collateral for implementing cross margin wallet.
  *
  * Data Structure
  *  Vault

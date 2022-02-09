@@ -15,7 +15,7 @@ import "./lib/EntryPriceMath.sol";
 
 /**
  * @title PerpetualMarketCore
- * @notice Perpetual Market Core Contract
+ * @notice Perpetual Market Core Contract manages perpetual pool positions and calculates amount of collaterals.
  * Error Code
  * PMC0: No available liquidity
  * PMC1: No available liquidity
@@ -38,10 +38,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     uint256 private constant MAX_PRODUCT_ID = 2;
 
     // λ for exponentially weighted moving average is 94%
-    int128 private constant LAMBDA = 94 * 1e6;
+    int256 private constant LAMBDA = 94 * 1e6;
 
     // funding period is 1 days
-    int128 private constant FUNDING_PERIOD = 1 days;
+    int256 private constant FUNDING_PERIOD = 1 days;
 
     // max ratio of (IV/RV)^2 for squeeth pool
     int256 private squaredPerpFundingMultiplier;
@@ -162,6 +162,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
      */
     function initialize(uint128 _depositAmount, int128 _initialFundingRate)
         external
+        override
         onlyPerpetualMarket
         returns (uint128 mintAmount)
     {
@@ -185,7 +186,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     /**
      * @notice Provides liquidity
      */
-    function deposit(uint128 _depositAmount) external onlyPerpetualMarket returns (uint256 mintAmount) {
+    function deposit(uint128 _depositAmount) external override onlyPerpetualMarket returns (uint256 mintAmount) {
         require(supply > 0);
 
         mintAmount = _depositAmount.mul(1e16).div(getLPTokenPrice(_depositAmount.toInt256()));
@@ -197,7 +198,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     /**
      * @notice Withdraws liquidity
      */
-    function withdraw(uint128 _withdrawnAmount) external onlyPerpetualMarket returns (uint256 burnAmount) {
+    function withdraw(uint128 _withdrawnAmount) external override onlyPerpetualMarket returns (uint256 burnAmount) {
         require(
             amountLiquidity.sub(pools[0].amountLockedLiquidity).sub(pools[1].amountLockedLiquidity) >= _withdrawnAmount,
             "PMC0"
@@ -209,7 +210,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         supply = supply.sub(burnAmount);
     }
 
-    function addLiquidity(uint256 _amount) external onlyPerpetualMarket {
+    function addLiquidity(uint256 _amount) external override onlyPerpetualMarket {
         amountLiquidity = amountLiquidity.add(_amount);
     }
 
@@ -220,6 +221,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
      */
     function updatePoolPosition(uint256 _productId, int128 _tradeAmount)
         external
+        override
         onlyPerpetualMarket
         returns (
             uint256 tradePrice,
@@ -288,7 +290,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     /**
      * @notice Gets USDC and underlying amount to make the pool delta neutral
      */
-    function getTokenAmountForHedging() external view returns (NettingLib.CompleteParams memory completeParams) {
+    function getTokenAmountForHedging()
+        external
+        view
+        override
+        returns (NettingLib.CompleteParams memory completeParams)
+    {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         (int256 sqeethPoolDelta, int256 futurePoolDelta) = getDeltas(
@@ -320,7 +327,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     /**
      * @notice Update netting info to complete heging procedure
      */
-    function completeHedgingProcedure(NettingLib.CompleteParams memory _completeParams) external onlyPerpetualMarket {
+    function completeHedgingProcedure(NettingLib.CompleteParams memory _completeParams)
+        external
+        override
+        onlyPerpetualMarket
+    {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         lastHedgeSpotPrice = spotPrice;
@@ -332,7 +343,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
      * @notice Updates pool snapshot
      * Calculates ETH variance and base funding rate for future pool.
      */
-    function updatePoolSnapshot() external onlyPerpetualMarket {
+    function updatePoolSnapshot() external override onlyPerpetualMarket {
         if (block.timestamp < poolSnapshot.lastSnapshotTime + 12 hours) {
             return;
         }
@@ -341,7 +352,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         updateBaseFundingRate();
     }
 
-    function executeFundingPayment() external onlyPerpetualMarket {
+    function executeFundingPayment() external override onlyPerpetualMarket {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         // Funding payment
@@ -430,7 +441,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
      * LPTokenPrice = (L + ΣUnrealizedPnL_i - ΣAmountLockedLiquidity_i) / Supply
      * @return LPTokenPrice scaled by 1e16
      */
-    function getLPTokenPrice(int256 _deltaLiquidityAmount) public view returns (uint256) {
+    function getLPTokenPrice(int256 _deltaLiquidityAmount) public view override returns (uint256) {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         int256 unrealizedPnL = (
@@ -457,6 +468,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     function getTradePrice(uint256 _productId, int128 _tradeAmount)
         external
         view
+        override
         returns (
             int256,
             int256,

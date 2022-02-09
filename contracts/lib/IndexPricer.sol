@@ -4,6 +4,7 @@ pragma solidity =0.7.6;
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 
 /**
+ * @title IndexPricer
  * @notice Library contract that has functions to calculate Index price and Greeks of perpetual
  */
 library IndexPricer {
