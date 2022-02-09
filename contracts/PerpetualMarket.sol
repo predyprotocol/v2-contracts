@@ -139,8 +139,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     }
 
     /**
-     * @notice Opens new position of the perpetual contracts
-     * and manage collaterals in the vault
+     * @notice Opens new positions or closes hold position of the perpetual contracts
+     * and manage the collateral in the vault at the same time.
      * @param _tradeParams trade parameters
      */
     function trade(MultiTradeParams memory _tradeParams) public override {
@@ -216,8 +216,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
     /**
      * @notice Liquidates a vault by Pool
-     * Anyone can liquidata a vault whose PositionValue is less than MinCollateral.
-     * The caller gets part of collateral as reward.
+     * Anyone can liquidate a vault whose PositionValue is less than MinCollateral.
+     * The caller gets a portion of the collateral as reward.
      * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
      */

@@ -104,7 +104,7 @@ library NettingLib {
 
     /**
      * @notice Completes delta hedging procedure
-     * and calculate entry price of hedge position
+     * Calculate holding amount of Underlying and USDC after a hedge.
      */
     function complete(Info storage _info, CompleteParams memory _params) internal {
         uint256 totalUnderlying = Math.abs(_params.amountsRequiredUnderlying[0]).add(
@@ -193,7 +193,7 @@ library NettingLib {
 
     /**
      * @notice Gets notional value of hedge positions
-     * HedgePositionValue = USDCPosition+UnderlyingPosition*S
+     * HedgePositionValue_i = AmountsUsdc_i+AmountsUnderlying_i*S
      * @return HedgePositionValue scaled by 1e8
      */
     function getHedgePositionValue(
@@ -206,6 +206,10 @@ library NettingLib {
         return _info.amountsUsdc[_productId].toInt256().add(hedgeNotional);
     }
 
+    /**
+     * @notice Gets total underlying position
+     * TotalUnderlyingPosition = ΣAmountsUnderlying_i
+     */
     function getTotalUnderlyingPosition(int128[2] memory _amountsUnderlying)
         internal
         pure
