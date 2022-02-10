@@ -67,10 +67,10 @@ library TraderVaultLib {
      * @return amount positive means required more collateral and negative means excess collateral.
      */
     function getAmountRequired(
-        TraderVault storage _traderVault,
+        TraderVault memory _traderVault,
         int128 _ratio,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
-    ) external view returns (int256 amount) {
+    ) internal pure returns (int256 amount) {
         require(!_traderVault.isInsolvent, "T2");
         require(0 < _ratio && _ratio <= 1e8, "T4");
 
@@ -87,8 +87,26 @@ library TraderVaultLib {
      * @param _traderVault trader vault object
      * @param _usdcPosition amount to add. if positive then increase amount, if negative then decrease amount.
      */
-    function updateUsdcPosition(TraderVault storage _traderVault, int256 _usdcPosition) external {
-        _traderVault.positionUsdc = _traderVault.positionUsdc.add(_usdcPosition).toInt128();
+    function updateUsdcPosition(
+        TraderVault storage _traderVault,
+        int256 _usdcPosition,
+        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
+    ) external returns (int256 finalUsdcPosition) {
+        finalUsdcPosition = _usdcPosition;
+        require(!_traderVault.isInsolvent, "T2");
+
+        int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
+        int256 minCollateral = getMinCollateral(_traderVault, _tradePriceInfo.spotPrice);
+        int256 maxWithdrawable = positionValue - minCollateral;
+
+        // If trader wants to withdraw all USDC, set maxWithdrawable.
+        if (_usdcPosition < -maxWithdrawable && maxWithdrawable > 0 && _usdcPosition < 0) {
+            finalUsdcPosition = -maxWithdrawable;
+        }
+
+        _traderVault.positionUsdc = _traderVault.positionUsdc.add(finalUsdcPosition).toInt128();
+
+        require(!checkVaultIsLiquidatable(_traderVault, _tradePriceInfo), "T4");
     }
 
     /**
@@ -196,9 +214,9 @@ library TraderVaultLib {
      * @return if true the vault is liquidatable, if false the vault is not liquidatable
      */
     function checkVaultIsLiquidatable(
-        TraderVault storage _traderVault,
+        TraderVault memory _traderVault,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
-    ) external pure returns (bool) {
+    ) internal pure returns (bool) {
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
 
         return positionValue < getMinCollateral(_traderVault, _tradePriceInfo.spotPrice);

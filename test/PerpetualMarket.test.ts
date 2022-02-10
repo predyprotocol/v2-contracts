@@ -118,11 +118,11 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.updateSpot(scaledBN(100, 8))
 
-        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8))
+        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8), scaledBN(20, 6))
 
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, scaledBN(5, 7))
+        await testContractHelper.openShort(wallet, vaultId, scaledBN(5, 7), 0)
       })
 
       it('deposit', async () => {
@@ -219,8 +219,8 @@ describe('PerpetualMarket', function () {
       await perpetualMarket.trade({
         vaultId: 0,
         subVaultIndex: 0,
-        collateralRatio: scaledBN(1, 8),
-        tradeAmounts: [scaledBN(100, 6), 0],
+        collateralRatio: scaledBN(100, 6),
+        tradeAmounts: [scaledBN(1, 8), 0],
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -252,7 +252,7 @@ describe('PerpetualMarket', function () {
           vaultId: 0,
           subVaultIndex: 0,
           tradeAmounts: [pool0.positionPerpetuals, pool1.positionPerpetuals],
-          collateralRatio: scaledBN(1, 8),
+          collateralRatio: ethers.constants.MinInt256,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -1353,7 +1353,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(10, 8), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralRatio: scaledBN(5000, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })

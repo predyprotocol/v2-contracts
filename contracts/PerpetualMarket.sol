@@ -192,13 +192,12 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         int256 finalDepositOrWithdrawAmount;
 
         if (_tradeParams.collateralRatio > 0) {
-            finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].getAmountRequired(
-                _tradeParams.collateralRatio,
+            finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcPosition(
+                _tradeParams.collateralRatio.mul(1e2),
                 perpetualMarketCore.getTradePriceInfo(
                     traderVaults[msg.sender][_tradeParams.vaultId].getPositionPerpetuals()
                 )
             );
-            traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcPosition(finalDepositOrWithdrawAmount);
         }
 
         perpetualMarketCore.updatePoolSnapshot();
