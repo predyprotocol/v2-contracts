@@ -128,7 +128,7 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, scaledBN(5, 7), 0)
+        await testContractHelper.openShort(wallet, vaultId, scaledBN(5, 7))
       })
 
       it('deposit', async () => {
@@ -359,7 +359,7 @@ describe('PerpetualMarket', function () {
         await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot(scaledBN(94, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8), 0)
+        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8))
       })
 
       it('withdraw all', async function () {
@@ -396,7 +396,7 @@ describe('PerpetualMarket', function () {
         await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot(scaledBN(106, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8), 0)
+        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8))
       })
 
       it('withdraw all', async function () {

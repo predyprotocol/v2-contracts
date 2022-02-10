@@ -60,7 +60,7 @@ export class TestContractHelper {
       vaultId,
       subVaultIndex: 0,
       tradeAmounts: [tradeAmount, 0],
-      collateralAmount: collateralAmount || scaledBN(1, 8),
+      collateralAmount: collateralAmount || 0,
       limitPrices: [0, 0],
       deadline: 0,
     })
@@ -71,7 +71,7 @@ export class TestContractHelper {
       vaultId,
       subVaultIndex: 0,
       tradeAmounts: [BigNumber.from(tradeAmount).mul(-1), 0],
-      collateralAmount: collateralAmount || scaledBN(1, 8),
+      collateralAmount: collateralAmount || 0,
       limitPrices: [0, 0],
       deadline: 0,
     })
