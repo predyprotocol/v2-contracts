@@ -413,7 +413,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
      * @param _ratio target MinCollateral / PositionValue ratio.
      * @param _tradeAmounts amounts to trade
      * @param _spotPrice spot price if 0 current oracle price will be used
-     * @return requiredCollateral and minCollateral
+     * @return requiredCollateral and minCollateral scaled by 1e6
      */
     function getRequiredCollateral(
         address _vaultOwner,

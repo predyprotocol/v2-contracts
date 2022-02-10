@@ -65,6 +65,7 @@ library TraderVaultLib {
      * @param _traderVault trader vault object
      * @param _ratio target MinCollateral / PositionValue ratio.
      * @param _spotPrice spot price
+     * @param _tradePriceInfo trade price info
      * @return requiredCollateral positive means required more collateral and negative means excess collateral.
      */
     function getAmountRequired(
@@ -97,6 +98,9 @@ library TraderVaultLib {
      * @notice Updates USDC position
      * @param _traderVault trader vault object
      * @param _usdcPosition amount to add. if positive then increase amount, if negative then decrease amount.
+     * @param _tradePriceInfo trade price info
+     * @return finalUsdcPosition positive means amount of deposited collateral
+     * and negative means amount of withdrawn collateral.
      */
     function updateUsdcPosition(
         TraderVault storage _traderVault,
