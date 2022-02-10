@@ -46,8 +46,10 @@ contract TraderVaultLibTester {
         return TraderVaultLib.getAmountRequired(traderVault, _ratio, _tradePriceInfo);
     }
 
-    function testUpdateUsdcPosition(int256 _amount) external {
-        TraderVaultLib.updateUsdcPosition(traderVault, _amount);
+    function testUpdateUsdcPosition(int256 _amount, IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
+        external
+    {
+        TraderVaultLib.updateUsdcPosition(traderVault, _amount, _tradePriceInfo);
     }
 
     function testCheckVaultIsLiquidatable(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
