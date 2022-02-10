@@ -371,7 +371,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
      * @notice Gets current LP token price
      * @param _deltaLiquidityAmount difference of liquidity
      * If LPs want LP token price of deposit, _deltaLiquidityAmount is positive number of amount to deposit.
-     * On the pther hand, if LPs want LP token price of withdrawal, _deltaLiquidityAmount is negative number of amount to withdraw.
+     * On the other hand, if LPs want LP token price of withdrawal, _deltaLiquidityAmount is negative number of amount to withdraw.
      * @return LP token price scaled by 1e6
      */
     function getLPTokenPrice(int256 _deltaLiquidityAmount) external view override returns (uint256) {
