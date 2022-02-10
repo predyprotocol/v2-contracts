@@ -191,14 +191,12 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         int256 finalDepositOrWithdrawAmount;
 
-        if (_tradeParams.collateralRatio > 0) {
-            finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcPosition(
-                _tradeParams.collateralRatio.mul(1e2),
-                perpetualMarketCore.getTradePriceInfo(
-                    traderVaults[msg.sender][_tradeParams.vaultId].getPositionPerpetuals()
-                )
-            );
-        }
+        finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcPosition(
+            _tradeParams.collateralAmount.mul(1e2),
+            perpetualMarketCore.getTradePriceInfo(
+                traderVaults[msg.sender][_tradeParams.vaultId].getPositionPerpetuals()
+            )
+        );
 
         perpetualMarketCore.updatePoolSnapshot();
 
@@ -425,24 +423,19 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         uint256 _spotPrice
     ) external view override returns (int256 requiredCollateral, int256 minCollateral) {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
-        int128[2] memory positionPerpetuals = traderVault.getPositionPerpetuals();
         IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
-            positionPerpetuals
+            traderVault.getPositionPerpetuals()
         );
 
-        for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
-            positionPerpetuals[i] = positionPerpetuals[i].add(_tradeAmounts[i]).toInt128();
-        }
-
-        int256 positionValue = traderVault.getPositionValue(tradePriceInfo);
-        minCollateral = TraderVaultLib.calculateMinCollateral(
-            positionPerpetuals,
-            _spotPrice == 0 ? tradePriceInfo.spotPrice : _spotPrice
+        (requiredCollateral, minCollateral) = traderVault.getAmountRequired(
+            _tradeAmounts,
+            _ratio,
+            _spotPrice,
+            tradePriceInfo
         );
 
-        int256 requiredPositionValue = minCollateral.mul(1e8).div(_ratio);
-
-        requiredCollateral = requiredPositionValue - positionValue;
+        requiredCollateral = requiredCollateral / 1e2;
+        minCollateral = minCollateral / 1e2;
     }
 
     /**

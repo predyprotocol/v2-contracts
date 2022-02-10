@@ -380,33 +380,97 @@ describe('TraderVaultLib', function () {
   })
 
   describe('getAmountRequired', () => {
+    it('spot is not specified', async function () {
+      const result = await tester.testGetAmountRequired(['1000', 0], '100000000', 0, {
+        spotPrice: '100000000000',
+        tradePrices: ['10000000000', '100000000000'],
+        amountsFundingPaidPerPosition: [0, 0],
+      })
+      expect(result[0]).to.be.eq('10000000000')
+      expect(result[1]).to.be.eq('10000000000')
+    })
+
+    it('spot is specified', async function () {
+      const result = await tester.testGetAmountRequired(['1000', 0], '100000000', '200000000000', {
+        spotPrice: '100000000000',
+        tradePrices: ['10000000000', '100000000000'],
+        amountsFundingPaidPerPosition: [0, 0],
+      })
+      expect(result[0]).to.be.eq('10000000000')
+      expect(result[1]).to.be.eq('10000000000')
+    })
+
+    describe('USDCs are deposited', () => {
+      beforeEach(async () => {
+        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '1000000000', '10000000000', '0')
+        await tester.testUpdateUsdcPosition('20000000000', {
+          spotPrice: '100000000000',
+          tradePrices: ['10000000000', '100000000000'],
+          amountsFundingPaidPerPosition: [0, 0],
+        })
+      })
+
+      it('spot is not specified', async function () {
+        const result = await tester.testGetAmountRequired(['1000', 0], '100000000', 0, {
+          spotPrice: '100000000000',
+          tradePrices: ['10000000000', '100000000000'],
+          amountsFundingPaidPerPosition: [0, 0],
+        })
+        expect(result[0]).to.be.eq('-4999985000')
+        expect(result[1]).to.be.eq('15000015000')
+      })
+
+      it('spot is specified', async function () {
+        const result = await tester.testGetAmountRequired(['1000', 0], '100000000', '200000000000', {
+          spotPrice: '100000000000',
+          tradePrices: ['10000000000', '100000000000'],
+          amountsFundingPaidPerPosition: [0, 0],
+        })
+        expect(result[0]).to.be.eq('40000060000')
+        expect(result[1]).to.be.eq('60000060000')
+      })
+
+      it('ratio is 50%', async function () {
+        const result = await tester.testGetAmountRequired(['1000', 0], '50000000', 0, {
+          spotPrice: '100000000000',
+          tradePrices: ['10000000000', '100000000000'],
+          amountsFundingPaidPerPosition: [0, 0],
+        })
+        expect(result[0]).to.be.eq('10000030000')
+        expect(result[1]).to.be.eq('15000015000')
+      })
+    })
+  })
+
+  describe('updateUsdcPosition', () => {
     describe('single sub-vault', () => {
       beforeEach(async () => {
         await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '1000000000', '10000000000', '0')
       })
 
       it('more collateral required', async function () {
-        const usdcAmount = await tester.testGetAmountRequired('100000000', {
+        await tester.testUpdateUsdcPosition('20000000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        expect(usdcAmount).to.be.eq('15000000000')
+        expect(await tester.r()).to.be.eq('20000000000')
+        expect((await tester.traderVault()).positionUsdc).to.be.eq(20000000000)
       })
 
       it('there is excess collateral', async function () {
-        const usdcAmount = await tester.testGetAmountRequired('100000000', {
+        await tester.testUpdateUsdcPosition('20000000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        await tester.testUpdateUsdcPosition(usdcAmount)
-        const usdcAmount2 = await tester.testGetAmountRequired('100000000', {
+        await tester.testUpdateUsdcPosition('-100000000000', {
           spotPrice: '110000000000',
           tradePrices: ['12100000000', '110000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        expect(usdcAmount2).to.be.eq(-17850000000)
+        expect(await tester.r()).to.be.eq('-22850000000')
+        expect((await tester.traderVault()).positionUsdc).to.be.eq('-2850000000')
       })
     })
 
@@ -417,27 +481,28 @@ describe('TraderVaultLib', function () {
       })
 
       it('more collateral required', async function () {
-        const usdcAmount = await tester.testGetAmountRequired('100000000', {
+        await tester.testUpdateUsdcPosition('20000000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        expect(usdcAmount).to.be.eq(15000000000)
+        expect(await tester.r()).to.be.eq('20000000000')
+        expect((await tester.traderVault()).positionUsdc).to.be.eq('20000000000')
       })
 
       it('there is excess collateral', async function () {
-        const usdcAmount = await tester.testGetAmountRequired('100000000', {
+        await tester.testUpdateUsdcPosition('20000000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        await tester.testUpdateUsdcPosition(usdcAmount)
-        const usdcAmount2 = await tester.testGetAmountRequired('100000000', {
+        await tester.testUpdateUsdcPosition('-100000000000', {
           spotPrice: '110000000000',
           tradePrices: ['12100000000', '110000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        expect(usdcAmount2).to.be.eq(-17850000000)
+        expect(await tester.r()).to.be.eq('-22850000000')
+        expect((await tester.traderVault()).positionUsdc).to.be.eq('-2850000000')
       })
     })
   })
@@ -446,12 +511,11 @@ describe('TraderVaultLib', function () {
     describe('single sub-vault', () => {
       beforeEach(async () => {
         await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '100000000', '10000000000', '0')
-        const usdcAmount = await tester.testGetAmountRequired('100000000', {
+        await tester.testUpdateUsdcPosition('10000000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        await tester.testUpdateUsdcPosition(usdcAmount)
       })
 
       it('returns true if position value is less than min collateral', async function () {
@@ -490,12 +554,11 @@ describe('TraderVaultLib', function () {
         await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '50000000', '10000000000', '0')
         await tester.testUpdateVault(1, SQUEETH_PRODUCT_ID, '50000000', '10000000000', '0')
 
-        const usdcAmount = await tester.testGetAmountRequired('100000000', {
+        await tester.testUpdateUsdcPosition('20000000000', {
           spotPrice: '95000000000',
           tradePrices: ['9025000000', '95000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        await tester.testUpdateUsdcPosition(usdcAmount)
       })
 
       it('returns true if position value is less than min collateral', async function () {
@@ -524,12 +587,11 @@ describe('TraderVaultLib', function () {
     describe('single sub-vault', () => {
       beforeEach(async () => {
         await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '1000000000', '10000000000', '0')
-        const usdcAmount = await tester.testGetAmountRequired('100000000', {
+        await tester.testUpdateUsdcPosition('15000000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        await tester.testUpdateUsdcPosition(usdcAmount)
       })
 
       it('reverts if there are positions', async function () {
@@ -558,12 +620,11 @@ describe('TraderVaultLib', function () {
         await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '500000000', '10000000000', '0')
         await tester.testUpdateVault(1, SQUEETH_PRODUCT_ID, '500000000', '10000000000', '0')
 
-        const usdcAmount = await tester.testGetAmountRequired('100000000', {
+        await tester.testUpdateUsdcPosition('15000000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        await tester.testUpdateUsdcPosition(usdcAmount)
       })
 
       it('vault is not insolvent', async function () {
@@ -590,7 +651,11 @@ describe('TraderVaultLib', function () {
     const liquidationFee = 2000
 
     beforeEach(async () => {
-      await tester.testUpdateUsdcPosition(scaledBN(200, 6))
+      await tester.testUpdateUsdcPosition('200000000', {
+        spotPrice: '100000000000',
+        tradePrices: ['10000000000', '100000000000'],
+        amountsFundingPaidPerPosition: [0, 0],
+      })
     })
 
     it('decrease reward', async function () {
