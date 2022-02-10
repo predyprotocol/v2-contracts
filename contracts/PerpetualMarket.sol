@@ -423,15 +423,12 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         uint256 _spotPrice
     ) external view override returns (int256 requiredCollateral, int256 minCollateral) {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
-        IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
-            traderVault.getPositionPerpetuals()
-        );
 
         (requiredCollateral, minCollateral) = traderVault.getAmountRequired(
             _tradeAmounts,
             _ratio,
             _spotPrice,
-            tradePriceInfo
+            perpetualMarketCore.getTradePriceInfo(traderVault.getPositionPerpetuals())
         );
 
         requiredCollateral = requiredCollateral / 1e2;
