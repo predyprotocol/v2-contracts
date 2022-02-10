@@ -10,7 +10,13 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
-import { FUTURE_PRODUCT_ID, SAFETY_PERIOD, SQUEETH_PRODUCT_ID, VARIANCE_UPDATE_INTERVAL } from './utils/constants'
+import {
+  FUTURE_PRODUCT_ID,
+  MAX_WITHDRAW_AMOUNT,
+  SAFETY_PERIOD,
+  SQUEETH_PRODUCT_ID,
+  VARIANCE_UPDATE_INTERVAL,
+} from './utils/constants'
 import { randomBytes } from 'crypto'
 
 function checkEqRoughly(a: BigNumberish, b: BigNumberish) {
@@ -118,7 +124,7 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.updateSpot(scaledBN(100, 8))
 
-        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8), scaledBN(20, 6))
+        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8), scaledBN(200, 6))
 
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
@@ -169,7 +175,7 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.updateSpot(scaledBN(100, 8))
 
-        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8))
+        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8), scaledBN(200, 6))
 
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
@@ -219,7 +225,7 @@ describe('PerpetualMarket', function () {
       await perpetualMarket.trade({
         vaultId: 0,
         subVaultIndex: 0,
-        collateralRatio: scaledBN(100, 6),
+        collateralAmount: scaledBN(200, 6),
         tradeAmounts: [scaledBN(1, 8), 0],
         limitPrices: [0, 0],
         deadline: 0,
@@ -252,7 +258,7 @@ describe('PerpetualMarket', function () {
           vaultId: 0,
           subVaultIndex: 0,
           tradeAmounts: [pool0.positionPerpetuals, pool1.positionPerpetuals],
-          collateralRatio: ethers.constants.MinInt256,
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -269,7 +275,7 @@ describe('PerpetualMarket', function () {
           vaultId: 0,
           subVaultIndex: 0,
           tradeAmounts: ['500000000', '0'],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(5000, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -277,15 +283,23 @@ describe('PerpetualMarket', function () {
       })
 
       it('liquidation happened', async function () {
+        const result = await perpetualMarket.getRequiredCollateral(
+          wallet.address,
+          0,
+          scaledBN(1, 8),
+          ['500000000', '0'],
+          0,
+        )
         await perpetualMarket.trade({
           vaultId: 0,
           subVaultIndex: 0,
           tradeAmounts: ['500000000', '0'],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: result[0].add(10000000),
           limitPrices: [0, 0],
           deadline: 0,
         })
 
+        await testContractHelper.updateSpot(scaledBN(2800, 8))
         await increaseTime(SAFETY_PERIOD)
 
         await perpetualMarket.liquidateByPool(wallet.address, vaultId)
@@ -296,7 +310,7 @@ describe('PerpetualMarket', function () {
           vaultId: 0,
           subVaultIndex: 0,
           tradeAmounts: [scaledBN(2, 8), scaledBN(-5, 7)],
-          collateralRatio: scaledBN(8, 7),
+          collateralAmount: scaledBN(5000, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -312,7 +326,7 @@ describe('PerpetualMarket', function () {
           vaultId: 0,
           subVaultIndex: 0,
           tradeAmounts: [scaledBN(-2, 8), scaledBN(5, 7)],
-          collateralRatio: scaledBN(8, 7),
+          collateralAmount: 0,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -327,7 +341,7 @@ describe('PerpetualMarket', function () {
           vaultId: 0,
           subVaultIndex: 0,
           tradeAmounts: [scaledBN(5, 7), scaledBN(5, 7)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: 0,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -340,12 +354,12 @@ describe('PerpetualMarket', function () {
       beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(100, 8))
 
-        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8))
+        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8), scaledBN(200, 6))
 
         await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot(scaledBN(94, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8))
+        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8), 0)
       })
 
       it('withdraw all', async function () {
@@ -377,12 +391,12 @@ describe('PerpetualMarket', function () {
       beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(100, 8))
 
-        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8))
+        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8), scaledBN(200, 6))
 
         await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot(scaledBN(106, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8))
+        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8), 0)
       })
 
       it('withdraw all', async function () {
@@ -426,7 +440,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(200, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -441,7 +455,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(200, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -454,7 +468,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(200, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -470,7 +484,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(200, 6),
         limitPrices: [0, 0],
         deadline: blockNumber + 1,
       })
@@ -480,7 +494,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: blockNumber,
         }),
@@ -493,7 +507,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, '11000000000'],
           deadline: 0,
         })
@@ -503,7 +517,7 @@ describe('PerpetualMarket', function () {
             vaultId,
             subVaultIndex,
             tradeAmounts: [0, scaledBN(1, 6)],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: scaledBN(200, 6),
             limitPrices: [0, '9000000000'],
             deadline: 0,
           }),
@@ -515,7 +529,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, '9000000000'],
           deadline: 0,
         })
@@ -525,7 +539,7 @@ describe('PerpetualMarket', function () {
             vaultId,
             subVaultIndex,
             tradeAmounts: [0, scaledBN(-1, 6)],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: scaledBN(200, 6),
             limitPrices: [0, '11000000000'],
             deadline: 0,
           }),
@@ -540,7 +554,7 @@ describe('PerpetualMarket', function () {
             vaultId,
             subVaultIndex,
             tradeAmounts: [scaledBN(1, 6), 0],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: scaledBN(200, 6),
             limitPrices: [0, 0],
             deadline: 0,
           }),
@@ -561,28 +575,28 @@ describe('PerpetualMarket', function () {
             vaultId,
             subVaultIndex,
             tradeAmounts: [scaledBN(1, 6), 0],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: scaledBN(200, 6),
             limitPrices: [0, 0],
             deadline: 0,
           }),
         )
           .to.emit(perpetualMarket, 'DepositedToVault')
-          .withArgs(wallet.address, vaultId, '100000020')
+          .withArgs(wallet.address, vaultId, '200000000')
         await expect(
           perpetualMarket.trade({
             vaultId,
             subVaultIndex,
             tradeAmounts: [scaledBN(-1, 6), 0],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: '-199999000',
             limitPrices: [0, 0],
             deadline: 0,
           }),
         )
           .to.emit(perpetualMarket, 'WithdrawnFromVault')
-          .withArgs(wallet.address, vaultId, '100000000')
+          .withArgs(wallet.address, vaultId, '199999000')
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-20')
+        expect(after.sub(before)).to.be.eq('-1000')
       })
 
       it('close position with profit', async () => {
@@ -592,7 +606,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -604,7 +618,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-1, 6), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -621,7 +635,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -631,7 +645,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-1, 6), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -647,7 +661,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -660,7 +674,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -668,7 +682,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -685,7 +699,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -697,7 +711,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -714,7 +728,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -723,7 +737,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -740,7 +754,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -760,7 +774,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -768,7 +782,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-1, 6), scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -785,7 +799,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -793,7 +807,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-1, 6), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -810,7 +824,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -818,7 +832,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -835,7 +849,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -847,7 +861,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-1, 6), scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -866,7 +880,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 14), scaledBN(1, 14)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(100000000, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -878,7 +892,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-1, 14), scaledBN(-1, 14)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -891,7 +905,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -911,7 +925,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -919,7 +933,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -936,7 +950,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -948,7 +962,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -965,7 +979,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -977,7 +991,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -995,7 +1009,7 @@ describe('PerpetualMarket', function () {
             vaultId,
             subVaultIndex: 0,
             tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: scaledBN(200, 6),
             limitPrices: [0, 0],
             deadline: 0,
           },
@@ -1003,7 +1017,7 @@ describe('PerpetualMarket', function () {
             vaultId,
             subVaultIndex: 1,
             tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: scaledBN(200, 6),
             limitPrices: [0, 0],
             deadline: 1,
           },
@@ -1018,7 +1032,7 @@ describe('PerpetualMarket', function () {
             vaultId,
             subVaultIndex: 0,
             tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: scaledBN(200, 6),
             limitPrices: [0, 0],
             deadline: 0,
           },
@@ -1026,7 +1040,7 @@ describe('PerpetualMarket', function () {
             vaultId,
             subVaultIndex: 1,
             tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: scaledBN(200, 6),
             limitPrices: [0, 0],
             deadline: 0,
           },
@@ -1067,7 +1081,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 7), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(500, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -1094,7 +1108,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 7)],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(500, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -1112,7 +1126,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 7), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(500, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -1127,7 +1141,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-2, 6), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(500, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -1148,7 +1162,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-1, 7), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(500, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -1183,7 +1197,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 8), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(2000, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -1197,7 +1211,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 8), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: 0,
           limitPrices: [0, 0],
           deadline: 0,
         }),
@@ -1217,7 +1231,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [0, scaledBN(1, 8)],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(2000, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -1230,7 +1244,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [0, scaledBN(1, 8)],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: 0,
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -1245,7 +1259,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [0, scaledBN(-1, 8)],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(2000, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -1259,7 +1273,7 @@ describe('PerpetualMarket', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-1, 8)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: 0,
           limitPrices: [0, 0],
           deadline: 0,
         }),
@@ -1308,8 +1322,8 @@ describe('PerpetualMarket', function () {
         [scaledBN(10, 8), 0],
         scaledBN(1000, 8),
       )
-      expect(result[0]).to.be.eq(15000000000)
-      expect(result[1]).to.be.eq(15000000000)
+      expect(result[0]).to.be.eq(150000000)
+      expect(result[1]).to.be.eq(150000000)
     })
 
     it('get min collateral with $2,000 spot price', async () => {
@@ -1320,8 +1334,8 @@ describe('PerpetualMarket', function () {
         [scaledBN(10, 8), 0],
         scaledBN(2000, 8),
       )
-      expect(result[0]).to.be.eq(60000000000)
-      expect(result[1]).to.be.eq(60000000000)
+      expect(result[0]).to.be.eq(600000000)
+      expect(result[1]).to.be.eq(600000000)
     })
 
     it('get min collateral of squared perpetual and perpetual future', async () => {
@@ -1332,8 +1346,8 @@ describe('PerpetualMarket', function () {
         [scaledBN(10, 8), scaledBN(-10, 8)],
         scaledBN(1000, 8),
       )
-      expect(result[0]).to.be.eq(60000000000)
-      expect(result[1]).to.be.eq(60000000000)
+      expect(result[0]).to.be.eq(600000000)
+      expect(result[1]).to.be.eq(600000000)
     })
 
     it('get min collateral of squared perpetual and perpetual future with $2,000 spot price', async () => {
@@ -1344,8 +1358,8 @@ describe('PerpetualMarket', function () {
         [scaledBN(10, 8), scaledBN(-10, 8)],
         scaledBN(2000, 8),
       )
-      expect(result[0]).to.be.eq(90000000000)
-      expect(result[1]).to.be.eq(90000000000)
+      expect(result[0]).to.be.eq(900000000)
+      expect(result[1]).to.be.eq(900000000)
     })
 
     it('get min collateral of the vault that has positions', async () => {
@@ -1353,7 +1367,7 @@ describe('PerpetualMarket', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(10, 8), 0],
-        collateralRatio: scaledBN(5000, 6),
+        collateralAmount: scaledBN(5000, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -1364,8 +1378,8 @@ describe('PerpetualMarket', function () {
         [scaledBN(1, 8), 0],
         scaledBN(1000, 8),
       )
-      expect(result[0]).to.be.eq(1500000000)
-      expect(result[1]).to.be.eq(16500000000)
+      expect(result[0]).to.be.eq(-4833000000)
+      expect(result[1]).to.be.eq(165000000)
     })
   })
 

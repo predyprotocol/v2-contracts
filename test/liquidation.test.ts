@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
-import { SAFETY_PERIOD } from './utils/constants'
+import { MAX_WITHDRAW_AMOUNT, SAFETY_PERIOD } from './utils/constants'
 
 describe('liquidation', function () {
   let wallet: Wallet, other: Wallet
@@ -73,7 +73,7 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(10, 8), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(152, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -88,7 +88,7 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [0, 0],
-        collateralRatio: scaledBN(5, 7),
+        collateralAmount: scaledBN(100, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -112,7 +112,7 @@ describe('liquidation', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(1, 8),
           limitPrices: [0, 0],
           deadline: 0,
         }),
@@ -150,7 +150,7 @@ describe('liquidation', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -160,7 +160,7 @@ describe('liquidation', function () {
       })
 
       it('liquidate a vault by funding payment', async () => {
-        await increaseTime(60 * 60 * 1)
+        await increaseTime(60 * 60 * 24)
 
         await perpetualMarket.liquidateByPool(wallet.address, vaultId)
 
@@ -180,7 +180,7 @@ describe('liquidation', function () {
             vaultId,
             subVaultIndex,
             tradeAmounts: [0, 0],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: MAX_WITHDRAW_AMOUNT,
             limitPrices: [0, 0],
             deadline: 0,
           })
@@ -204,7 +204,7 @@ describe('liquidation', function () {
             vaultId,
             subVaultIndex,
             tradeAmounts: [0, 0],
-            collateralRatio: scaledBN(1, 8),
+            collateralAmount: MAX_WITHDRAW_AMOUNT,
             limitPrices: [0, 0],
             deadline: 0,
           })
@@ -222,7 +222,7 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex: 0,
         tradeAmounts: [scaledBN(10, 8), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(305, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -230,7 +230,7 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex: 1,
         tradeAmounts: [scaledBN(10, 8), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: 0,
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -246,7 +246,7 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex: 0,
         tradeAmounts: [0, 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: MAX_WITHDRAW_AMOUNT,
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -265,7 +265,7 @@ describe('liquidation', function () {
           vaultId,
           subVaultIndex: 0,
           tradeAmounts: [0, 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(1, 8),
           limitPrices: [0, 0],
           deadline: 0,
         }),
@@ -281,7 +281,7 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex: 0,
         tradeAmounts: [0, 0],
-        collateralRatio: scaledBN(5, 7),
+        collateralAmount: scaledBN(5, 7),
         limitPrices: [0, 0],
         deadline: 0,
       })

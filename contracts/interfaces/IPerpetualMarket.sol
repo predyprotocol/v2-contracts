@@ -9,7 +9,7 @@ interface IPerpetualMarket {
         uint256 vaultId;
         uint256 subVaultIndex;
         int128[2] tradeAmounts;
-        int128 collateralRatio;
+        int256 collateralAmount;
         uint256[2] limitPrices;
         uint256 deadline;
     }
