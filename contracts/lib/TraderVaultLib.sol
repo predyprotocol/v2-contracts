@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: agpl-3.0
 pragma solidity =0.7.6;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -69,7 +70,7 @@ library TraderVaultLib {
         TraderVault storage _traderVault,
         int128 _ratio,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
-    ) internal view returns (int256 amount) {
+    ) external view returns (int256 amount) {
         require(!_traderVault.isInsolvent, "T2");
         require(0 < _ratio && _ratio <= 1e8, "T4");
 
@@ -86,7 +87,7 @@ library TraderVaultLib {
      * @param _traderVault trader vault object
      * @param _usdcPosition amount to add. if positive then increase amount, if negative then decrease amount.
      */
-    function updateUsdcPosition(TraderVault storage _traderVault, int256 _usdcPosition) internal {
+    function updateUsdcPosition(TraderVault storage _traderVault, int256 _usdcPosition) external {
         _traderVault.positionUsdc = _traderVault.positionUsdc.add(_usdcPosition).toInt128();
     }
 
@@ -139,7 +140,7 @@ library TraderVaultLib {
         int128 _positionPerpetual,
         uint256 _tradePrice,
         int256 _fundingFeePerPosition
-    ) internal returns (int256 deltaUsdcPosition) {
+    ) external returns (int256 deltaUsdcPosition) {
         require(!_traderVault.isInsolvent, "T2");
         require(_positionPerpetual != 0, "T4");
 
@@ -197,7 +198,7 @@ library TraderVaultLib {
     function checkVaultIsLiquidatable(
         TraderVault storage _traderVault,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
-    ) internal pure returns (bool) {
+    ) external pure returns (bool) {
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
 
         return positionValue < getMinCollateral(_traderVault, _tradePriceInfo.spotPrice);
@@ -208,7 +209,7 @@ library TraderVaultLib {
      * If PositionValue is negative, set insolvency flag.
      * @param _traderVault trader vault object
      */
-    function setInsolvencyFlagIfNeeded(TraderVault storage _traderVault) internal {
+    function setInsolvencyFlagIfNeeded(TraderVault storage _traderVault) external {
         // Confirm that there are no positions
         for (uint256 i = 0; i < _traderVault.subVaults.length; i++) {
             for (uint256 j = 0; j < MAX_PRODUCT_ID; j++) {
@@ -228,7 +229,7 @@ library TraderVaultLib {
      * @param _liquidationFee liquidation fee rate
      */
     function decreaseLiquidationReward(TraderVault storage _traderVault, int256 _liquidationFee)
-        internal
+        external
         returns (uint256)
     {
         if (_traderVault.positionUsdc <= 0) {

@@ -111,7 +111,14 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const LPToken = await ethers.getContractFactory('LPToken')
   const lpToken = (await LPToken.deploy()) as LPToken
 
-  const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
+  const TraderVaultLib = await ethers.getContractFactory('TraderVaultLib')
+  const traderVaultLib = await TraderVaultLib.deploy()
+
+  const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket', {
+    libraries: {
+      TraderVaultLib: traderVaultLib.address,
+    },
+  })
   const perpetualMarket = (await PerpetualMarket.deploy(
     perpetualMarketCore.address,
     lpToken.address,

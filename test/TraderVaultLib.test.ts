@@ -8,8 +8,14 @@ describe('TraderVaultLib', function () {
   let tester: TraderVaultLibTester
 
   beforeEach(async () => {
-    const TraderVaultLibTester = await ethers.getContractFactory('TraderVaultLibTester')
+    const TraderVaultLib = await ethers.getContractFactory('TraderVaultLib')
+    const traderVaultLib = await TraderVaultLib.deploy()
 
+    const TraderVaultLibTester = await ethers.getContractFactory('TraderVaultLibTester', {
+      libraries: {
+        TraderVaultLib: traderVaultLib.address,
+      },
+    })
     tester = (await TraderVaultLibTester.deploy()) as TraderVaultLibTester
   })
 
