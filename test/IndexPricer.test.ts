@@ -14,6 +14,10 @@ describe('IndexPricer', function () {
   })
 
   describe('calculatePrice', () => {
+    it('reverts if productId is greater than 2', async function () {
+      await expect(tester.testCalculatePrice(2, scaledBN(1000, 8))).to.be.revertedWith('NP')
+    })
+
     describe('productId is 0', () => {
       const productId = SQUEETH_PRODUCT_ID
 
@@ -54,6 +58,10 @@ describe('IndexPricer', function () {
   })
 
   describe('calculateDelta', () => {
+    it('reverts if productId is greater than 2', async function () {
+      await expect(tester.testCalculateDelta(2, scaledBN(1000, 8))).to.be.revertedWith('NP')
+    })
+
     describe('productId is 0', () => {
       const productId = SQUEETH_PRODUCT_ID
 
@@ -90,6 +98,20 @@ describe('IndexPricer', function () {
 
         expect(delta).to.equal(scaledBN(1, 8))
       })
+    })
+  })
+
+  describe('calculateGamma', () => {
+    it('reverts if productId is greater than 2', async function () {
+      await expect(tester.testCalculateGamma(2)).to.be.revertedWith('NP')
+    })
+
+    it('gamma is 2', async function () {
+      expect(await tester.testCalculateGamma(0)).to.be.eq(20000)
+    })
+
+    it('gamma is 0', async function () {
+      expect(await tester.testCalculateGamma(1)).to.be.eq(0)
     })
   })
 })

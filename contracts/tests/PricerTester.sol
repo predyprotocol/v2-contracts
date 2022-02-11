@@ -15,4 +15,8 @@ contract PricerTester {
     function testCalculateDelta(uint256 _productId, int256 _spotPrice) external pure returns (int256) {
         return IndexPricer.calculateDelta(_productId, _spotPrice);
     }
+
+    function testCalculateGamma(uint256 _productId) external pure returns (int256) {
+        return IndexPricer.calculateGamma(_productId);
+    }
 }
