@@ -417,19 +417,19 @@ describe('PerpetualMarketCore', function () {
     })
   })
 
-  describe('setPoolCollateralRiskParam', () => {
-    it('set poolCollateralRiskParam', async () => {
-      await expect(perpetualMarketCore.setPoolCollateralRiskParam(10))
-        .to.be.emit(perpetualMarketCore, 'SetPoolCollateralRiskParam')
+  describe('setPoolMarginRiskParam', () => {
+    it('set setPoolMarginRiskParam', async () => {
+      await expect(perpetualMarketCore.setPoolMarginRiskParam(10))
+        .to.be.emit(perpetualMarketCore, 'SetPoolMarginRiskParam')
         .withArgs(10)
     })
 
     it('reverts if caller is not owner', async () => {
-      await expect(perpetualMarketCore.connect(other).setPoolCollateralRiskParam(10)).to.be.reverted
+      await expect(perpetualMarketCore.connect(other).setPoolMarginRiskParam(10)).to.be.reverted
     })
 
     it('reverts if value is negative', async () => {
-      await expect(perpetualMarketCore.setPoolCollateralRiskParam(-1)).to.be.reverted
+      await expect(perpetualMarketCore.setPoolMarginRiskParam(-1)).to.be.reverted
     })
   })
 

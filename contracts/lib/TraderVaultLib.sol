@@ -42,8 +42,8 @@ library TraderVaultLib {
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
-    /// @dev minimum collateral is 100 USDC
-    uint256 private constant MIN_COLLATERAL = 100 * 1e8;
+    /// @dev minimum margin is 100 USDC
+    uint256 private constant MIN_MARGIN = 100 * 1e8;
 
     /// @dev risk parameter for MinCollateral calculation is 7.5%
     uint256 private constant RISK_PARAM_FOR_VAULT = 750;
@@ -90,8 +90,8 @@ library TraderVaultLib {
      * @param _traderVault trader vault object
      * @param _usdcPosition amount to add. if positive then increase amount, if negative then decrease amount.
      * @param _tradePriceInfo trade price info
-     * @return finalUsdcPosition positive means amount of deposited collateral
-     * and negative means amount of withdrawn collateral.
+     * @return finalUsdcPosition positive means amount of deposited margin
+     * and negative means amount of withdrawn margin.
      */
     function updateUsdcPosition(
         TraderVault storage _traderVault,
@@ -262,7 +262,7 @@ library TraderVaultLib {
 
         int256 reward = (_traderVault.positionUsdc.mul(_liquidationFee).div(1e4));
 
-        // reduce collateral
+        // reduce margin
         // sub is safe because we know reward is less than positionUsdc
         _traderVault.positionUsdc -= reward.toInt128();
 
@@ -299,8 +299,8 @@ library TraderVaultLib {
 
         uint256 minCollateral = (RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(maxDelta)) / 1e12;
 
-        if ((positionPerpetuals[0] != 0 || positionPerpetuals[1] != 0) && minCollateral < MIN_COLLATERAL) {
-            minCollateral = MIN_COLLATERAL;
+        if ((positionPerpetuals[0] != 0 || positionPerpetuals[1] != 0) && minCollateral < MIN_MARGIN) {
+            minCollateral = MIN_MARGIN;
         }
 
         return minCollateral.toInt256();

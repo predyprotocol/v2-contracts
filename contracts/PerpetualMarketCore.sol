@@ -59,7 +59,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     uint256 private hedgeRateOfReturnThreshold;
 
     // allowable percentage of movement in the underlying spot price
-    int256 private poolCollateralRiskParam;
+    int256 private poolMarginRiskParam;
 
     // trade fee is 0.1%
     int256 private tradeFeeRate;
@@ -118,7 +118,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         uint256 maxSlippageToleranceOfHedge,
         uint256 hedgeRateOfReturnThreshold
     );
-    event SetPoolCollateralRiskParam(int256 poolCollateralRiskParam);
+    event SetPoolMarginRiskParam(int256 poolMarginRiskParam);
     event SetTradeFeeRate(int256 tradeFeeRate, int256 protocolFeeRate);
 
     modifier onlyPerpetualMarket() {
@@ -146,7 +146,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         // rate of return threshold of a hedge is 2.5 %
         hedgeRateOfReturnThreshold = 25 * 1e5;
         // Pool collateral risk param is 40%
-        poolCollateralRiskParam = 4000;
+        poolMarginRiskParam = 4000;
         // Trade fee is 0.1%
         tradeFeeRate = 10 * 1e4;
         // Protocol fee is 0.04%
@@ -240,7 +240,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         pools[_productId].positionPerpetuals -= _tradeAmount;
 
         // Add collateral to Netting contract
-        (int256 deltaM, int256 hedgePositionValue) = addCollateral(_productId, spotPrice);
+        (int256 deltaM, int256 hedgePositionValue) = addMargin(_productId, spotPrice);
 
         // Calculate trade price
         (tradePrice, protocolFee) = calculateTradePrice(_productId, spotPrice, _tradeAmount > 0, deltaM, 0);
@@ -419,10 +419,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         emit SetHedgeParams(_minSlippageToleranceOfHedge, _maxSlippageToleranceOfHedge, _hedgeRateOfReturnThreshold);
     }
 
-    function setPoolCollateralRiskParam(int256 _poolCollateralRiskParam) external onlyOwner {
-        require(_poolCollateralRiskParam >= 0);
-        poolCollateralRiskParam = _poolCollateralRiskParam;
-        emit SetPoolCollateralRiskParam(_poolCollateralRiskParam);
+    function setPoolMarginRiskParam(int256 _poolMarginRiskParam) external onlyOwner {
+        require(_poolMarginRiskParam >= 0);
+        poolMarginRiskParam = _poolMarginRiskParam;
+        emit SetPoolMarginRiskParam(_poolMarginRiskParam);
     }
 
     function setTradeFeeRate(int256 _tradeFeeRate, int256 _protocolFeeRate) external onlyOwner {
@@ -568,23 +568,23 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     }
 
     /**
-     * @notice Adds collateral to Netting contract
+     * @notice Adds margin to Netting contract
      */
-    function addCollateral(uint256 _productId, int256 _spot) internal returns (int256, int256) {
+    function addMargin(uint256 _productId, int256 _spot) internal returns (int256, int256) {
         (int256 delta0, int256 delta1) = getDeltas(_spot, pools[0].positionPerpetuals, pools[1].positionPerpetuals);
         int256 gamma = (IndexPricer.calculateGamma(0).mul(pools[0].positionPerpetuals)) / 1e8;
 
         return
-            nettingInfo.addCollateral(
+            nettingInfo.addMargin(
                 _productId,
-                NettingLib.AddCollateralParams(delta0, delta1, gamma, _spot, poolCollateralRiskParam)
+                NettingLib.AddMarginParams(delta0, delta1, gamma, _spot, poolMarginRiskParam)
             );
     }
 
     /**
      * @notice Gets Δm
      */
-    function getReqiredCollateral(
+    function getReqiredMargin(
         uint256 _productId,
         int256 _spot,
         int128 _tradeAmount
@@ -609,19 +609,19 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
             gamma = (IndexPricer.calculateGamma(0).mul(tradeAmount0)) / 1e8;
         }
 
-        NettingLib.AddCollateralParams memory params = NettingLib.AddCollateralParams(
+        NettingLib.AddMarginParams memory params = NettingLib.AddMarginParams(
             delta0,
             delta1,
             gamma,
             _spot,
-            poolCollateralRiskParam
+            poolMarginRiskParam
         );
 
-        int256 totalRequiredCollateral = NettingLib.getRequiredCollateral(_productId, params);
+        int256 totalRequiredMargin = NettingLib.getRequiredMargin(_productId, params);
 
         int256 hedgePositionValue = nettingInfo.getHedgePositionValue(params.spotPrice, _productId);
 
-        return totalRequiredCollateral - hedgePositionValue;
+        return totalRequiredMargin - hedgePositionValue;
     }
 
     /**
@@ -687,7 +687,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
             int256 protocolFee
         )
     {
-        int256 deltaM = getReqiredCollateral(_productId, _spotPrice, _tradeAmount.toInt128());
+        int256 deltaM = getReqiredMargin(_productId, _spotPrice, _tradeAmount.toInt128());
 
         (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePriceWithFundingRate(
             _productId,

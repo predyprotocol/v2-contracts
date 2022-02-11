@@ -70,12 +70,10 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     constructor(
         address _perpetualMarketCoreAddress,
         address _lpTokenAddress,
-        address _collateral,
-        address _underlying,
+        address _quoteAsset,
+        address _underlyingAsset,
         address _feeRecepient
-    ) BaseLiquidityPool(_collateral, _underlying) {
-        require(_collateral != address(0));
-        require(_underlying != address(0));
+    ) BaseLiquidityPool(_quoteAsset, _underlyingAsset) {
         require(_feeRecepient != address(0));
 
         perpetualMarketCore = IPerpetualMarketCore(_perpetualMarketCoreAddress);
@@ -96,7 +94,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         uint256 lpTokenAmount = perpetualMarketCore.initialize(_depositAmount * 1e2, _initialFundingRate) / 1e2;
 
-        ERC20(collateral).transferFrom(msg.sender, address(this), uint128(_depositAmount));
+        ERC20(quoteAsset).transferFrom(msg.sender, address(this), uint128(_depositAmount));
 
         lpToken.mint(msg.sender, lpTokenAmount);
 
@@ -113,7 +111,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         uint256 lpTokenAmount = perpetualMarketCore.deposit(_depositAmount * 1e2) / 1e2;
 
-        ERC20(collateral).transferFrom(msg.sender, address(this), uint128(_depositAmount));
+        ERC20(quoteAsset).transferFrom(msg.sender, address(this), uint128(_depositAmount));
 
         lpToken.mint(msg.sender, lpTokenAmount);
 
@@ -132,7 +130,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         lpToken.burn(msg.sender, lpTokenAmount);
 
-        // Send collateral to msg.sender
+        // Send liquidity to msg.sender
         sendLiquidity(msg.sender, _withdrawnAmount);
 
         emit Withdrawn(msg.sender, lpTokenAmount, _withdrawnAmount);
@@ -140,7 +138,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
     /**
      * @notice Opens new positions or closes hold position of the perpetual contracts
-     * and manage the collateral in the vault at the same time.
+     * and manage margin in the vault at the same time.
      * @param _tradeParams trade parameters
      */
     function trade(MultiTradeParams memory _tradeParams) external override {
@@ -192,7 +190,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         int256 finalDepositOrWithdrawAmount;
 
         finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcPosition(
-            _tradeParams.collateralAmount.mul(1e2),
+            _tradeParams.marginAmount.mul(1e2),
             perpetualMarketCore.getTradePriceInfo(
                 traderVaults[msg.sender][_tradeParams.vaultId].getPositionPerpetuals()
             )
@@ -202,7 +200,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         if (finalDepositOrWithdrawAmount > 0) {
             uint256 depositAmount = uint256(finalDepositOrWithdrawAmount / 1e2);
-            ERC20(collateral).transferFrom(msg.sender, address(this), depositAmount);
+            ERC20(quoteAsset).transferFrom(msg.sender, address(this), depositAmount);
             emit DepositedToVault(msg.sender, _tradeParams.vaultId, depositAmount);
         } else if (finalDepositOrWithdrawAmount < 0) {
             uint256 withdrawAmount = uint256(-finalDepositOrWithdrawAmount) / 1e2;
@@ -214,7 +212,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     /**
      * @notice Liquidates a vault by Pool
      * Anyone can liquidate a vault whose PositionValue is less than MinCollateral.
-     * The caller gets a portion of the collateral as reward.
+     * The caller gets a portion of the margin as reward.
      * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
      */
@@ -274,7 +272,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         // Sends protocol fee
         if (totalProtocolFee > 0) {
-            ERC20(collateral).approve(address(feeRecepient), totalProtocolFee);
+            ERC20(quoteAsset).approve(address(feeRecepient), totalProtocolFee);
             feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
         }
 
@@ -300,7 +298,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         return (
             completeParams.isLong,
             completeParams.amountUsdc / 1e2,
-            Math.scale(completeParams.amountUnderlying, 8, ERC20(underlying).decimals())
+            Math.scale(completeParams.amountUnderlying, 8, ERC20(underlyingAsset).decimals())
         );
     }
 
@@ -319,13 +317,13 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         perpetualMarketCore.completeHedgingProcedure(completeParams);
 
         amountUsdc = completeParams.amountUsdc / 1e2;
-        amountUnderlying = Math.scale(completeParams.amountUnderlying, 8, ERC20(underlying).decimals());
+        amountUnderlying = Math.scale(completeParams.amountUnderlying, 8, ERC20(underlyingAsset).decimals());
 
         if (completeParams.isLong) {
-            ERC20(underlying).transferFrom(msg.sender, address(this), amountUnderlying);
+            ERC20(underlyingAsset).transferFrom(msg.sender, address(this), amountUnderlying);
             sendLiquidity(msg.sender, amountUsdc);
         } else {
-            ERC20(collateral).transferFrom(msg.sender, address(this), amountUsdc);
+            ERC20(quoteAsset).transferFrom(msg.sender, address(this), amountUsdc);
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
@@ -362,7 +360,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         if (cumulativeProtocolFee > 0) {
             uint256 protocolFee = cumulativeProtocolFee;
             cumulativeProtocolFee = 0;
-            ERC20(collateral).approve(address(feeRecepient), protocolFee);
+            ERC20(quoteAsset).approve(address(feeRecepient), protocolFee);
             feeRecepient.sendProfitERC20(address(this), protocolFee);
         }
     }

@@ -73,7 +73,7 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(10, 8), 0],
-        collateralAmount: scaledBN(152, 6),
+        marginAmount: scaledBN(152, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -82,13 +82,13 @@ describe('liquidation', function () {
       expect(vault.rawVaultData.positionUsdc).to.be.eq(15200000000)
     })
 
-    it('reverts if the vault has enough collateral', async () => {
+    it('reverts if the vault has enough margin', async () => {
       // Deposit USDC
       await perpetualMarket.trade({
         vaultId,
         subVaultIndex,
         tradeAmounts: [0, 0],
-        collateralAmount: scaledBN(100, 6),
+        marginAmount: scaledBN(100, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -112,7 +112,7 @@ describe('liquidation', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, 0],
-          collateralAmount: scaledBN(1, 8),
+          marginAmount: scaledBN(1, 8),
           limitPrices: [0, 0],
           deadline: 0,
         }),
@@ -150,7 +150,7 @@ describe('liquidation', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, 0],
-          collateralAmount: MAX_WITHDRAW_AMOUNT,
+          marginAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -180,7 +180,7 @@ describe('liquidation', function () {
             vaultId,
             subVaultIndex,
             tradeAmounts: [0, 0],
-            collateralAmount: MAX_WITHDRAW_AMOUNT,
+            marginAmount: MAX_WITHDRAW_AMOUNT,
             limitPrices: [0, 0],
             deadline: 0,
           })
@@ -204,7 +204,7 @@ describe('liquidation', function () {
             vaultId,
             subVaultIndex,
             tradeAmounts: [0, 0],
-            collateralAmount: MAX_WITHDRAW_AMOUNT,
+            marginAmount: MAX_WITHDRAW_AMOUNT,
             limitPrices: [0, 0],
             deadline: 0,
           })
@@ -222,7 +222,7 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex: 0,
         tradeAmounts: [scaledBN(10, 8), 0],
-        collateralAmount: scaledBN(305, 6),
+        marginAmount: scaledBN(305, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -230,7 +230,7 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex: 1,
         tradeAmounts: [scaledBN(10, 8), 0],
-        collateralAmount: 0,
+        marginAmount: 0,
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -246,7 +246,7 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex: 0,
         tradeAmounts: [0, 0],
-        collateralAmount: MAX_WITHDRAW_AMOUNT,
+        marginAmount: MAX_WITHDRAW_AMOUNT,
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -265,7 +265,7 @@ describe('liquidation', function () {
           vaultId,
           subVaultIndex: 0,
           tradeAmounts: [0, 0],
-          collateralAmount: scaledBN(1, 8),
+          marginAmount: scaledBN(1, 8),
           limitPrices: [0, 0],
           deadline: 0,
         }),
@@ -275,13 +275,13 @@ describe('liquidation', function () {
       expect(vault.rawVaultData.isInsolvent).to.be.true
     })
 
-    it('reverts if the vault has enough collateral', async () => {
+    it('reverts if the vault has enough margin', async () => {
       // Deposit USDC
       await perpetualMarket.trade({
         vaultId,
         subVaultIndex: 0,
         tradeAmounts: [0, 0],
-        collateralAmount: scaledBN(5, 7),
+        marginAmount: scaledBN(5, 7),
         limitPrices: [0, 0],
         deadline: 0,
       })

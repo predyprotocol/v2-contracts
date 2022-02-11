@@ -22,12 +22,12 @@ library NettingLib {
     using SignedSafeMath for int256;
     using SignedSafeMath for int128;
 
-    struct AddCollateralParams {
+    struct AddMarginParams {
         int256 delta0;
         int256 delta1;
         int256 gamma0;
         int256 spotPrice;
-        int256 poolCollateralRiskParam;
+        int256 poolMarginRiskParam;
     }
 
     struct CompleteParams {
@@ -44,27 +44,27 @@ library NettingLib {
     }
 
     /**
-     * @notice Adds required collaterals for delta hedging
+     * @notice Adds required margin for delta hedging
      */
-    function addCollateral(
+    function addMargin(
         Info storage _info,
         uint256 _productId,
-        AddCollateralParams memory _params
-    ) internal returns (int256 requiredCollateral, int256 hedgePositionValue) {
-        int256 totalRequiredCollateral = getRequiredCollateral(_productId, _params);
+        AddMarginParams memory _params
+    ) internal returns (int256 requiredMargin, int256 hedgePositionValue) {
+        int256 totalRequiredMargin = getRequiredMargin(_productId, _params);
 
         hedgePositionValue = getHedgePositionValue(_info, _params.spotPrice, _productId);
 
-        requiredCollateral = totalRequiredCollateral.sub(hedgePositionValue);
+        requiredMargin = totalRequiredMargin.sub(hedgePositionValue);
 
-        if (_info.amountsUsdc[_productId].toInt256().add(requiredCollateral) < 0) {
-            requiredCollateral = -_info.amountsUsdc[_productId].toInt256();
+        if (_info.amountsUsdc[_productId].toInt256().add(requiredMargin) < 0) {
+            requiredMargin = -_info.amountsUsdc[_productId].toInt256();
         }
 
         _info.amountsUsdc[_productId] = _info
             .amountsUsdc[_productId]
             .toInt256()
-            .add(requiredCollateral)
+            .add(requiredMargin)
             .toUint256()
             .toUint128();
     }
@@ -135,56 +135,52 @@ library NettingLib {
     }
 
     /**
-     * @notice Gets required collateral for future
-     * @param _productId Id of product to get required collateral
-     * @param _params parameters to calculate required collateral
-     * @return RequiredCollateral scaled by 1e8
+     * @notice Gets required margin
+     * @param _productId Id of product to get required margin
+     * @param _params parameters to calculate required margin
+     * @return RequiredMargin scaled by 1e8
      */
-    function getRequiredCollateral(uint256 _productId, AddCollateralParams memory _params)
-        internal
-        pure
-        returns (int256)
-    {
+    function getRequiredMargin(uint256 _productId, AddMarginParams memory _params) internal pure returns (int256) {
         if (_productId == 0) {
-            return getRequiredCollateralOfSqueeth(_params);
+            return getRequiredMarginOfSqueeth(_params);
         } else if (_productId == 1) {
-            return getRequiredCollateralOfFuture(_params);
+            return getRequiredMarginOfFuture(_params);
         } else {
             revert("N0");
         }
     }
 
     /**
-     * @notice Gets required collateral for future
-     * RequiredCollateral_{future} = (1+α)*S*WeightedDelta
-     * @return RequiredCollateral scaled by 1e8
+     * @notice Gets required margin for future
+     * RequiredMargin_{future} = (1+α)*S*WeightedDelta
+     * @return RequiredMargin scaled by 1e8
      */
-    function getRequiredCollateralOfFuture(AddCollateralParams memory _params) internal pure returns (int256) {
-        int256 requiredCollateral = (
+    function getRequiredMarginOfFuture(AddMarginParams memory _params) internal pure returns (int256) {
+        int256 requiredMargin = (
             _params.spotPrice.mul(Math.abs(calculateWeightedDelta(1, _params.delta0, _params.delta1)).toInt256())
         ) / 1e8;
-        return ((1e4 + _params.poolCollateralRiskParam).mul(requiredCollateral)) / 1e4;
+        return ((1e4 + _params.poolMarginRiskParam).mul(requiredMargin)) / 1e4;
     }
 
     /**
-     * @notice Gets required collateral for squeeth
-     * RequiredCollateral_{squeeth}
+     * @notice Gets required margin for squeeth
+     * RequiredMargin_{squeeth}
      * = max((1-α) * S * |WeightDelta_{sqeeth}-α * S * gamma|, (1+α) * S * |WeightDelta_{sqeeth}+α * S * gamma|)
-     * @return RequiredCollateral scaled by 1e8
+     * @return RequiredMargin scaled by 1e8
      */
-    function getRequiredCollateralOfSqueeth(AddCollateralParams memory _params) internal pure returns (int256) {
+    function getRequiredMarginOfSqueeth(AddMarginParams memory _params) internal pure returns (int256) {
         int256 weightedDelta = calculateWeightedDelta(0, _params.delta0, _params.delta1);
-        int256 deltaFromGamma = (_params.poolCollateralRiskParam.mul(_params.spotPrice).mul(_params.gamma0)) / 1e12;
+        int256 deltaFromGamma = (_params.poolMarginRiskParam.mul(_params.spotPrice).mul(_params.gamma0)) / 1e12;
 
         return
             Math.max(
                 (
-                    (1e4 - _params.poolCollateralRiskParam).mul(_params.spotPrice).mul(
+                    (1e4 - _params.poolMarginRiskParam).mul(_params.spotPrice).mul(
                         Math.abs(weightedDelta.sub(deltaFromGamma)).toInt256()
                     )
                 ) / 1e12,
                 (
-                    (1e4 + _params.poolCollateralRiskParam).mul(_params.spotPrice).mul(
+                    (1e4 + _params.poolMarginRiskParam).mul(_params.spotPrice).mul(
                         Math.abs(weightedDelta.add(deltaFromGamma)).toInt256()
                     )
                 ) / 1e12
