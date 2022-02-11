@@ -407,31 +407,27 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     }
 
     /**
-     * @notice Gets required collateral
+     * @notice Gets value of min collateral to add positions
      * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
-     * @param _ratio target MinCollateral / PositionValue ratio.
      * @param _tradeAmounts amounts to trade
      * @param _spotPrice spot price if 0 current oracle price will be used
-     * @return requiredCollateral and minCollateral scaled by 1e6
+     * @return minCollateral scaled by 1e6
      */
-    function getRequiredCollateral(
+    function getMinCollateralToAddPosition(
         address _vaultOwner,
         uint256 _vaultId,
-        int256 _ratio,
         int128[2] memory _tradeAmounts,
         uint256 _spotPrice
-    ) external view override returns (int256 requiredCollateral, int256 minCollateral) {
+    ) external view override returns (int256 minCollateral) {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
 
-        (requiredCollateral, minCollateral) = traderVault.getAmountRequired(
+        minCollateral = traderVault.getMinCollateralToAddPosition(
             _tradeAmounts,
-            _ratio,
             _spotPrice,
             perpetualMarketCore.getTradePriceInfo(traderVault.getPositionPerpetuals())
         );
 
-        requiredCollateral = requiredCollateral / 1e2;
         minCollateral = minCollateral / 1e2;
     }
 

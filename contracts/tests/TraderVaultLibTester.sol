@@ -38,13 +38,12 @@ contract TraderVaultLibTester {
         );
     }
 
-    function testGetAmountRequired(
+    function testGetMinCollateralToAddPosition(
         int128[2] memory _tradeAmounts,
-        int128 _ratio,
         uint256 _spotPrice,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
-    ) external view returns (int256, int256) {
-        return TraderVaultLib.getAmountRequired(traderVault, _tradeAmounts, _ratio, _spotPrice, _tradePriceInfo);
+    ) external view returns (int256) {
+        return TraderVaultLib.getMinCollateralToAddPosition(traderVault, _tradeAmounts, _spotPrice, _tradePriceInfo);
     }
 
     function testUpdateUsdcPosition(int256 _amount, IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)

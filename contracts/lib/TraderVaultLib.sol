@@ -61,37 +61,28 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice Gets amount of deposit required to add amount of Squees/Future
+     * @notice Gets amount of min collateral to add Squees/Future
      * @param _traderVault trader vault object
-     * @param _ratio target MinCollateral / PositionValue ratio.
      * @param _spotPrice spot price
      * @param _tradePriceInfo trade price info
-     * @return requiredCollateral positive means required more collateral and negative means excess collateral.
+     * @return minCollateral and positionValue
      */
-    function getAmountRequired(
+    function getMinCollateralToAddPosition(
         TraderVault memory _traderVault,
         int128[2] memory _tradeAmounts,
-        int256 _ratio,
         uint256 _spotPrice,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
-    ) internal pure returns (int256 requiredCollateral, int256 minCollateral) {
-        require(0 < _ratio && _ratio <= 1e8, "T4");
-
+    ) internal pure returns (int256 minCollateral) {
         int128[2] memory positionPerpetuals = getPositionPerpetuals(_traderVault);
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
             positionPerpetuals[i] = positionPerpetuals[i].add(_tradeAmounts[i]).toInt128();
         }
 
-        int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
         minCollateral = calculateMinCollateral(
             positionPerpetuals,
             _spotPrice == 0 ? _tradePriceInfo.spotPrice : _spotPrice
         );
-
-        int256 requiredPositionValue = minCollateral.mul(1e8).div(_ratio);
-
-        requiredCollateral = requiredPositionValue - positionValue;
     }
 
     /**

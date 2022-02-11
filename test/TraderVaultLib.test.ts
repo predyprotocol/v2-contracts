@@ -379,25 +379,23 @@ describe('TraderVaultLib', function () {
     })
   })
 
-  describe('getAmountRequired', () => {
+  describe('getMinCollateralToAddPosition', () => {
     it('spot is not specified', async function () {
-      const result = await tester.testGetAmountRequired(['1000', 0], '100000000', 0, {
+      const minCollateral = await tester.testGetMinCollateralToAddPosition(['1000', 0], 0, {
         spotPrice: '100000000000',
         tradePrices: ['10000000000', '100000000000'],
         amountsFundingPaidPerPosition: [0, 0],
       })
-      expect(result[0]).to.be.eq('10000000000')
-      expect(result[1]).to.be.eq('10000000000')
+      expect(minCollateral).to.be.eq('10000000000')
     })
 
     it('spot is specified', async function () {
-      const result = await tester.testGetAmountRequired(['1000', 0], '100000000', '200000000000', {
+      const minCollateral = await tester.testGetMinCollateralToAddPosition(['1000', 0], '200000000000', {
         spotPrice: '100000000000',
         tradePrices: ['10000000000', '100000000000'],
         amountsFundingPaidPerPosition: [0, 0],
       })
-      expect(result[0]).to.be.eq('10000000000')
-      expect(result[1]).to.be.eq('10000000000')
+      expect(minCollateral).to.be.eq('10000000000')
     })
 
     describe('USDCs are deposited', () => {
@@ -411,33 +409,30 @@ describe('TraderVaultLib', function () {
       })
 
       it('spot is not specified', async function () {
-        const result = await tester.testGetAmountRequired(['1000', 0], '100000000', 0, {
+        const minCollateral = await tester.testGetMinCollateralToAddPosition(['1000', 0], 0, {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        expect(result[0]).to.be.eq('-4999985000')
-        expect(result[1]).to.be.eq('15000015000')
+        expect(minCollateral).to.be.eq('15000015000')
       })
 
       it('spot is specified', async function () {
-        const result = await tester.testGetAmountRequired(['1000', 0], '100000000', '200000000000', {
+        const minCollateral = await tester.testGetMinCollateralToAddPosition(['1000', 0], '200000000000', {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        expect(result[0]).to.be.eq('40000060000')
-        expect(result[1]).to.be.eq('60000060000')
+        expect(minCollateral).to.be.eq('60000060000')
       })
 
       it('ratio is 50%', async function () {
-        const result = await tester.testGetAmountRequired(['1000', 0], '50000000', 0, {
+        const minCollateral = await tester.testGetMinCollateralToAddPosition(['1000', 0], 0, {
           spotPrice: '100000000000',
           tradePrices: ['10000000000', '100000000000'],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        expect(result[0]).to.be.eq('10000030000')
-        expect(result[1]).to.be.eq('15000015000')
+        expect(minCollateral).to.be.eq('15000015000')
       })
     })
   })
