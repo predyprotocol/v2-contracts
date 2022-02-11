@@ -8,7 +8,7 @@ import { scaledBN } from './utils/helpers'
 describe('NettingLib', function () {
   let tester: NettingLibTester
 
-  const poolCollateralRiskParam = 4000
+  const poolMarginRiskParam = 4000
 
   beforeEach(async () => {
     const NettingLibTester = await ethers.getContractFactory('NettingLibTester')
@@ -16,51 +16,51 @@ describe('NettingLib', function () {
     tester = (await NettingLibTester.deploy()) as NettingLibTester
   })
 
-  describe('getRequiredCollateral', () => {
+  describe('getRequiredMargin', () => {
     it('no positions', async function () {
       expect(
-        await tester.getRequiredCollateral(SQUEETH_PRODUCT_ID, {
+        await tester.getRequiredMargin(SQUEETH_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         }),
       ).to.be.eq('0')
     })
 
     it('short sqeeth', async function () {
       expect(
-        await tester.getRequiredCollateral(SQUEETH_PRODUCT_ID, {
+        await tester.getRequiredMargin(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
           delta0: -2000,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         }),
       ).to.be.eq('3920000')
     })
 
     it('short future', async function () {
       expect(
-        await tester.getRequiredCollateral(FUTURE_PRODUCT_ID, {
+        await tester.getRequiredMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: -10,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         }),
       ).to.be.eq('14000')
     })
 
     it('short sqeeth and long future', async function () {
       expect(
-        await tester.getRequiredCollateral(SQUEETH_PRODUCT_ID, {
+        await tester.getRequiredMargin(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
           delta0: -2000,
           delta1: 2000,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         }),
       ).to.be.eq('1120000')
     })
@@ -80,47 +80,47 @@ describe('NettingLib', function () {
     })
   })
 
-  describe('addCollateral', () => {
+  describe('addMargin', () => {
     it('no positions', async function () {
-      await tester.addCollateral(SQUEETH_PRODUCT_ID, {
+      await tester.addMargin(SQUEETH_PRODUCT_ID, {
         gamma0: 0,
         delta0: 0,
         delta1: 0,
         spotPrice: scaledBN(1000, 8),
-        poolCollateralRiskParam,
+        poolMarginRiskParam,
       })
       expect((await tester.getInfo()).amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('0')
     })
 
     it('short sqeeth', async function () {
-      await tester.addCollateral(SQUEETH_PRODUCT_ID, {
+      await tester.addMargin(SQUEETH_PRODUCT_ID, {
         gamma0: -2,
         delta0: -10,
         delta1: 0,
         spotPrice: scaledBN(1000, 8),
-        poolCollateralRiskParam,
+        poolMarginRiskParam,
       })
       expect((await tester.getInfo()).amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1134000')
     })
 
     it('short future', async function () {
-      await tester.addCollateral(FUTURE_PRODUCT_ID, {
+      await tester.addMargin(FUTURE_PRODUCT_ID, {
         gamma0: 0,
         delta0: 0,
         delta1: -10,
         spotPrice: scaledBN(1000, 8),
-        poolCollateralRiskParam,
+        poolMarginRiskParam,
       })
       expect((await tester.getInfo()).amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('14000')
     })
 
     it('short sqeeth and long future', async function () {
-      await tester.addCollateral(SQUEETH_PRODUCT_ID, {
+      await tester.addMargin(SQUEETH_PRODUCT_ID, {
         gamma0: -2,
         delta0: -10,
         delta1: 10,
         spotPrice: scaledBN(1000, 8),
-        poolCollateralRiskParam,
+        poolMarginRiskParam,
       })
 
       expect((await tester.getInfo()).amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1120000')
@@ -128,12 +128,12 @@ describe('NettingLib', function () {
 
     describe('delta of perpetual future is negative', () => {
       beforeEach(async () => {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const params = await tester.getRequiredTokenAmountsForHedge(
@@ -153,12 +153,12 @@ describe('NettingLib', function () {
       })
 
       it('delta increases', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: -90,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -166,12 +166,12 @@ describe('NettingLib', function () {
       })
 
       it('delta increases but no enough usdc', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: -50,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -179,12 +179,12 @@ describe('NettingLib', function () {
       })
 
       it('delta becomes 0', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -192,12 +192,12 @@ describe('NettingLib', function () {
       })
 
       it('delta becomes positive', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: 50,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -207,19 +207,19 @@ describe('NettingLib', function () {
 
     describe('deltas are negative', () => {
       beforeEach(async () => {
-        await tester.addCollateral(SQUEETH_PRODUCT_ID, {
+        await tester.addMargin(SQUEETH_PRODUCT_ID, {
           gamma0: 0,
           delta0: -100,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: -100,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const params = await tester.getRequiredTokenAmountsForHedge(
@@ -239,12 +239,12 @@ describe('NettingLib', function () {
       })
 
       it('delta increases', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: -90,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -252,12 +252,12 @@ describe('NettingLib', function () {
       })
 
       it('delta increases but no enough usdc', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: -50,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -265,12 +265,12 @@ describe('NettingLib', function () {
       })
 
       it('delta becomes 0', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -278,12 +278,12 @@ describe('NettingLib', function () {
       })
 
       it('delta becomes positive', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: 50,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -293,19 +293,19 @@ describe('NettingLib', function () {
 
     describe('delta of squared is negative and delta of future is positive', () => {
       beforeEach(async () => {
-        await tester.addCollateral(SQUEETH_PRODUCT_ID, {
+        await tester.addMargin(SQUEETH_PRODUCT_ID, {
           gamma0: 0,
           delta0: -120,
           delta1: 100,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: -120,
           delta1: 100,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const params = await tester.getRequiredTokenAmountsForHedge(
@@ -325,12 +325,12 @@ describe('NettingLib', function () {
       })
 
       it('delta decreases', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: 50,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -338,12 +338,12 @@ describe('NettingLib', function () {
       })
 
       it('delta becomes 0', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -351,12 +351,12 @@ describe('NettingLib', function () {
       })
 
       it('delta becomes negative', async function () {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: -50,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
@@ -457,12 +457,12 @@ describe('NettingLib', function () {
     }
 
     it('reverts if there are no positions', async function () {
-      await tester.addCollateral(SQUEETH_PRODUCT_ID, {
+      await tester.addMargin(SQUEETH_PRODUCT_ID, {
         gamma0: 0,
         delta0: 0,
         delta1: 0,
         spotPrice: scaledBN(1000, 8),
-        poolCollateralRiskParam,
+        poolMarginRiskParam,
       })
 
       await expect(complete([0, 0], 1000)).to.be.revertedWith('N1')
@@ -470,12 +470,12 @@ describe('NettingLib', function () {
 
     describe('short squared perpetual', () => {
       beforeEach(async () => {
-        await tester.addCollateral(SQUEETH_PRODUCT_ID, {
+        await tester.addMargin(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
           delta0: -100,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
       })
 
@@ -519,12 +519,12 @@ describe('NettingLib', function () {
 
     describe('short perpetual future', () => {
       beforeEach(async () => {
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
           delta0: 0,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
       })
 
@@ -564,19 +564,19 @@ describe('NettingLib', function () {
 
     describe('short squared perpetual and short perpetual future', () => {
       beforeEach(async () => {
-        await tester.addCollateral(SQUEETH_PRODUCT_ID, {
+        await tester.addMargin(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
           delta0: -100,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: -2,
           delta0: -100,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
       })
 
@@ -616,19 +616,19 @@ describe('NettingLib', function () {
 
     describe('short squared perpetual and long perpetual future', () => {
       beforeEach(async () => {
-        await tester.addCollateral(SQUEETH_PRODUCT_ID, {
+        await tester.addMargin(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
           delta0: -120,
           delta1: 100,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
-        await tester.addCollateral(FUTURE_PRODUCT_ID, {
+        await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: -2,
           delta0: -120,
           delta1: 100,
           spotPrice: scaledBN(1000, 8),
-          poolCollateralRiskParam,
+          poolMarginRiskParam,
         })
       })
 

@@ -55,23 +55,23 @@ export class TestContractHelper {
     await this.updateRoundData(0, spot)
   }
 
-  async openLong(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, collateralAmount?: BigNumberish) {
+  async openLong(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, marginAmount?: BigNumberish) {
     await this.testContractSet.perpetualMarket.connect(wallet).trade({
       vaultId,
       subVaultIndex: 0,
       tradeAmounts: [tradeAmount, 0],
-      collateralAmount: collateralAmount || 0,
+      marginAmount: marginAmount || 0,
       limitPrices: [0, 0],
       deadline: 0,
     })
   }
 
-  async openShort(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, collateralAmount?: BigNumberish) {
+  async openShort(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, marginAmount?: BigNumberish) {
     await this.testContractSet.perpetualMarket.connect(wallet).trade({
       vaultId,
       subVaultIndex: 0,
       tradeAmounts: [BigNumber.from(tradeAmount).mul(-1), 0],
-      collateralAmount: collateralAmount || 0,
+      marginAmount: marginAmount || 0,
       limitPrices: [0, 0],
       deadline: 0,
     })

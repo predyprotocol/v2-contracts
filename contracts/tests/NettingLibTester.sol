@@ -15,11 +15,11 @@ contract NettingLibTester {
         return info;
     }
 
-    function addCollateral(uint256 _productId, NettingLib.AddCollateralParams memory _params)
+    function addMargin(uint256 _productId, NettingLib.AddMarginParams memory _params)
         external
         returns (int256, int256)
     {
-        return NettingLib.addCollateral(info, _productId, _params);
+        return NettingLib.addMargin(info, _productId, _params);
     }
 
     function getRequiredTokenAmountsForHedge(
@@ -34,12 +34,12 @@ contract NettingLibTester {
         NettingLib.complete(info, _params);
     }
 
-    function getRequiredCollateral(uint256 _productId, NettingLib.AddCollateralParams memory _params)
+    function getRequiredMargin(uint256 _productId, NettingLib.AddMarginParams memory _params)
         external
         pure
         returns (int256)
     {
-        return NettingLib.getRequiredCollateral(_productId, _params);
+        return NettingLib.getRequiredMargin(_productId, _params);
     }
 
     function calculateWeightedDelta(

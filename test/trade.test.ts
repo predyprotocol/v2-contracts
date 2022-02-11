@@ -73,7 +73,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(2, 8)],
-          collateralAmount: scaledBN(200, 6),
+          marginAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -84,7 +84,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-2, 8)],
-          collateralAmount: MAX_WITHDRAW_AMOUNT,
+          marginAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -116,7 +116,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 12)],
-          collateralAmount: scaledBN(15000000, 6),
+          marginAmount: scaledBN(15000000, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -127,7 +127,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-1, 12)],
-          collateralAmount: MAX_WITHDRAW_AMOUNT,
+          marginAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -192,7 +192,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(2, 8)],
-          collateralAmount: scaledBN(2000, 6),
+          marginAmount: scaledBN(2000, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })

@@ -8,22 +8,25 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * @notice Base Liquidity Pool Contract
  */
 abstract contract BaseLiquidityPool {
-    address public immutable collateral;
-    address public immutable underlying;
+    address public immutable quoteAsset;
+    address public immutable underlyingAsset;
 
     /**
      * @notice initialize liquidity pool
      */
-    constructor(address _collateral, address _underlying) {
-        collateral = _collateral;
-        underlying = _underlying;
+    constructor(address _quoteAsset, address _underlyingAsset) {
+        require(_quoteAsset != address(0));
+        require(_underlyingAsset != address(0));
+
+        quoteAsset = _quoteAsset;
+        underlyingAsset = _underlyingAsset;
     }
 
     function sendLiquidity(address _recipient, uint256 _amount) internal {
-        ERC20(collateral).transfer(_recipient, _amount);
+        ERC20(quoteAsset).transfer(_recipient, _amount);
     }
 
     function sendUndrlying(address _recipient, uint256 _amount) internal {
-        ERC20(underlying).transfer(_recipient, _amount);
+        ERC20(underlyingAsset).transfer(_recipient, _amount);
     }
 }
