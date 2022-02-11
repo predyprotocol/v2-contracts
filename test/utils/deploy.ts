@@ -55,23 +55,23 @@ export class TestContractHelper {
     await this.updateRoundData(0, spot)
   }
 
-  async openLong(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, collateralRatio?: BigNumberish) {
+  async openLong(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, collateralAmount?: BigNumberish) {
     await this.testContractSet.perpetualMarket.connect(wallet).trade({
       vaultId,
       subVaultIndex: 0,
       tradeAmounts: [tradeAmount, 0],
-      collateralRatio: collateralRatio || scaledBN(1, 8),
+      collateralAmount: collateralAmount || 0,
       limitPrices: [0, 0],
       deadline: 0,
     })
   }
 
-  async openShort(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, collateralRatio?: BigNumberish) {
+  async openShort(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, collateralAmount?: BigNumberish) {
     await this.testContractSet.perpetualMarket.connect(wallet).trade({
       vaultId,
       subVaultIndex: 0,
       tradeAmounts: [BigNumber.from(tradeAmount).mul(-1), 0],
-      collateralRatio: collateralRatio || scaledBN(1, 8),
+      collateralAmount: collateralAmount || 0,
       limitPrices: [0, 0],
       deadline: 0,
     })
@@ -111,7 +111,14 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const LPToken = await ethers.getContractFactory('LPToken')
   const lpToken = (await LPToken.deploy()) as LPToken
 
-  const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket')
+  const TraderVaultLib = await ethers.getContractFactory('TraderVaultLib')
+  const traderVaultLib = await TraderVaultLib.deploy()
+
+  const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket', {
+    libraries: {
+      TraderVaultLib: traderVaultLib.address,
+    },
+  })
   const perpetualMarket = (await PerpetualMarket.deploy(
     perpetualMarketCore.address,
     lpToken.address,

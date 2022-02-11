@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: agpl-3.0
 pragma solidity =0.7.6;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -60,34 +61,58 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice Gets amount of deposit required to add amount of Squees/Future
+     * @notice Gets amount of min collateral to add Squees/Future
      * @param _traderVault trader vault object
-     * @param _ratio target MinCollateral / PositionValue ratio.
-     * @return amount positive means required more collateral and negative means excess collateral.
+     * @param _spotPrice spot price
+     * @param _tradePriceInfo trade price info
+     * @return minCollateral and positionValue
      */
-    function getAmountRequired(
-        TraderVault storage _traderVault,
-        int128 _ratio,
+    function getMinCollateralToAddPosition(
+        TraderVault memory _traderVault,
+        int128[2] memory _tradeAmounts,
+        uint256 _spotPrice,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
-    ) internal view returns (int256 amount) {
-        require(!_traderVault.isInsolvent, "T2");
-        require(0 < _ratio && _ratio <= 1e8, "T4");
+    ) internal pure returns (int256 minCollateral) {
+        int128[2] memory positionPerpetuals = getPositionPerpetuals(_traderVault);
 
-        int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
-        int256 minCollateral = getMinCollateral(_traderVault, _tradePriceInfo.spotPrice);
+        for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
+            positionPerpetuals[i] = positionPerpetuals[i].add(_tradeAmounts[i]).toInt128();
+        }
 
-        int256 requiredPositionValue = minCollateral.mul(1e8).div(_ratio);
-
-        amount = requiredPositionValue - positionValue;
+        minCollateral = calculateMinCollateral(
+            positionPerpetuals,
+            _spotPrice == 0 ? _tradePriceInfo.spotPrice : _spotPrice
+        );
     }
 
     /**
      * @notice Updates USDC position
      * @param _traderVault trader vault object
      * @param _usdcPosition amount to add. if positive then increase amount, if negative then decrease amount.
+     * @param _tradePriceInfo trade price info
+     * @return finalUsdcPosition positive means amount of deposited collateral
+     * and negative means amount of withdrawn collateral.
      */
-    function updateUsdcPosition(TraderVault storage _traderVault, int256 _usdcPosition) internal {
-        _traderVault.positionUsdc = _traderVault.positionUsdc.add(_usdcPosition).toInt128();
+    function updateUsdcPosition(
+        TraderVault storage _traderVault,
+        int256 _usdcPosition,
+        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
+    ) external returns (int256 finalUsdcPosition) {
+        finalUsdcPosition = _usdcPosition;
+        require(!_traderVault.isInsolvent, "T2");
+
+        int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
+        int256 minCollateral = getMinCollateral(_traderVault, _tradePriceInfo.spotPrice);
+        int256 maxWithdrawable = positionValue - minCollateral;
+
+        // If trader wants to withdraw all USDC, set maxWithdrawable.
+        if (_usdcPosition < -maxWithdrawable && maxWithdrawable > 0 && _usdcPosition < 0) {
+            finalUsdcPosition = -maxWithdrawable;
+        }
+
+        _traderVault.positionUsdc = _traderVault.positionUsdc.add(finalUsdcPosition).toInt128();
+
+        require(!checkVaultIsLiquidatable(_traderVault, _tradePriceInfo), "T4");
     }
 
     /**
@@ -139,7 +164,7 @@ library TraderVaultLib {
         int128 _positionPerpetual,
         uint256 _tradePrice,
         int256 _fundingFeePerPosition
-    ) internal returns (int256 deltaUsdcPosition) {
+    ) external returns (int256 deltaUsdcPosition) {
         require(!_traderVault.isInsolvent, "T2");
         require(_positionPerpetual != 0, "T4");
 
@@ -195,7 +220,7 @@ library TraderVaultLib {
      * @return if true the vault is liquidatable, if false the vault is not liquidatable
      */
     function checkVaultIsLiquidatable(
-        TraderVault storage _traderVault,
+        TraderVault memory _traderVault,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal pure returns (bool) {
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
@@ -208,7 +233,7 @@ library TraderVaultLib {
      * If PositionValue is negative, set insolvency flag.
      * @param _traderVault trader vault object
      */
-    function setInsolvencyFlagIfNeeded(TraderVault storage _traderVault) internal {
+    function setInsolvencyFlagIfNeeded(TraderVault storage _traderVault) external {
         // Confirm that there are no positions
         for (uint256 i = 0; i < _traderVault.subVaults.length; i++) {
             for (uint256 j = 0; j < MAX_PRODUCT_ID; j++) {
@@ -228,7 +253,7 @@ library TraderVaultLib {
      * @param _liquidationFee liquidation fee rate
      */
     function decreaseLiquidationReward(TraderVault storage _traderVault, int256 _liquidationFee)
-        internal
+        external
         returns (uint256)
     {
         if (_traderVault.positionUsdc <= 0) {

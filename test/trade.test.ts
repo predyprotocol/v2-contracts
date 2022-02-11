@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { scaledBN } from './utils/helpers'
-import { FUTURE_PRODUCT_ID, SQUEETH_PRODUCT_ID } from './utils/constants'
+import { FUTURE_PRODUCT_ID, MAX_WITHDRAW_AMOUNT, SQUEETH_PRODUCT_ID } from './utils/constants'
 import { LPToken } from '../typechain/LPToken'
 
 describe('trade', function () {
@@ -73,7 +73,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(2, 8)],
-          collateralRatio: scaledBN(5, 7),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -84,7 +84,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-2, 8)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -116,7 +116,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 12)],
-          collateralRatio: scaledBN(5, 7),
+          collateralAmount: scaledBN(15000000, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -127,7 +127,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-1, 12)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -192,7 +192,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(2, 8)],
-          collateralRatio: scaledBN(5, 7),
+          collateralAmount: scaledBN(2000, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })

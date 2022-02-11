@@ -143,7 +143,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
      * and manage the collateral in the vault at the same time.
      * @param _tradeParams trade parameters
      */
-    function trade(MultiTradeParams memory _tradeParams) public override {
+    function trade(MultiTradeParams memory _tradeParams) external override {
         // check the transaction not exceed deadline
         require(_tradeParams.deadline == 0 || _tradeParams.deadline >= block.number, "PM0");
 
@@ -191,15 +191,12 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         int256 finalDepositOrWithdrawAmount;
 
-        if (_tradeParams.collateralRatio > 0) {
-            finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].getAmountRequired(
-                _tradeParams.collateralRatio,
-                perpetualMarketCore.getTradePriceInfo(
-                    traderVaults[msg.sender][_tradeParams.vaultId].getPositionPerpetuals()
-                )
-            );
-            traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcPosition(finalDepositOrWithdrawAmount);
-        }
+        finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcPosition(
+            _tradeParams.collateralAmount.mul(1e2),
+            perpetualMarketCore.getTradePriceInfo(
+                traderVaults[msg.sender][_tradeParams.vaultId].getPositionPerpetuals()
+            )
+        );
 
         perpetualMarketCore.updatePoolSnapshot();
 
@@ -374,7 +371,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
      * @notice Gets current LP token price
      * @param _deltaLiquidityAmount difference of liquidity
      * If LPs want LP token price of deposit, _deltaLiquidityAmount is positive number of amount to deposit.
-     * On the pther handa, if LPs want LP token price of withdrawal, _deltaLiquidityAmount is negative number of amount to withdraw.
+     * On the other hand, if LPs want LP token price of withdrawal, _deltaLiquidityAmount is negative number of amount to withdraw.
      * @return LP token price scaled by 1e6
      */
     function getLPTokenPrice(int256 _deltaLiquidityAmount) external view override returns (uint256) {
@@ -410,40 +407,28 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     }
 
     /**
-     * @notice Gets required collateral
+     * @notice Gets value of min collateral to add positions
      * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
-     * @param _ratio target MinCollateral / PositionValue ratio.
      * @param _tradeAmounts amounts to trade
      * @param _spotPrice spot price if 0 current oracle price will be used
-     * @return requiredCollateral and minCollateral
+     * @return minCollateral scaled by 1e6
      */
-    function getRequiredCollateral(
+    function getMinCollateralToAddPosition(
         address _vaultOwner,
         uint256 _vaultId,
-        int256 _ratio,
         int128[2] memory _tradeAmounts,
         uint256 _spotPrice
-    ) external view override returns (int256 requiredCollateral, int256 minCollateral) {
+    ) external view override returns (int256 minCollateral) {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
-        int128[2] memory positionPerpetuals = traderVault.getPositionPerpetuals();
-        IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
-            positionPerpetuals
+
+        minCollateral = traderVault.getMinCollateralToAddPosition(
+            _tradeAmounts,
+            _spotPrice,
+            perpetualMarketCore.getTradePriceInfo(traderVault.getPositionPerpetuals())
         );
 
-        for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
-            positionPerpetuals[i] = positionPerpetuals[i].add(_tradeAmounts[i]).toInt128();
-        }
-
-        int256 positionValue = traderVault.getPositionValue(tradePriceInfo);
-        minCollateral = TraderVaultLib.calculateMinCollateral(
-            positionPerpetuals,
-            _spotPrice == 0 ? tradePriceInfo.spotPrice : _spotPrice
-        );
-
-        int256 requiredPositionValue = minCollateral.mul(1e8).div(_ratio);
-
-        requiredCollateral = requiredPositionValue - positionValue;
+        minCollateral = minCollateral / 1e2;
     }
 
     /**

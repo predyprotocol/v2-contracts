@@ -85,7 +85,7 @@ describe('FlashHedge', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(200, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -107,7 +107,7 @@ describe('FlashHedge', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 7)],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(200, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -120,7 +120,7 @@ describe('FlashHedge', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), 0],
-        collateralRatio: scaledBN(1, 8),
+        collateralAmount: scaledBN(200, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -136,7 +136,7 @@ describe('FlashHedge', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 7), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -151,7 +151,7 @@ describe('FlashHedge', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-2, 6), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(1, 8),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -168,7 +168,7 @@ describe('FlashHedge', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(-2, 6), 0],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(1, 8),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -185,7 +185,7 @@ describe('FlashHedge', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -200,7 +200,7 @@ describe('FlashHedge', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-2, 6)],
-          collateralRatio: scaledBN(1, 8),
+          collateralAmount: scaledBN(200, 6),
           limitPrices: [0, 0],
           deadline: 0,
         })

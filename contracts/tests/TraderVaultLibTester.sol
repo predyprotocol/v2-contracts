@@ -11,7 +11,7 @@ import "../lib/TraderVaultLib.sol";
  */
 contract TraderVaultLibTester {
     TraderVaultLib.TraderVault public traderVault;
-    int128 public r;
+    int256 public r;
 
     function getNumOfSubVault() external view returns (uint256) {
         return traderVault.subVaults.length;
@@ -38,16 +38,18 @@ contract TraderVaultLibTester {
         );
     }
 
-    function testGetAmountRequired(int128 _ratio, IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
-        external
-        view
-        returns (int256)
-    {
-        return TraderVaultLib.getAmountRequired(traderVault, _ratio, _tradePriceInfo);
+    function testGetMinCollateralToAddPosition(
+        int128[2] memory _tradeAmounts,
+        uint256 _spotPrice,
+        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
+    ) external view returns (int256) {
+        return TraderVaultLib.getMinCollateralToAddPosition(traderVault, _tradeAmounts, _spotPrice, _tradePriceInfo);
     }
 
-    function testUpdateUsdcPosition(int256 _amount) external {
-        TraderVaultLib.updateUsdcPosition(traderVault, _amount);
+    function testUpdateUsdcPosition(int256 _amount, IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
+        external
+    {
+        r = TraderVaultLib.updateUsdcPosition(traderVault, _amount, _tradePriceInfo);
     }
 
     function testCheckVaultIsLiquidatable(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
