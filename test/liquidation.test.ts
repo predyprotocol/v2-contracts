@@ -73,13 +73,13 @@ describe('liquidation', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(10, 8), 0],
-        marginAmount: scaledBN(152, 6),
+        marginAmount: scaledBN(153, 6),
         limitPrices: [0, 0],
         deadline: 0,
       })
 
       const vault = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
-      expect(vault.rawVaultData.positionUsdc).to.be.eq(15200000000)
+      expect(vault.rawVaultData.positionUsdc).to.be.eq(15300000000)
     })
 
     it('reverts if the vault has enough margin', async () => {

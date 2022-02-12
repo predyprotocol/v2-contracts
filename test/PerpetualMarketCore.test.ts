@@ -82,7 +82,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1999806)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1999736)
     })
 
     it('deposits after pool gets profit', async () => {
@@ -93,7 +93,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1998805)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1998735)
     })
 
     it('deposits after pool gets loss', async () => {
@@ -105,7 +105,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(2000811)
+      expect(await perpetualMarketCore.supply()).to.be.eq(2000741)
     })
   })
 
@@ -146,7 +146,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(500598)
+      expect(await perpetualMarketCore.supply()).to.be.eq(500633)
     })
 
     it('withdraws after the pool gets loss', async () => {
@@ -158,7 +158,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(499595)
+      expect(await perpetualMarketCore.supply()).to.be.eq(499630)
     })
   })
 
@@ -454,39 +454,39 @@ describe('PerpetualMarketCore', function () {
   })
 
   describe('calculateUnlockedLiquidity', () => {
-    it('liquidityAmount=1000, lockedLiquidityAmount=100, deltaM=100, hedgePositionValue=100', async () => {
-      const result = await tester.testCalculateUnlockedLiquidity(1000, 100, 100, 100)
+    it('lockedLiquidityAmount=100, deltaM=100, hedgePositionValue=100', async () => {
+      const result = await tester.testCalculateUnlockedLiquidity(100, -100, 100)
 
-      expect(result[0]).to.be.eq(1000)
-      expect(result[1]).to.be.eq(0)
+      expect(result[0]).to.be.eq(0)
+      expect(result[1]).to.be.eq(-100)
     })
 
-    it('liquidityAmount=1000, lockedLiquidityAmount=100, deltaM=99, hedgePositionValue=99', async () => {
-      const result = await tester.testCalculateUnlockedLiquidity(1000, 100, 99, 99)
+    it('lockedLiquidityAmount=100, deltaM=99, hedgePositionValue=99', async () => {
+      const result = await tester.testCalculateUnlockedLiquidity(100, -99, 99)
 
-      expect(result[0]).to.be.eq(999)
-      expect(result[1]).to.be.eq(0)
+      expect(result[0]).to.be.eq(-1)
+      expect(result[1]).to.be.eq(-100)
     })
 
-    it('liquidityAmount=1000, lockedLiquidityAmount=100, deltaM=101, hedgePositionValue=101', async () => {
-      const result = await tester.testCalculateUnlockedLiquidity(1000, 100, 101, 101)
+    it('lockedLiquidityAmount=100, deltaM=101, hedgePositionValue=101', async () => {
+      const result = await tester.testCalculateUnlockedLiquidity(100, -101, 101)
 
-      expect(result[0]).to.be.eq(1001)
-      expect(result[1]).to.be.eq(0)
+      expect(result[0]).to.be.eq(1)
+      expect(result[1]).to.be.eq(-100)
     })
 
-    it('liquidityAmount=1000, lockedLiquidityAmount=100, deltaM=50, hedgePositionValue=98', async () => {
-      const result = await tester.testCalculateUnlockedLiquidity(1000, 100, 50, 98)
+    it('lockedLiquidityAmount=100, deltaM=50, hedgePositionValue=98', async () => {
+      const result = await tester.testCalculateUnlockedLiquidity(100, -50, 98)
 
-      expect(result[0]).to.be.eq(999)
-      expect(result[1]).to.be.eq(49)
+      expect(result[0]).to.be.eq(-1)
+      expect(result[1]).to.be.eq(-51)
     })
 
-    it('liquidityAmount=1000, lockedLiquidityAmount=100, deltaM=50, hedgePositionValue=102', async () => {
-      const result = await tester.testCalculateUnlockedLiquidity(1000, 100, 50, 102)
+    it('lockedLiquidityAmount=100, deltaM=50, hedgePositionValue=102', async () => {
+      const result = await tester.testCalculateUnlockedLiquidity(100, -50, 102)
 
-      expect(result[0]).to.be.eq(1001)
-      expect(result[1]).to.be.eq(51)
+      expect(result[0]).to.be.eq(1)
+      expect(result[1]).to.be.eq(-49)
     })
   })
 })
