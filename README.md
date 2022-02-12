@@ -37,6 +37,10 @@ It supports cross margin trading of Squared perpetual and Perpetual future.
 
 TODO
 
+### Docs
+
+[AMM](./docs/AMM.md)
+
 ## Audit
 
 TODO
