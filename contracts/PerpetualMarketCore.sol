@@ -239,34 +239,20 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         // Updates pool position
         pools[_productId].positionPerpetuals -= _tradeAmount;
 
-        // Add collateral to Netting contract
-        (int256 deltaM, int256 hedgePositionValue) = addMargin(_productId, spotPrice);
+        {
+            (int256 deltaM, int256 deltaLiquidity) = updateLiquidity(_productId, spotPrice);
 
-        // Calculate trade price
-        (tradePrice, protocolFee) = calculateTradePrice(_productId, spotPrice, _tradeAmount > 0, deltaM, 0);
+            // Calculate trade price
+            (tradePrice, protocolFee) = calculateSafeTradePrice(
+                _productId,
+                spotPrice,
+                _tradeAmount > 0,
+                deltaM,
+                deltaLiquidity
+            );
+        }
 
         protocolFee = protocolFee.mul(Math.abs(_tradeAmount)).div(1e8);
-
-        {
-            // Calculate pool's new amountLiquidity
-
-            // Updates locked liquidity amount
-            if (deltaM > 0) {
-                require(amountLiquidity.sub(pools[_productId].amountLockedLiquidity) >= uint128(deltaM), "PMC1");
-                pools[_productId].amountLockedLiquidity = pools[_productId]
-                    .amountLockedLiquidity
-                    .add(uint128(deltaM))
-                    .toUint128();
-            } else if (deltaM < 0) {
-                // Calculate new amounts of liquidity and locked liquidity
-                (amountLiquidity, pools[_productId].amountLockedLiquidity) = calculateUnlockedLiquidity(
-                    amountLiquidity,
-                    pools[_productId].amountLockedLiquidity,
-                    uint256(-deltaM),
-                    hedgePositionValue
-                );
-            }
-        }
 
         // Update trade time
         pools[_productId].lastTradeTime = uint128(block.timestamp);
@@ -567,6 +553,37 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         emit FundingPayment(_productId, currentFundingRate, fundingFeePerPosition, fundingReceived);
     }
 
+    function updateLiquidity(uint256 _productId, int256 spotPrice)
+        internal
+        returns (int256 deltaM, int256 deltaLiquidity)
+    {
+        // Add collateral to Netting contract
+        int256 hedgePositionValue;
+        (deltaM, hedgePositionValue) = addMargin(_productId, spotPrice);
+
+        // Updates amountLiquidity and amountLockedLiquidity
+        if (deltaM > 0) {
+            require(amountLiquidity.sub(pools[_productId].amountLockedLiquidity) >= uint128(deltaM), "PMC1");
+        } else if (deltaM < 0) {
+            // Calculate new amounts of liquidity and locked liquidity
+            (deltaLiquidity, deltaM) = calculateUnlockedLiquidity(
+                pools[_productId].amountLockedLiquidity,
+                deltaM,
+                hedgePositionValue
+            );
+        }
+
+        if (deltaLiquidity != 0) {
+            amountLiquidity = amountLiquidity.toInt256().add(deltaLiquidity).toUint256().toUint128();
+        }
+        pools[_productId].amountLockedLiquidity = pools[_productId]
+            .amountLockedLiquidity
+            .toInt256()
+            .add(deltaM)
+            .toUint256()
+            .toUint128();
+    }
+
     /**
      * @notice Adds margin to Netting contract
      */
@@ -582,9 +599,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     }
 
     /**
-     * @notice Gets Δm
+     * @notice Gets additional required margin.
+     * if return value is negative it represents unrequired.
      */
-    function getReqiredMargin(
+    function getRequiredMargin(
         uint256 _productId,
         int256 _spot,
         int128 _tradeAmount
@@ -626,39 +644,35 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
 
     /**
      * @notice Calculates new amounts of liquidity and locked liquidity
-     * UnlockAmount = Δm * amountLockedLiquidity / hedgePositionValue
-     * amountLockedLiquidity <- amountLockedLiquidity - UnlockAmount
-     * amountLiquidity <- amountLiquidity + Δm - UnlockAmount
+     * unlockLiquidityAmount = Δm * amountLockedLiquidity / hedgePositionValue
+     * deltaLiquidity = Δm - UnlockAmount
      */
     function calculateUnlockedLiquidity(
-        uint256 _amountLiquidity,
         uint256 _amountLockedLiquidity,
-        uint256 _deltaM,
+        int256 _deltaM,
         int256 _hedgePositionValue
-    ) internal pure returns (uint128 newAmountLiquidity, uint128 newLockedLiquidity) {
-        uint256 unlockAmount = _deltaM.mul(_amountLockedLiquidity).div(_hedgePositionValue.toUint256());
+    ) internal pure returns (int256 deltaLiquidity, int256 unlockLiquidityAmount) {
+        unlockLiquidityAmount = _deltaM.mul(_amountLockedLiquidity.toInt256()).div(_hedgePositionValue);
 
-        newLockedLiquidity = _amountLockedLiquidity.sub(unlockAmount).toUint128();
-
-        newAmountLiquidity = Math.addDelta(_amountLiquidity, int256(_deltaM) - int256(unlockAmount)).toUint128();
+        return ((-_deltaM + unlockLiquidityAmount), unlockLiquidityAmount);
     }
 
     /**
-     * @notice Calculates trade price
+     * @notice Calculates trade price checked by spread manager
      * @return trade price and protocol fee
      */
-    function calculateTradePrice(
+    function calculateSafeTradePrice(
         uint256 _productId,
         int256 _spotPrice,
         bool _isLong,
-        int256 _deltaM,
+        int256 _deltaMargin,
         int256 _deltaLiquidity
     ) internal returns (uint256, uint256) {
-        (int256 tradePrice, , , , int256 protocolFee) = calculateTradePriceWithFundingRate(
+        (int256 tradePrice, , , , int256 protocolFee) = calculateTradePrice(
             _productId,
             _spotPrice,
             _isLong,
-            _deltaM,
+            _deltaMargin,
             _deltaLiquidity
         );
 
@@ -687,9 +701,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
             int256 protocolFee
         )
     {
-        int256 deltaM = getReqiredMargin(_productId, _spotPrice, _tradeAmount.toInt128());
+        int256 deltaM = getRequiredMargin(_productId, _spotPrice, _tradeAmount.toInt128());
 
-        (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePriceWithFundingRate(
+        (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePrice(
             _productId,
             _spotPrice,
             _tradeAmount > 0,
@@ -707,7 +721,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
      * TradePrice = IndexPrice * (1 + FundingRate) + TradeFee
      * @return TradePrice scaled by 1e8
      */
-    function calculateTradePriceWithFundingRate(
+    function calculateTradePrice(
         uint256 _productId,
         int256 _spotPrice,
         bool _isLong,
@@ -736,7 +750,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
 
         protocolFee = getProtocolFee(indexPrice);
 
-        return (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee);
+        return (tradePrice, indexPrice, fundingRate, Math.abs(tradeFee).toInt256(), protocolFee);
     }
 
     /**

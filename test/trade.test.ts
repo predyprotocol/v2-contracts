@@ -141,9 +141,9 @@ describe('trade', function () {
 
         expect(withdrawnAmount).to.gt(scaledBN(50000000, 6))
 
-        expect(
-          (await usdc.balanceOf(perpetualMarket.address)).sub(await perpetualMarket.cumulativeProtocolFee()),
-        ).to.eq(0)
+        await perpetualMarket.sendProtocolFee()
+
+        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(0)
         expect(await lpToken.balanceOf(wallet.address)).to.eq(0)
       })
     })
@@ -191,7 +191,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(2, 8)],
+          tradeAmounts: [scaledBN(1, 8), scaledBN(2, 8)],
           marginAmount: scaledBN(2000, 6),
           limitPrices: [0, 0],
           deadline: 0,
@@ -201,26 +201,39 @@ describe('trade', function () {
       it('get trade price of small position', async () => {
         const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 100)
 
-        expect(tradePrice.tradePrice).to.be.eq(10040000000)
+        expect(tradePrice.tradePrice).to.be.eq(10040000100)
+        expect(tradePrice.indexPrice).to.be.eq(10000000000)
+        expect(tradePrice.fundingFee).to.be.eq(30000100)
+        expect(tradePrice.tradeFee).to.be.eq(10000000)
+        expect(tradePrice.protocolFee).to.be.eq(4000000)
+        expect(tradePrice.fundingRate).to.be.eq(300001)
+        expect(tradePrice.totalValue).to.be.eq(10040)
+        expect(tradePrice.totalFee).to.be.eq(10)
+      })
+
+      it('get trade price of short', async () => {
+        const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(-1, 8))
+
+        expect(tradePrice.tradePrice).to.be.eq(10020000000)
         expect(tradePrice.indexPrice).to.be.eq(10000000000)
         expect(tradePrice.fundingFee).to.be.eq(30000000)
         expect(tradePrice.tradeFee).to.be.eq(10000000)
         expect(tradePrice.protocolFee).to.be.eq(4000000)
         expect(tradePrice.fundingRate).to.be.eq(300000)
-        expect(tradePrice.totalValue).to.be.eq(10040)
-        expect(tradePrice.totalFee).to.be.eq(10)
+        expect(tradePrice.totalValue).to.be.eq(10020000000)
+        expect(tradePrice.totalFee).to.be.eq(10000000)
       })
 
       it("get squared perpetual's trade price of large position", async () => {
         const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 12))
 
-        expect(tradePrice.tradePrice).to.be.eq(10040588000)
+        expect(tradePrice.tradePrice).to.be.eq(10040588100)
         expect(tradePrice.indexPrice).to.be.eq(10000000000)
-        expect(tradePrice.fundingFee).to.be.eq(30588000)
+        expect(tradePrice.fundingFee).to.be.eq(30588100)
         expect(tradePrice.tradeFee).to.be.eq(10000000)
         expect(tradePrice.protocolFee).to.be.eq(4000000)
-        expect(tradePrice.fundingRate).to.be.eq(305880)
-        expect(tradePrice.totalValue).to.be.eq(100405880000000)
+        expect(tradePrice.fundingRate).to.be.eq(305881)
+        expect(tradePrice.totalValue).to.be.eq(100405881000000)
         expect(tradePrice.totalFee).to.be.eq(100000000000)
       })
 

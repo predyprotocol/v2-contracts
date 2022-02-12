@@ -88,17 +88,17 @@ library TraderVaultLib {
     /**
      * @notice Updates USDC position
      * @param _traderVault trader vault object
-     * @param _usdcPosition amount to add. if positive then increase amount, if negative then decrease amount.
+     * @param _usdcPositionToAdd amount to add. if positive then increase amount, if negative then decrease amount.
      * @param _tradePriceInfo trade price info
      * @return finalUsdcPosition positive means amount of deposited margin
      * and negative means amount of withdrawn margin.
      */
     function updateUsdcPosition(
         TraderVault storage _traderVault,
-        int256 _usdcPosition,
+        int256 _usdcPositionToAdd,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) external returns (int256 finalUsdcPosition) {
-        finalUsdcPosition = _usdcPosition;
+        finalUsdcPosition = _usdcPositionToAdd;
         require(!_traderVault.isInsolvent, "T2");
 
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
@@ -106,7 +106,7 @@ library TraderVaultLib {
         int256 maxWithdrawable = positionValue - minCollateral;
 
         // If trader wants to withdraw all USDC, set maxWithdrawable.
-        if (_usdcPosition < -maxWithdrawable && maxWithdrawable > 0 && _usdcPosition < 0) {
+        if (_usdcPositionToAdd < -maxWithdrawable && maxWithdrawable > 0 && _usdcPositionToAdd < 0) {
             finalUsdcPosition = -maxWithdrawable;
         }
 
