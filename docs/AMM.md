@@ -9,8 +9,8 @@ The implementation is `PerpetualMarketCore.sol`.
 | ------------- | ------------- | ------------- |
 | L  | amountLiquidity  | total liquidity |
 | M_i  | amountLockedLiquidity  | locked liquidity for perpetual contract i |
-| ΔL  |   | delta liquidity to provide or withdraw |
-| ΔM_i  |   | delta margin that pool lockes when opening or closing positions |
+| ΔL  | deltaLiquidity | delta liquidity to provide or withdraw |
+| ΔM_i  | deltaMargin | delta margin that pool lockes when opening or closing positions |
 | Supply  |  supply | total supply of LP token |
 
 `i` is index of subgroup {squared, future}.
@@ -68,6 +68,10 @@ The formula is:
 `u_{t-1} = (S_t - S_{t-1}) / S_{t-1}`
 
 λ is 0.94.
+
+`variance_t` is variance estimation of underlying asset at time `t`.
+
+`u_t` is return rate of underlying asset at time `t`.
 
 The initial variance is setted by the first LP calling `initialize` function.
 
