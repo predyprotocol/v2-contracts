@@ -97,7 +97,7 @@ library NettingLib {
 
         // 2. Calculate USDC and ETH amounts.
         completeParams.amountUnderlying = Math.abs(requiredUnderlyingAmount);
-        completeParams.amountUsdc = (Math.abs(requiredUnderlyingAmount).mul(uint256(_spotPrice))) / 1e8;
+        completeParams.amountUsdc = completeParams.amountUnderlying.mul(uint256(_spotPrice)) / 1e8;
 
         return completeParams;
     }

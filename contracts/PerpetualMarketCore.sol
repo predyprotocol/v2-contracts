@@ -736,7 +736,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
 
         protocolFee = getProtocolFee(indexPrice);
 
-        return (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee);
+        return (tradePrice, indexPrice, fundingRate, Math.abs(tradeFee).toInt256(), protocolFee);
     }
 
     /**
