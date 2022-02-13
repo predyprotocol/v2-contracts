@@ -64,8 +64,8 @@ contract TraderVaultLibTester {
         TraderVaultLib.setInsolvencyFlagIfNeeded(traderVault);
     }
 
-    function testDecreaseLiquidationReward(int256 liquidationFee) external {
-        r = int128(TraderVaultLib.decreaseLiquidationReward(traderVault, liquidationFee));
+    function testDecreaseLiquidationReward(int256 _minCollateral, int256 liquidationFee) external {
+        r = int128(TraderVaultLib.decreaseLiquidationReward(traderVault, _minCollateral, liquidationFee));
     }
 
     function getMinCollateral(uint128 _spot) external view returns (int256) {

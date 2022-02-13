@@ -654,9 +654,15 @@ describe('TraderVaultLib', function () {
     })
 
     it('decrease reward', async function () {
-      await tester.testDecreaseLiquidationReward(liquidationFee)
-      expect(await tester.r()).to.be.eq(40000000)
-      expect((await tester.traderVault()).positionUsdc).to.be.eq(160000000)
+      await tester.testDecreaseLiquidationReward(scaledBN(10, 8), liquidationFee)
+      expect(await tester.r()).to.be.eq(200000000)
+      expect((await tester.traderVault()).positionUsdc).to.be.eq(0)
+    })
+
+    it('decrease reward', async function () {
+      await tester.testDecreaseLiquidationReward(scaledBN(5, 7), liquidationFee)
+      expect(await tester.r()).to.be.eq(10000000)
+      expect((await tester.traderVault()).positionUsdc).to.be.eq(190000000)
     })
   })
 })
