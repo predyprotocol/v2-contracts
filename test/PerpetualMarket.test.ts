@@ -1369,24 +1369,6 @@ describe('PerpetualMarket', function () {
     })
   })
 
-  describe('setLiquidationFee', () => {
-    it('set liquidation fee', async () => {
-      await perpetualMarket.setLiquidationFee(10)
-    })
-
-    it('reverts if caller is not owner', async () => {
-      await expect(perpetualMarket.connect(other).setLiquidationFee(0)).to.be.reverted
-    })
-
-    it('reverts if value is negative', async () => {
-      await expect(perpetualMarket.setLiquidationFee(-1)).to.be.reverted
-    })
-
-    it('reverts if value is greater than 5000', async () => {
-      await expect(perpetualMarket.setLiquidationFee(5001)).to.be.reverted
-    })
-  })
-
   describe('setFeeRecepient', () => {
     const feeRecepientAddress = randomBytes(20).toString('hex')
 

@@ -98,9 +98,7 @@ describe('trade', function () {
 
         expect(withdrawnAmount).to.gt(scaledBN(200000, 6))
 
-        expect(
-          (await usdc.balanceOf(perpetualMarket.address)).sub(await perpetualMarket.cumulativeProtocolFee()),
-        ).to.eq(0)
+        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(0)
         expect(await lpToken.balanceOf(wallet.address)).to.eq(0)
       })
     })
