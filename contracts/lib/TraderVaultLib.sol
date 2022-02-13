@@ -250,17 +250,21 @@ library TraderVaultLib {
     /**
      * @notice Decreases liquidation reward from usdc position
      * @param _traderVault trader vault object
+     * @param _minCollateral min collateral
      * @param _liquidationFee liquidation fee rate
      */
-    function decreaseLiquidationReward(TraderVault storage _traderVault, int256 _liquidationFee)
-        external
-        returns (uint256)
-    {
+    function decreaseLiquidationReward(
+        TraderVault storage _traderVault,
+        int256 _minCollateral,
+        int256 _liquidationFee
+    ) external returns (uint256) {
         if (_traderVault.positionUsdc <= 0) {
             return 0;
         }
 
-        int256 reward = (_traderVault.positionUsdc.mul(_liquidationFee).div(1e4));
+        int256 reward = _minCollateral.mul(_liquidationFee).div(1e4);
+
+        reward = Math.min(reward, _traderVault.positionUsdc);
 
         // reduce margin
         // sub is safe because we know reward is less than positionUsdc

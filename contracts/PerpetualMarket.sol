@@ -148,40 +148,16 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         uint256 totalProtocolFee;
 
         for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
-            if (_tradeParams.tradeAmounts[productId] != 0) {
-                (uint256 tradePrice, int256 fundingFeePerPosition, uint256 protocolFee) = perpetualMarketCore
-                    .updatePoolPosition(productId, _tradeParams.tradeAmounts[productId]);
-
-                totalProtocolFee = totalProtocolFee.add(protocolFee / 1e2);
-
-                require(
-                    checkPrice(
-                        _tradeParams.tradeAmounts[productId] > 0,
-                        tradePrice,
-                        _tradeParams.limitPrices[productId]
-                    ),
-                    "PM1"
-                );
-
-                int256 deltaUsdcPosition = traderVaults[msg.sender][_tradeParams.vaultId].updateVault(
-                    _tradeParams.subVaultIndex,
+            totalProtocolFee = totalProtocolFee.add(
+                updatePosition(
+                    traderVaults[msg.sender][_tradeParams.vaultId],
                     productId,
-                    _tradeParams.tradeAmounts[productId],
-                    tradePrice,
-                    fundingFeePerPosition
-                );
-
-                emit PositionUpdated(
-                    msg.sender,
                     _tradeParams.vaultId,
                     _tradeParams.subVaultIndex,
-                    productId,
                     _tradeParams.tradeAmounts[productId],
-                    tradePrice,
-                    fundingFeePerPosition,
-                    deltaUsdcPosition
-                );
-            }
+                    _tradeParams.limitPrices[productId]
+                )
+            );
         }
 
         // Add protocol fee
@@ -226,43 +202,23 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         // Check if PositionValue is less than MinCollateral or not
         require(traderVault.checkVaultIsLiquidatable(tradePriceInfo), "vault is not danger");
 
+        int256 minCollateral = traderVault.getMinCollateral(tradePriceInfo.spotPrice);
+
         // Close all positions in the vault
         uint256 totalProtocolFee;
         for (uint256 subVaultIndex = 0; subVaultIndex < traderVault.subVaults.length; subVaultIndex++) {
             for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
                 int128 amountAssetInVault = traderVault.subVaults[subVaultIndex].positionPerpetuals[productId];
 
-                if (amountAssetInVault != 0) {
-                    (uint256 tradePrice, int256 fundingFeePerPosition, uint256 protocolFee) = perpetualMarketCore
-                        .updatePoolPosition(productId, -amountAssetInVault);
-
-                    totalProtocolFee = totalProtocolFee.add(protocolFee / 1e2);
-
-                    int256 deltaUsdcPosition = traderVault.updateVault(
-                        subVaultIndex,
-                        productId,
-                        -amountAssetInVault,
-                        tradePrice,
-                        fundingFeePerPosition
-                    );
-
-                    emit PositionUpdated(
-                        msg.sender,
-                        _vaultId,
-                        subVaultIndex,
-                        productId,
-                        -amountAssetInVault,
-                        tradePrice,
-                        fundingFeePerPosition,
-                        deltaUsdcPosition
-                    );
-                }
+                totalProtocolFee = totalProtocolFee.add(
+                    updatePosition(traderVault, productId, _vaultId, subVaultIndex, -amountAssetInVault, 0)
+                );
             }
         }
 
         traderVault.setInsolvencyFlagIfNeeded();
 
-        uint256 reward = traderVault.decreaseLiquidationReward(liquidationFee);
+        uint256 reward = traderVault.decreaseLiquidationReward(minCollateral, liquidationFee);
 
         // Sends a half of reward to the pool
         perpetualMarketCore.addLiquidity(reward / 2);
@@ -277,6 +233,44 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         }
 
         emit Liquidated(msg.sender, _vaultOwner, _vaultId, reward);
+    }
+
+    function updatePosition(
+        TraderVaultLib.TraderVault storage _traderVault,
+        uint256 _productId,
+        uint256 _vaultId,
+        uint256 _subVaultIndex,
+        int128 _tradeAmount,
+        uint256 _limitPrice
+    ) internal returns (uint256) {
+        if (_tradeAmount != 0) {
+            (uint256 tradePrice, int256 fundingFeePerPosition, uint256 protocolFee) = perpetualMarketCore
+                .updatePoolPosition(_productId, _tradeAmount);
+
+            require(checkPrice(_tradeAmount > 0, tradePrice, _limitPrice), "PM1");
+
+            int256 deltaUsdcPosition = _traderVault.updateVault(
+                _subVaultIndex,
+                _productId,
+                _tradeAmount,
+                tradePrice,
+                fundingFeePerPosition
+            );
+
+            emit PositionUpdated(
+                msg.sender,
+                _vaultId,
+                _subVaultIndex,
+                _productId,
+                _tradeAmount,
+                tradePrice,
+                fundingFeePerPosition,
+                deltaUsdcPosition
+            );
+
+            return protocolFee / 1e2;
+        }
+        return 0;
     }
 
     /**
