@@ -126,7 +126,7 @@ describe('liquidation', function () {
         const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
         await perpetualMarket.withdraw(withdrawnAmount)
 
-        expect(await testContractSet.lpToken.balanceOf(wallet.address)).to.be.eq(1)
+        expect(await testContractSet.lpToken.balanceOf(wallet.address)).to.be.lte(1)
       })
 
       it('liquidate a vault', async () => {
