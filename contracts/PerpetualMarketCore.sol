@@ -133,8 +133,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         spreadInfos[0].init();
         spreadInfos[1].init();
 
-        perpetualMarket = msg.sender;
-
         // 50%
         squaredPerpFundingMultiplier = 50 * 1e6;
         // 0.02%
@@ -153,7 +151,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         protocolFeeRate = 4 * 1e4;
     }
 
-    function setPerpetualMarket(address _perpetualMarket) external onlyPerpetualMarket {
+    function setPerpetualMarket(address _perpetualMarket) external onlyOwner {
+        require(perpetualMarket == address(0) && _perpetualMarket != address(0));
         perpetualMarket = _perpetualMarket;
     }
 

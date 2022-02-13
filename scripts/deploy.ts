@@ -69,7 +69,7 @@ async function main() {
     wethAddress = '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681'
     // usdcAddress = '0xF49C3973edF5A39d619A0Aa2b7F1614d08df1ce3'
     usdcAddress = '0xb8588b977F48c28f8eBfb12f48bC74cE7eAFA281'
-    feePoolAddress = '0x603eFB95394c6cf5b6b29B1c813bd1Ee42A07714'
+    feePoolAddress = '0x300Df3cD7DaCf191F6f7CECF3BCde535e2dd7e88'
     uniswapFactoryAddress = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
 
     operatorAddress = signer.address
@@ -146,6 +146,7 @@ async function main() {
   }
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
+  await lpToken.setPerpetualMarket(perpetualMarket.address)
 
   await perpetualMarket.transferOwnership(operatorAddress)
   await perpetualMarketCore.transferOwnership(operatorAddress)
