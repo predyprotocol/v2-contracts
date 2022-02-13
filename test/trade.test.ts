@@ -141,8 +141,6 @@ describe('trade', function () {
 
         expect(withdrawnAmount).to.gt(scaledBN(50000000, 6))
 
-        await perpetualMarket.sendProtocolFee()
-
         expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(0)
         expect(await lpToken.balanceOf(wallet.address)).to.eq(0)
       })

@@ -39,8 +39,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     // trader's vaults storage
     mapping(address => mapping(uint256 => TraderVaultLib.TraderVault)) private traderVaults;
 
-    uint256 public cumulativeProtocolFee;
-
     event Deposited(address indexed account, uint256 issued, uint256 amount);
 
     event Withdrawn(address indexed account, uint256 burned, uint256 amount);
@@ -161,7 +159,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         }
 
         // Add protocol fee
-        cumulativeProtocolFee = cumulativeProtocolFee.add(totalProtocolFee);
+        ERC20(quoteAsset).approve(address(feeRecepient), totalProtocolFee);
+        feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
 
         int256 finalDepositOrWithdrawAmount;
 
@@ -321,8 +320,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
-        sendProtocolFee();
-
         emit Hedged(msg.sender, completeParams.isLong, amountUsdc, amountUnderlying);
     }
 
@@ -347,15 +344,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
             return _tradePrice <= _limitPrice;
         } else {
             return _tradePrice >= _limitPrice;
-        }
-    }
-
-    function sendProtocolFee() public {
-        if (cumulativeProtocolFee > 0) {
-            uint256 protocolFee = cumulativeProtocolFee;
-            cumulativeProtocolFee = 0;
-            ERC20(quoteAsset).approve(address(feeRecepient), protocolFee);
-            feeRecepient.sendProfitERC20(address(this), protocolFee);
         }
     }
 
