@@ -26,8 +26,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
-    /// @dev liquidation fee
-    int256 private liquidationFee;
+    /// @dev liquidation fee is 20%
+    int256 private constant LIQUIDATION_FEE = 2000;
 
     IPerpetualMarketCore private immutable perpetualMarketCore;
 
@@ -38,8 +38,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
     // trader's vaults storage
     mapping(address => mapping(uint256 => TraderVaultLib.TraderVault)) private traderVaults;
-
-    uint256 public cumulativeProtocolFee;
 
     event Deposited(address indexed account, uint256 issued, uint256 amount);
 
@@ -61,7 +59,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
     event Hedged(address hedger, bool isBuyingUnderlying, uint256 usdcAmount, uint256 underlyingAmount);
 
-    event SetLiquidationFee(int256 liquidationFee);
     event SetFeeRecepient(address feeRecepient);
 
     /**
@@ -79,9 +76,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         perpetualMarketCore = IPerpetualMarketCore(_perpetualMarketCoreAddress);
         lpToken = ILPToken(_lpTokenAddress);
         feeRecepient = IFeePool(_feeRecepient);
-
-        // liquidation fee is 20%
-        liquidationFee = 2000;
     }
 
     /**
@@ -161,7 +155,10 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         }
 
         // Add protocol fee
-        cumulativeProtocolFee = cumulativeProtocolFee.add(totalProtocolFee);
+        if (totalProtocolFee > 0) {
+            ERC20(quoteAsset).approve(address(feeRecepient), totalProtocolFee);
+            feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
+        }
 
         int256 finalDepositOrWithdrawAmount;
 
@@ -218,7 +215,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         traderVault.setInsolvencyFlagIfNeeded();
 
-        uint256 reward = traderVault.decreaseLiquidationReward(minCollateral, liquidationFee);
+        uint256 reward = traderVault.decreaseLiquidationReward(minCollateral, LIQUIDATION_FEE);
 
         // Sends a half of reward to the pool
         perpetualMarketCore.addLiquidity(reward / 2);
@@ -321,8 +318,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
-        sendProtocolFee();
-
         emit Hedged(msg.sender, completeParams.isLong, amountUsdc, amountUnderlying);
     }
 
@@ -347,15 +342,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
             return _tradePrice <= _limitPrice;
         } else {
             return _tradePrice >= _limitPrice;
-        }
-    }
-
-    function sendProtocolFee() public {
-        if (cumulativeProtocolFee > 0) {
-            uint256 protocolFee = cumulativeProtocolFee;
-            cumulativeProtocolFee = 0;
-            ERC20(quoteAsset).approve(address(feeRecepient), protocolFee);
-            feeRecepient.sendProfitERC20(address(this), protocolFee);
         }
     }
 
@@ -467,16 +453,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     /////////////////////////
     //  Admin Functions    //
     /////////////////////////
-
-    /**
-     * @notice Sets liquidation fee
-     * @param _liquidationFee New liquidation fee
-     */
-    function setLiquidationFee(int256 _liquidationFee) external onlyOwner {
-        require(_liquidationFee >= 0 && _liquidationFee <= 5000);
-        liquidationFee = _liquidationFee;
-        emit SetLiquidationFee(liquidationFee);
-    }
 
     /**
      * @notice Sets new fee recepient

@@ -563,9 +563,6 @@ describe('PerpetualMarket', function () {
           .to.emit(perpetualMarket, 'PositionUpdated')
           .withArgs(wallet.address, vaultId, subVaultIndex, SQUEETH_PRODUCT_ID, scaledBN(1, 6), 100300029, 0, 0)
 
-        // Check fee pool received protocol fee
-        await perpetualMarket.sendProtocolFee()
-
         expect(await usdc.balanceOf(testContractSet.feePool.address)).to.be.gt(0)
       })
 
@@ -1369,24 +1366,6 @@ describe('PerpetualMarket', function () {
         scaledBN(1000, 8),
       )
       expect(minCollateral).to.be.eq(165000000)
-    })
-  })
-
-  describe('setLiquidationFee', () => {
-    it('set liquidation fee', async () => {
-      await perpetualMarket.setLiquidationFee(10)
-    })
-
-    it('reverts if caller is not owner', async () => {
-      await expect(perpetualMarket.connect(other).setLiquidationFee(0)).to.be.reverted
-    })
-
-    it('reverts if value is negative', async () => {
-      await expect(perpetualMarket.setLiquidationFee(-1)).to.be.reverted
-    })
-
-    it('reverts if value is greater than 5000', async () => {
-      await expect(perpetualMarket.setLiquidationFee(5001)).to.be.reverted
     })
   })
 
