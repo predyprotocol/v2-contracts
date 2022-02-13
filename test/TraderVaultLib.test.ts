@@ -653,13 +653,13 @@ describe('TraderVaultLib', function () {
       })
     })
 
-    it('decrease reward', async function () {
+    it('reward is 0.2 of MinCollateral', async function () {
       await tester.testDecreaseLiquidationReward(scaledBN(10, 8), liquidationFee)
       expect(await tester.r()).to.be.eq(200000000)
       expect((await tester.traderVault()).positionUsdc).to.be.eq(0)
     })
 
-    it('decrease reward', async function () {
+    it('reward is equal to usdcPosition', async function () {
       await tester.testDecreaseLiquidationReward(scaledBN(5, 7), liquidationFee)
       expect(await tester.r()).to.be.eq(10000000)
       expect((await tester.traderVault()).positionUsdc).to.be.eq(190000000)
