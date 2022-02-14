@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { scaledBN } from './utils/helpers'
-import { FUTURE_PRODUCT_ID, MAX_WITHDRAW_AMOUNT, SQUEETH_PRODUCT_ID } from './utils/constants'
+import { FUTURE_PRODUCT_ID, MAX_WITHDRAW_AMOUNT, MIN_MARGIN, SQUEETH_PRODUCT_ID } from './utils/constants'
 import { LPToken } from '../typechain/LPToken'
 
 describe('trade', function () {
@@ -73,7 +73,7 @@ describe('trade', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(2, 8)],
-          marginAmount: scaledBN(200, 6),
+          marginAmount: MIN_MARGIN,
           limitPrices: [0, 0],
           deadline: 0,
         })
