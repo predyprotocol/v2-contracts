@@ -39,7 +39,8 @@ TODO
 
 ### Docs
 
-[AMM](./docs/amm.md)
+* [AMM](./docs/amm.md)
+* [TraderVault](./docs/trader-vault.md)
 
 ## Audit
 
