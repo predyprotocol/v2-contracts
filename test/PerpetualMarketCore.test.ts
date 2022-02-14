@@ -453,6 +453,14 @@ describe('PerpetualMarketCore', function () {
     })
   })
 
+  describe('setPerpetualMarket', () => {
+    it('reverts if caller is not owner', async () => {
+      await expect(perpetualMarketCore.connect(other).setPerpetualMarket(wallet.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner',
+      )
+    })
+  })
+
   describe('calculateUnlockedLiquidity', () => {
     it('lockedLiquidityAmount=100, deltaM=100, hedgePositionValue=100', async () => {
       const result = await tester.testCalculateUnlockedLiquidity(100, -100, 100)
