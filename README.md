@@ -39,7 +39,7 @@ TODO
 
 ### Docs
 
-[AMM](./docs/AMM.md)
+[AMM](./docs/amm.md)
 
 ## Audit
 
