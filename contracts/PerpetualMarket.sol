@@ -5,7 +5,6 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@uniswap/v3-periphery/contracts/base/Multicall.sol";
-import "./interfaces/ILPToken.sol";
 import "./interfaces/IFeePool.sol";
 import "./interfaces/IPerpetualMarketCore.sol";
 import "./interfaces/IPerpetualMarket.sol";
@@ -30,8 +29,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     int256 private constant LIQUIDATION_FEE = 2000;
 
     IPerpetualMarketCore private immutable perpetualMarketCore;
-
-    ILPToken private immutable lpToken;
 
     // Fee recepient address
     IFeePool public feeRecepient;
@@ -66,7 +63,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
      */
     constructor(
         address _perpetualMarketCoreAddress,
-        address _lpTokenAddress,
         address _quoteAsset,
         address _underlyingAsset,
         address _feeRecepient
@@ -74,7 +70,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         require(_feeRecepient != address(0));
 
         perpetualMarketCore = IPerpetualMarketCore(_perpetualMarketCoreAddress);
-        lpToken = ILPToken(_lpTokenAddress);
         feeRecepient = IFeePool(_feeRecepient);
     }
 
@@ -86,11 +81,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
     function initialize(uint128 _depositAmount, int128 _initialFundingRate) external override {
         require(_depositAmount > 0 && _initialFundingRate > 0);
 
-        uint256 lpTokenAmount = perpetualMarketCore.initialize(_depositAmount * 1e2, _initialFundingRate) / 1e2;
+        uint256 lpTokenAmount = perpetualMarketCore.initialize(msg.sender, _depositAmount * 1e2, _initialFundingRate);
 
         ERC20(quoteAsset).transferFrom(msg.sender, address(this), uint128(_depositAmount));
-
-        lpToken.mint(msg.sender, lpTokenAmount);
 
         emit Deposited(msg.sender, lpTokenAmount, _depositAmount);
     }
@@ -103,11 +96,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         perpetualMarketCore.executeFundingPayment();
 
-        uint256 lpTokenAmount = perpetualMarketCore.deposit(_depositAmount * 1e2) / 1e2;
+        uint256 lpTokenAmount = perpetualMarketCore.deposit(msg.sender, _depositAmount * 1e2);
 
         ERC20(quoteAsset).transferFrom(msg.sender, address(this), uint128(_depositAmount));
-
-        lpToken.mint(msg.sender, lpTokenAmount);
 
         emit Deposited(msg.sender, lpTokenAmount, _depositAmount);
     }
@@ -120,9 +111,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         perpetualMarketCore.executeFundingPayment();
 
-        uint256 lpTokenAmount = perpetualMarketCore.withdraw(_withdrawnAmount * 1e2) / 1e2;
-
-        lpToken.burn(msg.sender, lpTokenAmount);
+        uint256 lpTokenAmount = perpetualMarketCore.withdraw(msg.sender, _withdrawnAmount * 1e2);
 
         // Send liquidity to msg.sender
         sendLiquidity(msg.sender, _withdrawnAmount);

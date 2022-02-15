@@ -3,6 +3,7 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import "@chainlink/contracts/src/v0.7/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -24,7 +25,7 @@ import "./lib/EntryPriceMath.sol";
  * PMC4: pool delta must be negative
  * PMC5: invalid params
  */
-contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
+contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     using NettingLib for NettingLib.Info;
     using SpreadLib for SpreadLib.Info;
     using SafeCast for uint256;
@@ -82,9 +83,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         uint128 lastSnapshotTime;
     }
 
-    // Total supply of the LP token
-    uint256 public supply;
-
     // Total amount of liquidity provided by LPs
     uint256 public amountLiquidity;
 
@@ -129,7 +127,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         _;
     }
 
-    constructor(address _priceFeedAddress) {
+    constructor(address _priceFeedAddress) ERC20("Predy V2 LP Token", "PREDY-V2-LP") {
+        // The decimals of LP token is 6
+        _setupDecimals(6);
+
         priceFeed = AggregatorV3Interface(_priceFeedAddress);
 
         // initialize spread infos
@@ -162,13 +163,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     /**
      * @notice Initialize pool with initial liquidity and funding rate
      */
-    function initialize(uint256 _depositAmount, int256 _initialFundingRate)
-        external
-        override
-        onlyPerpetualMarket
-        returns (uint256 mintAmount)
-    {
-        require(supply == 0);
+    function initialize(
+        address _depositor,
+        uint256 _depositAmount,
+        int256 _initialFundingRate
+    ) external override onlyPerpetualMarket returns (uint256 mintAmount) {
+        require(totalSupply() == 0);
         mintAmount = _depositAmount;
 
         (int256 spotPrice, ) = getUnderlyingPrice();
@@ -182,14 +182,19 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         lastHedgeSpotPrice = spotPrice;
 
         amountLiquidity = amountLiquidity.add(_depositAmount);
-        supply = supply.add(mintAmount);
+        _mint(_depositor, mintAmount);
     }
 
     /**
      * @notice Provides liquidity
      */
-    function deposit(uint256 _depositAmount) external override onlyPerpetualMarket returns (uint256 mintAmount) {
-        require(supply > 0);
+    function deposit(address _depositor, uint256 _depositAmount)
+        external
+        override
+        onlyPerpetualMarket
+        returns (uint256 mintAmount)
+    {
+        require(totalSupply() > 0);
 
         uint256 lpTokenPrice = getLPTokenPrice(_depositAmount.toInt256());
 
@@ -198,13 +203,18 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         mintAmount = _depositAmount.mul(1e16).div(lpTokenPrice);
 
         amountLiquidity = amountLiquidity.add(_depositAmount);
-        supply = supply.add(mintAmount);
+        _mint(_depositor, mintAmount);
     }
 
-    /**
+    /**xx
      * @notice Withdraws liquidity
      */
-    function withdraw(uint256 _withdrawnAmount) external override onlyPerpetualMarket returns (uint256 burnAmount) {
+    function withdraw(address _withdrawer, uint256 _withdrawnAmount)
+        external
+        override
+        onlyPerpetualMarket
+        returns (uint256 burnAmount)
+    {
         require(
             amountLiquidity.sub(pools[0].amountLockedLiquidity).sub(pools[1].amountLockedLiquidity) >= _withdrawnAmount,
             "PMC0"
@@ -217,7 +227,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         burnAmount = _withdrawnAmount.mul(1e16).div(lpTokenPrice);
 
         amountLiquidity = amountLiquidity.sub(_withdrawnAmount);
-        supply = supply.sub(burnAmount);
+        _burn(_withdrawer, burnAmount);
     }
 
     function addLiquidity(uint256 _amount) external override onlyPerpetualMarket {
@@ -453,7 +463,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
                         pools[1].amountLockedLiquidity
                     )
                 ).mul(1e16)
-            ).div(supply);
+            ).div(totalSupply());
     }
 
     /**

@@ -133,21 +133,21 @@ describe('PerpetualMarket', function () {
       })
 
       it('deposit', async () => {
-        const before = await testContractSet.lpToken.balanceOf(wallet.address)
+        const before = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
         await perpetualMarket.deposit(scaledBN(20, 6))
-        const after = await testContractSet.lpToken.balanceOf(wallet.address)
+        const after = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.lt(scaledBN(20, 6))
+        expect(after.sub(before)).to.be.lt(scaledBN(20, 8))
       })
 
       it('withdrawal works after deposit', async () => {
         const before = await usdc.balanceOf(perpetualMarket.address)
-        const beforeLPTokenBalance = await testContractSet.lpToken.balanceOf(wallet.address)
+        const beforeLPTokenBalance = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
 
         await perpetualMarket.deposit(scaledBN(20, 6))
         await perpetualMarket.withdraw(scaledBN(20, 6))
 
-        const afterLPTokenBalance = await testContractSet.lpToken.balanceOf(wallet.address)
+        const afterLPTokenBalance = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
         const after = await usdc.balanceOf(perpetualMarket.address)
 
         expect(beforeLPTokenBalance).to.be.eq(afterLPTokenBalance)
@@ -157,12 +157,12 @@ describe('PerpetualMarket', function () {
       it('large amount of deposit', async () => {
         const largeAmountOfUSDC = scaledBN(1, 15)
         const before = await usdc.balanceOf(perpetualMarket.address)
-        const beforeLPTokenBalance = await testContractSet.lpToken.balanceOf(wallet.address)
+        const beforeLPTokenBalance = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
 
         await perpetualMarket.deposit(largeAmountOfUSDC)
         await perpetualMarket.withdraw(largeAmountOfUSDC)
 
-        const afterLPTokenBalance = await testContractSet.lpToken.balanceOf(wallet.address)
+        const afterLPTokenBalance = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
         const after = await usdc.balanceOf(perpetualMarket.address)
 
         expect(beforeLPTokenBalance).to.be.eq(afterLPTokenBalance)
@@ -186,9 +186,9 @@ describe('PerpetualMarket', function () {
       })
 
       it('deposit', async () => {
-        const before = await testContractSet.lpToken.balanceOf(wallet.address)
+        const before = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
         await perpetualMarket.deposit(scaledBN(20, 6))
-        const after = await testContractSet.lpToken.balanceOf(wallet.address)
+        const after = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
 
         expect(after.sub(before)).to.be.gt(scaledBN(20, 6))
       })
@@ -264,11 +264,11 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
 
-        const tokenAmount = await testContractSet.lpToken.balanceOf(wallet.address)
+        const tokenAmount = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
         const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
         await perpetualMarket.withdraw(withdrawnAmount)
 
-        expect(await testContractSet.lpToken.balanceOf(wallet.address)).to.be.lte(1)
+        expect(await testContractSet.perpetualMarketCore.balanceOf(wallet.address)).to.be.lte(100)
       })
 
       it('some trades', async function () {
@@ -365,7 +365,7 @@ describe('PerpetualMarket', function () {
       })
 
       it('withdraw all', async function () {
-        const tokenAmount = await testContractSet.lpToken.balanceOf(wallet.address)
+        const tokenAmount = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
         const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
 
         await perpetualMarket.withdraw(withdrawnAmount)
@@ -374,7 +374,7 @@ describe('PerpetualMarket', function () {
       })
 
       it('LP token price is not changed', async function () {
-        const tokenAmount = await testContractSet.lpToken.balanceOf(wallet.address)
+        const tokenAmount = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
         const withdrawnAmount = (await testContractHelper.getWithdrawalAmount(tokenAmount, 0)).div(2)
 
         const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
@@ -402,7 +402,7 @@ describe('PerpetualMarket', function () {
       })
 
       it('withdraw all', async function () {
-        const tokenAmount = await testContractSet.lpToken.balanceOf(wallet.address)
+        const tokenAmount = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
         const withdrawnAmount = await testContractHelper.getWithdrawalAmount(tokenAmount, 0)
 
         await perpetualMarket.withdraw(withdrawnAmount)
@@ -411,7 +411,7 @@ describe('PerpetualMarket', function () {
       })
 
       it('LP token price is not changed', async function () {
-        const tokenAmount = await testContractSet.lpToken.balanceOf(wallet.address)
+        const tokenAmount = await testContractSet.perpetualMarketCore.balanceOf(wallet.address)
         const withdrawnAmount = (await testContractHelper.getWithdrawalAmount(tokenAmount, 0)).div(2)
 
         const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
