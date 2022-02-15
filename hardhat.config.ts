@@ -9,6 +9,15 @@ import "solidity-coverage";
 import "hardhat-contract-sizer";
 import "hardhat-deploy";
 import "@eth-optimism/hardhat-ovm";
+import './tasks/initialize'
+import './tasks/deposit'
+import './tasks/withdraw'
+import './tasks/trade'
+import './tasks/liquidate'
+import './tasks/hedge'
+import './tasks/vault'
+import './tasks/price'
+import './tasks/pool'
 
 dotenv.config();
 
@@ -106,6 +115,11 @@ const config: HardhatUserConfig = {
   ovm: {
     solcVersion: "0.7.6",
   },
+  namedAccounts: {
+    deployer: {
+      default: 0,
+    },
+  },
   gasReporter: {
     enabled: true,
     showTimeSpent: true,
@@ -113,7 +127,7 @@ const config: HardhatUserConfig = {
     gasPrice: 50
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: process.env.ETHERSCAN_API_KEY
   },
 };
 
