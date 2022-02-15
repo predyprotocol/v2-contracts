@@ -15,6 +15,7 @@ import {
 } from '../utils/deploy'
 import { increaseTime, scaledBN } from '../utils/helpers'
 import { FlashHedge } from '../../typechain/FlashHedge'
+import { MIN_MARGIN } from '../utils/constants'
 
 describe('FlashHedge', function () {
   let wallet: Wallet
@@ -85,7 +86,7 @@ describe('FlashHedge', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), 0],
-        marginAmount: scaledBN(200, 6),
+        marginAmount: MIN_MARGIN,
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -107,7 +108,7 @@ describe('FlashHedge', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 7)],
-        marginAmount: scaledBN(200, 6),
+        marginAmount: MIN_MARGIN,
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -120,7 +121,7 @@ describe('FlashHedge', function () {
         vaultId,
         subVaultIndex,
         tradeAmounts: [scaledBN(1, 6), 0],
-        marginAmount: scaledBN(200, 6),
+        marginAmount: MIN_MARGIN,
         limitPrices: [0, 0],
         deadline: 0,
       })
@@ -136,7 +137,7 @@ describe('FlashHedge', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [scaledBN(1, 7), 0],
-          marginAmount: scaledBN(200, 6),
+          marginAmount: MIN_MARGIN,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -185,7 +186,7 @@ describe('FlashHedge', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(1, 6)],
-          marginAmount: scaledBN(200, 6),
+          marginAmount: MIN_MARGIN,
           limitPrices: [0, 0],
           deadline: 0,
         })
@@ -200,7 +201,7 @@ describe('FlashHedge', function () {
           vaultId,
           subVaultIndex,
           tradeAmounts: [0, scaledBN(-2, 6)],
-          marginAmount: scaledBN(200, 6),
+          marginAmount: MIN_MARGIN,
           limitPrices: [0, 0],
           deadline: 0,
         })

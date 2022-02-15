@@ -7,3 +7,4 @@ export const SQUEETH_PRODUCT_ID = 0
 export const FUTURE_PRODUCT_ID = 1
 
 export const MAX_WITHDRAW_AMOUNT = ethers.constants.MinInt256.div(100)
+export const MIN_MARGIN = '1000000000'
