@@ -160,6 +160,62 @@ describe('PerpetualMarketCore', function () {
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
       expect(await perpetualMarketCore.supply()).to.be.eq(499630)
     })
+
+    it('spread becomes high', async () => {
+      await perpetualMarketCore.deposit(1000000)
+
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
+
+      await updateSpot(scaledBN(995, 8))
+
+      await perpetualMarketCore.withdraw(500000)
+
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1500000)
+    })
+
+    it('spread returns low after time passed', async () => {
+      await perpetualMarketCore.deposit(1000000)
+
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
+
+      await updateSpot(scaledBN(995, 8))
+
+      await increaseTime(SAFETY_PERIOD)
+
+      await perpetualMarketCore.withdraw(500000)
+
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1500304)
+    })
+
+    it('spread becomes high when withdraw', async () => {
+      await perpetualMarketCore.withdraw(500000)
+
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
+
+      await updateSpot(scaledBN(1005, 8))
+
+      await perpetualMarketCore.deposit(1000000)
+
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1500000)
+    })
+
+    it('spread returns low when withdraw', async () => {
+      await perpetualMarketCore.withdraw(500000)
+
+      await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
+
+      await updateSpot(scaledBN(1005, 8))
+
+      await increaseTime(SAFETY_PERIOD)
+
+      await perpetualMarketCore.deposit(1000000)
+
+      expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
+      expect(await perpetualMarketCore.supply()).to.be.eq(1501273)
+    })
   })
 
   describe('updatePoolPosition', () => {

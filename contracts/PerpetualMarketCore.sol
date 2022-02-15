@@ -94,6 +94,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     // Infos for spread calculation
     mapping(uint256 => SpreadLib.Info) private spreadInfos;
 
+    // Infos for LPToken's spread calculation
+    SpreadLib.Info private lpTokenSpreadInfo;
+
     // Snapshot of pool state at last ETH variance calculation
     PoolSnapshot private poolSnapshot;
 
@@ -159,11 +162,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     /**
      * @notice Initialize pool with initial liquidity and funding rate
      */
-    function initialize(uint128 _depositAmount, int128 _initialFundingRate)
+    function initialize(uint256 _depositAmount, int256 _initialFundingRate)
         external
         override
         onlyPerpetualMarket
-        returns (uint128 mintAmount)
+        returns (uint256 mintAmount)
     {
         require(supply == 0);
         mintAmount = _depositAmount;
@@ -171,7 +174,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         // initialize pool snapshot
-        poolSnapshot.ethVariance = _initialFundingRate;
+        poolSnapshot.ethVariance = _initialFundingRate.toInt128();
         poolSnapshot.ethPrice = spotPrice.toInt128();
         poolSnapshot.lastSnapshotTime = block.timestamp.toUint128();
 
@@ -185,10 +188,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     /**
      * @notice Provides liquidity
      */
-    function deposit(uint128 _depositAmount) external override onlyPerpetualMarket returns (uint256 mintAmount) {
+    function deposit(uint256 _depositAmount) external override onlyPerpetualMarket returns (uint256 mintAmount) {
         require(supply > 0);
 
-        mintAmount = _depositAmount.mul(1e16).div(getLPTokenPrice(_depositAmount.toInt256()));
+        uint256 lpTokenPrice = getLPTokenPrice(_depositAmount.toInt256());
+
+        lpTokenPrice = lpTokenSpreadInfo.checkPrice(true, int256(lpTokenPrice)).toUint256();
+
+        mintAmount = _depositAmount.mul(1e16).div(lpTokenPrice);
 
         amountLiquidity = amountLiquidity.add(_depositAmount);
         supply = supply.add(mintAmount);
@@ -197,13 +204,17 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable {
     /**
      * @notice Withdraws liquidity
      */
-    function withdraw(uint128 _withdrawnAmount) external override onlyPerpetualMarket returns (uint256 burnAmount) {
+    function withdraw(uint256 _withdrawnAmount) external override onlyPerpetualMarket returns (uint256 burnAmount) {
         require(
             amountLiquidity.sub(pools[0].amountLockedLiquidity).sub(pools[1].amountLockedLiquidity) >= _withdrawnAmount,
             "PMC0"
         );
 
-        burnAmount = _withdrawnAmount.mul(1e16).div(getLPTokenPrice(-_withdrawnAmount.toInt256()));
+        uint256 lpTokenPrice = getLPTokenPrice(-_withdrawnAmount.toInt256());
+
+        lpTokenPrice = lpTokenSpreadInfo.checkPrice(false, int256(lpTokenPrice)).toUint256();
+
+        burnAmount = _withdrawnAmount.mul(1e16).div(lpTokenPrice);
 
         amountLiquidity = amountLiquidity.sub(_withdrawnAmount);
         supply = supply.sub(burnAmount);
