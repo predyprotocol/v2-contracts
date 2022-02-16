@@ -18,7 +18,7 @@ describe('IndexPricer', function () {
       await expect(tester.testCalculatePrice(2, scaledBN(1000, 8))).to.be.revertedWith('NP')
     })
 
-    describe('productId is 0', () => {
+    describe('productId is 1', () => {
       const productId = SQUEETH_PRODUCT_ID
 
       it('calculate price when spot is $2,000', async function () {
@@ -46,7 +46,7 @@ describe('IndexPricer', function () {
       })
     })
 
-    describe('productId is 1', () => {
+    describe('productId is 0', () => {
       const productId = FUTURE_PRODUCT_ID
 
       it('calculate price when spot is $1,000', async function () {
@@ -107,11 +107,11 @@ describe('IndexPricer', function () {
     })
 
     it('gamma is 2', async function () {
-      expect(await tester.testCalculateGamma(0)).to.be.eq(20000)
+      expect(await tester.testCalculateGamma(SQUEETH_PRODUCT_ID)).to.be.eq(20000)
     })
 
     it('gamma is 0', async function () {
-      expect(await tester.testCalculateGamma(1)).to.be.eq(0)
+      expect(await tester.testCalculateGamma(FUTURE_PRODUCT_ID)).to.be.eq(0)
     })
   })
 })

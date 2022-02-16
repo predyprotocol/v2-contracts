@@ -33,8 +33,8 @@ describe('NettingLib', function () {
       expect(
         await tester.getRequiredMargin(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
-          delta0: -2000,
-          delta1: 0,
+          delta0: 0,
+          delta1: -2000,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         }),
@@ -45,8 +45,8 @@ describe('NettingLib', function () {
       expect(
         await tester.getRequiredMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: -10,
+          delta0: -10,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         }),
@@ -57,8 +57,8 @@ describe('NettingLib', function () {
       expect(
         await tester.getRequiredMargin(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
-          delta0: -2000,
-          delta1: 2000,
+          delta0: 2000,
+          delta1: -2000,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         }),
@@ -95,8 +95,8 @@ describe('NettingLib', function () {
     it('short sqeeth', async function () {
       await tester.addMargin(SQUEETH_PRODUCT_ID, {
         gamma0: -2,
-        delta0: -10,
-        delta1: 0,
+        delta0: 0,
+        delta1: -10,
         spotPrice: scaledBN(1000, 8),
         poolMarginRiskParam,
       })
@@ -106,8 +106,8 @@ describe('NettingLib', function () {
     it('short future', async function () {
       await tester.addMargin(FUTURE_PRODUCT_ID, {
         gamma0: 0,
-        delta0: 0,
-        delta1: -10,
+        delta0: -10,
+        delta1: 0,
         spotPrice: scaledBN(1000, 8),
         poolMarginRiskParam,
       })
@@ -117,8 +117,8 @@ describe('NettingLib', function () {
     it('short sqeeth and long future', async function () {
       await tester.addMargin(SQUEETH_PRODUCT_ID, {
         gamma0: -2,
-        delta0: -10,
-        delta1: 10,
+        delta0: 10,
+        delta1: -10,
         spotPrice: scaledBN(1000, 8),
         poolMarginRiskParam,
       })
@@ -130,8 +130,8 @@ describe('NettingLib', function () {
       beforeEach(async () => {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: -100,
+          delta0: -100,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
@@ -140,7 +140,7 @@ describe('NettingLib', function () {
           (
             await tester.getInfo()
           ).amountsUnderlying,
-          [0, -100],
+          [-100, 0],
           scaledBN(1000, 8),
         )
 
@@ -155,8 +155,8 @@ describe('NettingLib', function () {
       it('delta increases', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: -90,
+          delta0: -90,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
@@ -168,8 +168,8 @@ describe('NettingLib', function () {
       it('delta increases but no enough usdc', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: -50,
+          delta0: -50,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
@@ -194,8 +194,8 @@ describe('NettingLib', function () {
       it('delta becomes positive', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: 50,
+          delta0: 50,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
@@ -241,8 +241,8 @@ describe('NettingLib', function () {
       it('delta increases', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: -90,
+          delta0: -90,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
@@ -254,8 +254,8 @@ describe('NettingLib', function () {
       it('delta increases but no enough usdc', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: -50,
+          delta0: -50,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
@@ -280,8 +280,8 @@ describe('NettingLib', function () {
       it('delta becomes positive', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: 50,
+          delta0: 50,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
@@ -295,15 +295,15 @@ describe('NettingLib', function () {
       beforeEach(async () => {
         await tester.addMargin(SQUEETH_PRODUCT_ID, {
           gamma0: 0,
-          delta0: -120,
-          delta1: 100,
+          delta0: 100,
+          delta1: -120,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: -120,
-          delta1: 100,
+          delta0: 100,
+          delta1: -120,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
@@ -312,7 +312,7 @@ describe('NettingLib', function () {
           (
             await tester.getInfo()
           ).amountsUnderlying,
-          [-120, 100],
+          [100, -120],
           scaledBN(1000, 8),
         )
 
@@ -327,8 +327,8 @@ describe('NettingLib', function () {
       it('delta decreases', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: 50,
+          delta0: 50,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
@@ -353,8 +353,8 @@ describe('NettingLib', function () {
       it('delta becomes negative', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: -50,
+          delta0: -50,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
@@ -472,15 +472,15 @@ describe('NettingLib', function () {
       beforeEach(async () => {
         await tester.addMargin(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
-          delta0: -100,
-          delta1: 0,
+          delta0: 0,
+          delta1: -100,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
       })
 
       it('spot price not changed', async function () {
-        await complete([-100, 0], 1000)
+        await complete([0, -100], 1000)
 
         const info = await tester.getInfo()
 
@@ -491,7 +491,7 @@ describe('NettingLib', function () {
       })
 
       it('spot price becomes high', async function () {
-        await complete([-100, 0], 1100)
+        await complete([0, -100], 1100)
 
         const info = await tester.getInfo()
 
@@ -502,11 +502,11 @@ describe('NettingLib', function () {
       })
 
       it('reverts if spot price becomes very high', async function () {
-        await expect(complete([-300, 0], 5000)).to.be.revertedWith('N2')
+        await expect(complete([0, -300], 5000)).to.be.revertedWith('N2')
       })
 
       it('spot price becomes low', async function () {
-        await complete([-100, 0], 900)
+        await complete([0, -100], 900)
 
         const info = await tester.getInfo()
 
@@ -521,15 +521,15 @@ describe('NettingLib', function () {
       beforeEach(async () => {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: 0,
-          delta0: 0,
-          delta1: -100,
+          delta0: -100,
+          delta1: 0,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
       })
 
       it('spot price not changed', async function () {
-        await complete([0, -100], 1000)
+        await complete([-100, 0], 1000)
 
         const info = await tester.getInfo()
 
@@ -540,7 +540,7 @@ describe('NettingLib', function () {
       })
 
       it('spot price becomes high', async function () {
-        await complete([0, -100], 1100)
+        await complete([-100, 0], 1100)
 
         const info = await tester.getInfo()
 
@@ -551,7 +551,7 @@ describe('NettingLib', function () {
       })
 
       it('spot price becomes low', async function () {
-        await complete([0, -100], 900)
+        await complete([-100, 0], 900)
 
         const info = await tester.getInfo()
 
@@ -592,7 +592,7 @@ describe('NettingLib', function () {
       })
 
       it('spot price becomes high', async function () {
-        await complete([-120, -100], 1200)
+        await complete([-100, -120], 1200)
 
         const info = await tester.getInfo()
 
@@ -603,7 +603,7 @@ describe('NettingLib', function () {
       })
 
       it('spot price becomes low', async function () {
-        await complete([-90, -100], 900)
+        await complete([-100, -90], 900)
 
         const info = await tester.getInfo()
 
@@ -618,22 +618,22 @@ describe('NettingLib', function () {
       beforeEach(async () => {
         await tester.addMargin(SQUEETH_PRODUCT_ID, {
           gamma0: -2,
-          delta0: -120,
-          delta1: 100,
+          delta0: 100,
+          delta1: -120,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma0: -2,
-          delta0: -120,
-          delta1: 100,
+          delta0: 100,
+          delta1: -120,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
       })
 
       it('spot price not changed', async function () {
-        await complete([-120, 100], 1000)
+        await complete([100, -120], 1000)
 
         const info = await tester.getInfo()
 
@@ -644,7 +644,7 @@ describe('NettingLib', function () {
       })
 
       it('spot price becomes high', async function () {
-        await complete([-120, 100], 1100)
+        await complete([100, -120], 1100)
 
         const info = await tester.getInfo()
 
@@ -655,7 +655,7 @@ describe('NettingLib', function () {
       })
 
       it('spot price becomes low', async function () {
-        await complete([-120, 100], 900)
+        await complete([100, -120], 900)
 
         const info = await tester.getInfo()
 

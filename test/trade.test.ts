@@ -69,7 +69,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(2, 8)],
+          tradeAmounts: [scaledBN(2, 8), 0],
           marginAmount: MIN_MARGIN,
           limitPrices: [0, 0],
           deadline: 0,
@@ -80,7 +80,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(-2, 8)],
+          tradeAmounts: [scaledBN(-2, 8), 0],
           marginAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
@@ -110,7 +110,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(1, 12)],
+          tradeAmounts: [scaledBN(1, 12), 0],
           marginAmount: scaledBN(15000000, 6),
           limitPrices: [0, 0],
           deadline: 0,
@@ -121,7 +121,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(-1, 12)],
+          tradeAmounts: [scaledBN(-1, 12), 0],
           marginAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
@@ -184,7 +184,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [scaledBN(1, 8), scaledBN(2, 8)],
+          tradeAmounts: [scaledBN(2, 8), scaledBN(1, 8)],
           marginAmount: scaledBN(2000, 6),
           limitPrices: [0, 0],
           deadline: 0,

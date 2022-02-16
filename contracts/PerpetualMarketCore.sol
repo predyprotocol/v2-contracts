@@ -304,7 +304,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
-        (int256 sqeethPoolDelta, int256 futurePoolDelta) = getDeltas(
+        (int256 futurePoolDelta, int256 sqeethPoolDelta) = getDeltas(
             spotPrice,
             pools[0].positionPerpetuals,
             pools[1].positionPerpetuals
@@ -312,8 +312,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         int256[2] memory deltas;
 
-        deltas[0] = sqeethPoolDelta;
-        deltas[1] = futurePoolDelta;
+        deltas[0] = futurePoolDelta;
+        deltas[1] = sqeethPoolDelta;
 
         completeParams = NettingLib.getRequiredTokenAmountsForHedge(nettingInfo.amountsUnderlying, deltas, spotPrice);
 
@@ -612,7 +612,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
      */
     function addMargin(uint256 _productId, int256 _spot) internal returns (int256, int256) {
         (int256 delta0, int256 delta1) = getDeltas(_spot, pools[0].positionPerpetuals, pools[1].positionPerpetuals);
-        int256 gamma = (IndexPricer.calculateGamma(0).mul(pools[0].positionPerpetuals)) / 1e8;
+        int256 gamma = (IndexPricer.calculateGamma(1).mul(pools[1].positionPerpetuals)) / 1e8;
 
         return
             nettingInfo.addMargin(
@@ -647,7 +647,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             }
 
             (delta0, delta1) = getDeltas(_spot, tradeAmount0, tradeAmount1);
-            gamma = (IndexPricer.calculateGamma(0).mul(tradeAmount0)) / 1e8;
+            gamma = (IndexPricer.calculateGamma(1).mul(tradeAmount1)) / 1e8;
         }
 
         NettingLib.AddMarginParams memory params = NettingLib.AddMarginParams(
@@ -767,7 +767,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         int256 tradePrice = ((indexPrice.mul(int256(1e8).add(fundingRate))) / 1e8).toInt128();
 
-        tradeFee = getTradeFee(_isLong, indexPrice);
+        tradeFee = getTradeFee(_productId, _isLong, indexPrice);
 
         tradePrice = tradePrice.add(tradeFee);
 
@@ -780,7 +780,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
      * @notice Gets trade fee
      * TradeFee = IndxPrice * tradeFeeRate
      */
-    function getTradeFee(bool _isLong, int256 _indexPrice) internal view returns (int256) {
+    function getTradeFee(
+        uint256 _productId,
+        bool _isLong,
+        int256 _indexPrice
+    ) internal view returns (int256) {
         require(_indexPrice > 0);
 
         if (_isLong) {
@@ -805,9 +809,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 _tradeAmount0,
         int256 _tradeAmount1
     ) internal pure returns (int256, int256) {
-        int256 sqeethPoolDelta = (IndexPricer.calculateDelta(0, _spotPrice).mul(_tradeAmount0)) / 1e8;
-        int256 futurePoolDelta = (IndexPricer.calculateDelta(1, _spotPrice).mul(_tradeAmount1)) / 1e8;
-        return (sqeethPoolDelta, futurePoolDelta);
+        int256 futurePoolDelta = (IndexPricer.calculateDelta(0, _spotPrice).mul(_tradeAmount0)) / 1e8;
+        int256 sqeethPoolDelta = (IndexPricer.calculateDelta(1, _spotPrice).mul(_tradeAmount1)) / 1e8;
+        return (futurePoolDelta, sqeethPoolDelta);
     }
 
     /**
@@ -863,6 +867,18 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 liquidityAmountInt256 = amountLiquidity.toInt256();
 
         if (_productId == 0) {
+            int256 fundingRate;
+            if (pools[_productId].positionPerpetuals > 0) {
+                fundingRate = -perpFutureMaxFundingRate
+                    .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
+                    .div(1e8);
+            } else {
+                fundingRate = perpFutureMaxFundingRate
+                    .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
+                    .div(1e8);
+            }
+            return poolSnapshot.futureBaseFundingRate.add(fundingRate);
+        } else if (_productId == 1) {
             if (liquidityAmountInt256 == 0) {
                 return poolSnapshot.ethVariance;
             } else {
@@ -876,18 +892,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
                     )
                 ) / 1e8);
             }
-        } else if (_productId == 1) {
-            int256 fundingRate;
-            if (pools[_productId].positionPerpetuals > 0) {
-                fundingRate = -perpFutureMaxFundingRate
-                    .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
-                    .div(1e8);
-            } else {
-                fundingRate = perpFutureMaxFundingRate
-                    .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
-                    .div(1e8);
-            }
-            return poolSnapshot.futureBaseFundingRate.add(fundingRate);
         }
         return 0;
     }

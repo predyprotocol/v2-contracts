@@ -72,7 +72,7 @@ describe('liquidation', function () {
       await perpetualMarket.trade({
         vaultId,
         subVaultIndex,
-        tradeAmounts: [scaledBN(10, 8), 0],
+        tradeAmounts: [0, scaledBN(10, 8)],
         marginAmount: scaledBN(615, 6),
         limitPrices: [0, 0],
         deadline: 0,
@@ -160,7 +160,7 @@ describe('liquidation', function () {
       })
 
       it('liquidate a vault by funding payment', async () => {
-        await increaseTime(60 * 60 * 24)
+        await increaseTime(60 * 60 * 24 * 2)
 
         await perpetualMarket.liquidateByPool(wallet.address, vaultId)
 
@@ -221,7 +221,7 @@ describe('liquidation', function () {
       await perpetualMarket.trade({
         vaultId,
         subVaultIndex: 0,
-        tradeAmounts: [scaledBN(10, 8), 0],
+        tradeAmounts: [0, scaledBN(10, 8)],
         marginAmount: scaledBN(1220, 6),
         limitPrices: [0, 0],
         deadline: 0,
@@ -229,7 +229,7 @@ describe('liquidation', function () {
       await perpetualMarket.trade({
         vaultId,
         subVaultIndex: 1,
-        tradeAmounts: [scaledBN(10, 8), 0],
+        tradeAmounts: [0, scaledBN(10, 8)],
         marginAmount: 0,
         limitPrices: [0, 0],
         deadline: 0,
