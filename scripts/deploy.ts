@@ -23,6 +23,7 @@ async function main() {
   let uniswapPositionManager
   let ethUsdcPoolAddress
   let ethPrice = 0
+  let feeTier = 500
 
   let operatorAddress = '0x1c745d31A084a14Ba30E7c9F4B14EA762d44f194'
 
@@ -92,7 +93,6 @@ async function main() {
     console.log(`wethAddress deployed to ${wethAddress}`)
 
     const tx = await weth.mint(operatorAddress, '1000000000000000000000000')
-
     await tx.wait()
   }
 
@@ -155,13 +155,13 @@ async function main() {
     const uniswapV3Factory = await ethers.getContractAt('IUniswapV3Factory', uniswapFactoryAddress)
     const positionManager = await ethers.getContractAt('INonfungiblePositionManager', uniswapPositionManager)
 
-    const pool = await createUniPool(ethPrice, weth, usdc, positionManager, uniswapV3Factory, 500)
+    const pool = await createUniPool(ethPrice, weth, usdc, positionManager, uniswapV3Factory, feeTier)
     const wethAmount = '1000000000000000000000'
 
     const approveTx = await weth.approve(uniswapPositionManager, wethAmount)
     await approveTx.wait()
 
-    await addWethUsdcLiquidity(ethPrice, BigNumber.from(wethAmount), signers[0].address, usdc as MockERC20, weth as MockERC20, positionManager, 500)
+    await addWethUsdcLiquidity(ethPrice, BigNumber.from(wethAmount), signers[0].address, usdc as MockERC20, weth as MockERC20, positionManager, feeTier)
 
     ethUsdcPoolAddress = pool.address
     console.log(`ethUsdcPoolAddress deployed to ${ethUsdcPoolAddress}`)

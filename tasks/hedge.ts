@@ -1,6 +1,6 @@
-import { task, types } from "hardhat/config";
+import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
-import { getPerpetualMarket, getUSDC, getWETH } from "./utils";
+import { getFlashHedge } from "./utils";
 
 // Example execution
 /**
@@ -13,22 +13,10 @@ task("hedge", "execute a hedge")
 
     const { deployer } = await getNamedAccounts();
 
-    const usdc = await getUSDC(ethers, deployer, network.name)
-    const weth = await getWETH(ethers, deployer, network.name)
-    const perpetualMarket = await getPerpetualMarket(ethers, deployer, network.name)
-
-    const result = await perpetualMarket.getTokenAmountForHedging()
-
-    let approveTx
-    if (result[0].isLong) {
-      approveTx = await weth.approve(perpetualMarket.address, result[2])
-    } else {
-      approveTx = await usdc.approve(perpetualMarket.address, result[1])
-    }
-    await approveTx.wait()
+    const flashHedge = await getFlashHedge(ethers, deployer, network.name)
 
     console.log('Start a hedge')
-    const tx = await perpetualMarket.execHedge()
+    const tx = await flashHedge.hedgeOnUniswap(0)
     await tx.wait()
     console.log('Suceed to hedge')
   })

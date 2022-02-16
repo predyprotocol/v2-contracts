@@ -1,6 +1,6 @@
 import { task, types } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
-import { getPerpetualMarket, getUSDC, toUnscaled } from "./utils";
+import { getPerpetualMarket, toUnscaled } from "./utils";
 
 // Example execution
 /**
@@ -45,3 +45,26 @@ task("vault", "get vault status")
       console.log('  Future :  ', toUnscaled(vaultStatus.rawVaultData.subVaults[i].positionPerpetuals[1], 8).toLocaleString())
     }
   })
+
+/*
+function getLiquidationPrice(a: number, b: number, v: number) {
+const alpha = 0.075
+if (a > 0) {
+  const r1 = (alpha * b + Math.sqrt((alpha * b) ** 2 + 8 * alpha * a * (1 + alpha) * v)) / (4 * alpha * a * (1 + alpha))
+  const r2 = (alpha * b + Math.sqrt((alpha * b) ** 2 + 8 * alpha * a * (1 - alpha) * v)) / (4 * alpha * a * (1 - alpha))
+  if (2 * r1 * a > -b) {
+    return r1
+  } else {
+    return r2
+  }
+} else {
+  const r1 = (alpha * b + Math.sqrt((alpha * b) ** 2 - 8 * alpha * a * (1 + alpha) * v)) / (4 * alpha * a * (1 + alpha))
+  const r2 = (alpha * b + Math.sqrt((alpha * b) ** 2 - 8 * alpha * a * (1 - alpha) * v)) / (4 * alpha * a * (1 - alpha))
+  if (2 * r1 * a > -b) {
+    return r1
+  } else {
+    return r2
+  }
+}
+}
+*/
