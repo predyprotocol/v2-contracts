@@ -1,6 +1,6 @@
 import { task, types } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
-import { getPerpetualMarket, getUSDC, toUnscaled } from "./utils";
+import { getPerpetualMarket, toUnscaled } from "./utils";
 
 // Example execution
 /**
@@ -24,21 +24,22 @@ task("price", "get trade price")
     const futureTradePrice = await perpetualMarket.getTradePrice(1, tradeAmount)
 
     console.log('Sqeeth')
-    console.log(' TradePrice  : $', toUnscaled(sqeethTradePrice[0], 8).toLocaleString())
-    console.log(' IndexPrice  : $', toUnscaled(sqeethTradePrice[1], 8).toLocaleString())
-    console.log(' FundingRate  : $', toUnscaled(sqeethTradePrice[2], 8).toLocaleString())
-    console.log(' TradeFee  : $', toUnscaled(sqeethTradePrice[3], 8).toLocaleString())
+    console.log(' TradePrice   : $', toUnscaled(sqeethTradePrice[0], 8).toLocaleString())
+    console.log(' IndexPrice   : $', toUnscaled(sqeethTradePrice[1], 8).toLocaleString())
+    console.log(` FundingRate  :  ${toUnscaled(sqeethTradePrice[2], 6).toLocaleString()}%`)
+    console.log(` IV           :  ${(Math.sqrt(toUnscaled(sqeethTradePrice[2].mul(365), 8)) * 100).toLocaleString()}%`)
+    console.log(' TradeFee     : $', toUnscaled(sqeethTradePrice[3], 8).toLocaleString())
     console.log(' ProtocolFee  : $', toUnscaled(sqeethTradePrice[4], 8).toLocaleString())
-    console.log(' FundingFee  : $', toUnscaled(sqeethTradePrice[5], 8).toLocaleString())
-    console.log(' TotalValue  : $', toUnscaled(sqeethTradePrice[6], 8).toLocaleString())
-    console.log(' TotalFee  : $', toUnscaled(sqeethTradePrice[7], 8).toLocaleString())
+    console.log(' FundingFee   : $', toUnscaled(sqeethTradePrice[5], 8).toLocaleString())
+    console.log(' TotalValue   : $', toUnscaled(sqeethTradePrice[6], 8).toLocaleString())
+    console.log(' TotalFee     : $', toUnscaled(sqeethTradePrice[7], 8).toLocaleString())
     console.log('Future')
-    console.log(' TradePrice  : $', toUnscaled(futureTradePrice[0], 8).toLocaleString())
-    console.log(' IndexPrice  : $', toUnscaled(futureTradePrice[1], 8).toLocaleString())
-    console.log(' FundingRate  : $', toUnscaled(futureTradePrice[2], 8).toLocaleString())
-    console.log(' TradeFee  : $', toUnscaled(futureTradePrice[3], 8).toLocaleString())
+    console.log(' TradePrice   : $', toUnscaled(futureTradePrice[0], 8).toLocaleString())
+    console.log(' IndexPrice   : $', toUnscaled(futureTradePrice[1], 8).toLocaleString())
+    console.log(` FundingRate  :  ${toUnscaled(futureTradePrice[2], 6).toLocaleString()}%`)
+    console.log(' TradeFee     : $', toUnscaled(futureTradePrice[3], 8).toLocaleString())
     console.log(' ProtocolFee  : $', toUnscaled(futureTradePrice[4], 8).toLocaleString())
-    console.log(' FundingFee  : $', toUnscaled(futureTradePrice[5], 8).toLocaleString())
-    console.log(' TotalValue  : $', toUnscaled(futureTradePrice[6], 8).toLocaleString())
-    console.log(' TotalFee  : $', toUnscaled(futureTradePrice[7], 8).toLocaleString())
+    console.log(' FundingFee   : $', toUnscaled(futureTradePrice[5], 8).toLocaleString())
+    console.log(' TotalValue   : $', toUnscaled(futureTradePrice[6], 8).toLocaleString())
+    console.log(' TotalFee     : $', toUnscaled(futureTradePrice[7], 8).toLocaleString())
   })

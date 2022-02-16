@@ -9,21 +9,28 @@ export const networkNameToUSDC = (name: string) => {
 
 export const networkNameToWETH = (name: string) => {
   switch (name) {
-    case 'rinkebyArbitrum': return '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681'
+    case 'rinkebyArbitrum': return '0x5D7E4863a7B312F4F8449FEC3d50b9Fc9068EC8E'
     default: return undefined
   }
 }
 
 export const networkNameToPerpetualMarket = (name: string) => {
   switch (name) {
-    case 'rinkebyArbitrum': return '0xeEFc05223BA95Bc2a4b74daBe498B245c13DbBBF'
+    case 'rinkebyArbitrum': return '0x8Bb11fAD63a9FE4943b069d6e3E9bdb3b6Eb479d'
     default: return undefined
   }
 }
 
-export const networkNameToLPToken = (name: string) => {
+export const networkNameToPerpetualMarketCore = (name: string) => {
   switch (name) {
-    case 'rinkebyArbitrum': return '0xff79e17bB23E8af2EA2f19504260aC6F85d2c032'
+    case 'rinkebyArbitrum': return '0x1925a0C30C1B56A0E0eBC7Bf9C8D11d854eC71Df'
+    default: return undefined
+  }
+}
+
+export const networkNameToFlashHedge = (name: string) => {
+  switch (name) {
+    case 'rinkebyArbitrum': return '0xd8EaC40f5DCbd68fb7D6B9275C0b39c5ED8ae8bf'
     default: return undefined
   }
 }
@@ -55,12 +62,20 @@ export const getPerpetualMarket = async (ethers: any, deployer: string, networkN
   return ethers.getContractAt('PerpetualMarket', perpetualMarketAddress)
 }
 
-export const getLPToken = async (ethers: any, deployer: string, networkName: string) => {
-  const lpTokenAddress = networkNameToLPToken(networkName)
+export const getPerpetualMarketCore = async (ethers: any, deployer: string, networkName: string) => {
+  const lpTokenAddress = networkNameToPerpetualMarketCore(networkName)
   if (lpTokenAddress === undefined) {
-    return ethers.getContract("LPToken", deployer);
+    return ethers.getContract("PerpetualMarketCore", deployer);
   }
-  return ethers.getContractAt('LPToken', lpTokenAddress)
+  return ethers.getContractAt('PerpetualMarketCore', lpTokenAddress)
+}
+
+export const getFlashHedge = async (ethers: any, deployer: string, networkName: string) => {
+  const flashHedgeAddress = networkNameToFlashHedge(networkName)
+  if (flashHedgeAddress === undefined) {
+    return ethers.getContract("FlashHedge", deployer);
+  }
+  return ethers.getContractAt('FlashHedge', flashHedgeAddress)
 }
 
 export const toUnscaled = (n: BigNumber, decimals: number) => {

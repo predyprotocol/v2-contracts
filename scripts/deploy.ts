@@ -1,4 +1,7 @@
+import { BigNumber, Contract } from "ethers";
 import { ethers } from "hardhat";
+import { addWethUsdcLiquidity, createUniPool } from "../test/utils/deploy";
+import { MockERC20 } from "../typechain";
 
 async function main() {
   const signers = await ethers.getSigners()
@@ -17,11 +20,17 @@ async function main() {
   let usdcAddress
   let feePoolAddress
   let uniswapFactoryAddress
+  let uniswapPositionManager
   let ethUsdcPoolAddress
+  let ethPrice = 0
+  let feeTier = 500
 
   let operatorAddress = '0x1c745d31A084a14Ba30E7c9F4B14EA762d44f194'
 
   console.log(network.name)
+
+  uniswapFactoryAddress = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+  uniswapPositionManager = '0xC36442b4a4522E871399CD717aBDD847Ab11FE88'
 
   if (network.name === 'kovan') {
     // kovan
@@ -66,13 +75,25 @@ async function main() {
     uniswapFactoryAddress = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
   } else if (network.name === 'arbitrum-rinkeby') {
     priceFeedAddress = '0x5f0423B1a6935dc5596e7A24d98532b67A0AeFd8'
-    wethAddress = '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681'
-    // usdcAddress = '0xF49C3973edF5A39d619A0Aa2b7F1614d08df1ce3'
+    // wethAddress = '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681' // Official
+    wethAddress = '0x5D7E4863a7B312F4F8449FEC3d50b9Fc9068EC8E'
+    // usdcAddress = '0xF49C3973edF5A39d619A0Aa2b7F1614d08df1ce3' // Official
     usdcAddress = '0xb8588b977F48c28f8eBfb12f48bC74cE7eAFA281'
     feePoolAddress = '0x300Df3cD7DaCf191F6f7CECF3BCde535e2dd7e88'
-    uniswapFactoryAddress = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+    ethPrice = 3144
 
     operatorAddress = signer.address
+  }
+
+  if (wethAddress === undefined) {
+    const MockERC20 = await ethers.getContractFactory('MockERC20')
+    const weth = await MockERC20.deploy('MockWETH predy', 'WETH', 18)
+    await weth.deployed();
+    wethAddress = weth.address
+    console.log(`wethAddress deployed to ${wethAddress}`)
+
+    const tx = await weth.mint(operatorAddress, '1000000000000000000000000')
+    await tx.wait()
   }
 
   if (usdcAddress === undefined) {
@@ -126,6 +147,26 @@ async function main() {
   await perpetualMarket.deployed();
   console.log(`PerpetualMarket deployed to ${perpetualMarket.address}`)
 
+  if (ethUsdcPoolAddress === undefined) {
+    const MockERC20 = await ethers.getContractFactory('MockERC20')
+    const usdc = MockERC20.attach(usdcAddress)
+    const weth = MockERC20.attach(wethAddress)
+
+    const uniswapV3Factory = await ethers.getContractAt('IUniswapV3Factory', uniswapFactoryAddress)
+    const positionManager = await ethers.getContractAt('INonfungiblePositionManager', uniswapPositionManager)
+
+    const pool = await createUniPool(ethPrice, weth, usdc, positionManager, uniswapV3Factory, feeTier)
+    const wethAmount = '1000000000000000000000'
+
+    const approveTx = await weth.approve(uniswapPositionManager, wethAmount)
+    await approveTx.wait()
+
+    await addWethUsdcLiquidity(ethPrice, BigNumber.from(wethAmount), signers[0].address, usdc as MockERC20, weth as MockERC20, positionManager, feeTier)
+
+    ethUsdcPoolAddress = pool.address
+    console.log(`ethUsdcPoolAddress deployed to ${ethUsdcPoolAddress}`)
+  }
+
   if (uniswapFactoryAddress !== undefined
     && ethUsdcPoolAddress !== undefined) {
     const FlashHedge = await ethers.getContractFactory('FlashHedge')
@@ -137,6 +178,7 @@ async function main() {
       ethUsdcPoolAddress
     )
     await flashHedge.deployed();
+    console.log(`FlashHedge deployed to ${flashHedge.address}`)
   }
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
