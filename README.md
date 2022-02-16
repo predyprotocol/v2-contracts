@@ -13,11 +13,9 @@ It supports cross margin trading of Squared perpetual and Perpetual future.
 
 `PerpetualMarket.sol` is entry point of traders and liquidity providers. It manages traders' vault storage and holds funds from traders and liquidity providers.
 
-`PerpetualMarketCore.sol` is the contract to manage perpetual pool positions and calculate amount of collaterals.
+`PerpetualMarketCore.sol` is the contract to manage perpetual pool positions and calculate amount of collaterals. It inherits ERC20 Token representing liquidity provider token.
 
 `FlashHedge.sol` is the contract helps to swap underlying assets and USDC tokens with Uniswap for delta hedging.
-
-`LPToken.sol` is ERC20 Token representing liquidity provider token.
 
 ### Libraries
 

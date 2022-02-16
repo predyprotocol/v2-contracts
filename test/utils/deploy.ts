@@ -6,10 +6,8 @@ import {
   PerpetualMarket,
   PerpetualMarketCore,
   MockERC20,
-  MockWETH,
   MockChainlinkAggregator,
   IFeePool,
-  LPToken,
 } from '../../typechain'
 import { scaledBN } from './helpers'
 import {
@@ -32,9 +30,8 @@ export type TestContractSet = {
   perpetualMarket: PerpetualMarket
   perpetualMarketCore: PerpetualMarketCore
   feePool: IFeePool
-  lpToken: LPToken
   usdc: MockERC20
-  weth: MockWETH
+  weth: MockERC20
 }
 
 /**
@@ -82,7 +79,7 @@ export class TestContractHelper {
 
     const lpTokenPrice = await this.testContractSet.perpetualMarket.getLPTokenPrice(withdrawnAmount.mul(-1))
 
-    const nextWithdrawnAmount = lpTokenPrice.mul(burnAmount).div(scaledBN(1, 16))
+    const nextWithdrawnAmount = lpTokenPrice.mul(burnAmount).div(scaledBN(1, 18))
 
     if (withdrawnAmount.eq(nextWithdrawnAmount)) {
       return withdrawnAmount
@@ -93,10 +90,10 @@ export class TestContractHelper {
 }
 
 export async function deployTestContractSet(wallet: Wallet): Promise<TestContractSet> {
-  const MockWETH = await ethers.getContractFactory('MockWETH')
+  const MockWETH = await ethers.getContractFactory('MockERC20')
   const MockERC20 = await ethers.getContractFactory('MockERC20')
 
-  const weth = (await MockWETH.deploy('WETH', 'WETH', 18)) as MockWETH
+  const weth = (await MockWETH.deploy('WETH', 'WETH', 18)) as MockERC20
   const usdc = (await MockERC20.deploy('USDC', 'USDC', 6)) as MockERC20
 
   const MockChainlinkAggregator = await ethers.getContractFactory('MockChainlinkAggregator')
@@ -108,9 +105,6 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const MockFeePool = await ethers.getContractFactory('MockFeePool')
   const mockFeePool = (await MockFeePool.deploy(usdc.address)) as MockFeePool
 
-  const LPToken = await ethers.getContractFactory('LPToken')
-  const lpToken = (await LPToken.deploy()) as LPToken
-
   const TraderVaultLib = await ethers.getContractFactory('TraderVaultLib')
   const traderVaultLib = await TraderVaultLib.deploy()
 
@@ -121,14 +115,12 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   })
   const perpetualMarket = (await PerpetualMarket.deploy(
     perpetualMarketCore.address,
-    lpToken.address,
     usdc.address,
     weth.address,
     mockFeePool.address,
   )) as PerpetualMarket
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
-  await lpToken.setPerpetualMarket(perpetualMarket.address)
 
   return {
     weth,
@@ -136,7 +128,6 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     priceFeed,
     perpetualMarket,
     perpetualMarketCore,
-    lpToken,
     feePool: mockFeePool,
   }
 }

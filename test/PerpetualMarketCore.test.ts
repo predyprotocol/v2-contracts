@@ -49,40 +49,42 @@ describe('PerpetualMarketCore', function () {
 
   describe('initialize', () => {
     it('reverts if caller is not PerpetualMarket', async () => {
-      await expect(perpetualMarketCore.connect(other).initialize(1000, scaledBN(5, 5))).to.be.revertedWith('PMC2')
+      await expect(
+        perpetualMarketCore.connect(other).initialize(wallet.address, 1000, scaledBN(5, 5)),
+      ).to.be.revertedWith('PMC2')
     })
 
     it('suceed to initialize', async () => {
-      await perpetualMarketCore.initialize(1000, scaledBN(5, 5))
+      await perpetualMarketCore.initialize(wallet.address, 1000, scaledBN(5, 5))
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1000)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1000)
     })
   })
 
   describe('deposit', () => {
     beforeEach(async () => {
-      await perpetualMarketCore.initialize(1000000, scaledBN(5, 5))
+      await perpetualMarketCore.initialize(wallet.address, 1000000, scaledBN(5, 5))
     })
 
     it('reverts if caller is not PerpetualMarket', async () => {
-      await expect(perpetualMarketCore.connect(other).deposit(1000)).to.be.revertedWith('PMC2')
+      await expect(perpetualMarketCore.connect(other).deposit(wallet.address, 1000)).to.be.revertedWith('PMC2')
     })
 
     it('suceed to deposit', async () => {
-      await perpetualMarketCore.deposit(1000000)
+      await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(2000000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(2000000)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(2000000)
     })
 
     it('deposits after that pool position increased', async () => {
       await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
-      await perpetualMarketCore.deposit(1000000)
+      await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1999736)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1999736)
     })
 
     it('deposits after pool gets profit', async () => {
@@ -90,10 +92,10 @@ describe('PerpetualMarketCore', function () {
 
       await updateSpot(scaledBN(995, 8))
 
-      await perpetualMarketCore.deposit(1000000)
+      await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1998735)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1998735)
     })
 
     it('deposits after pool gets loss', async () => {
@@ -102,40 +104,40 @@ describe('PerpetualMarketCore', function () {
       await increaseTime(SAFETY_PERIOD)
       await updateSpot(scaledBN(1005, 8))
 
-      await perpetualMarketCore.deposit(1000000)
+      await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(2000741)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(2000741)
     })
   })
 
   describe('withdraw', () => {
     beforeEach(async () => {
-      await perpetualMarketCore.initialize(1000000, scaledBN(5, 5))
+      await perpetualMarketCore.initialize(wallet.address, 1000000, scaledBN(5, 5))
     })
 
     it('reverts if caller is not PerpetualMarket', async () => {
-      await expect(perpetualMarketCore.connect(other).withdraw(1000)).to.be.revertedWith('PMC2')
+      await expect(perpetualMarketCore.connect(other).withdraw(wallet.address, 1000)).to.be.revertedWith('PMC2')
     })
 
     it('withdraws a half of liquidity', async () => {
-      await perpetualMarketCore.withdraw(500000)
+      await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(500000)
-      expect(await perpetualMarketCore.supply()).to.be.eq(500000)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(500000)
     })
 
     it('withdraws all', async () => {
-      await perpetualMarketCore.withdraw(1000000)
+      await perpetualMarketCore.withdraw(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(0)
-      expect(await perpetualMarketCore.supply()).to.be.eq(0)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(0)
     })
 
     it('reverts withdrawal if there is little available liquidity', async () => {
       await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
-      await expect(perpetualMarketCore.withdraw(1000000)).to.be.revertedWith('PMC0')
+      await expect(perpetualMarketCore.withdraw(wallet.address, 1000000)).to.be.revertedWith('PMC0')
     })
 
     it('withdraws after the pool gets profit', async () => {
@@ -143,10 +145,10 @@ describe('PerpetualMarketCore', function () {
 
       await updateSpot(scaledBN(995, 8))
 
-      await perpetualMarketCore.withdraw(500000)
+      await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(500633)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(500633)
     })
 
     it('withdraws after the pool gets loss', async () => {
@@ -155,27 +157,27 @@ describe('PerpetualMarketCore', function () {
       await increaseTime(SAFETY_PERIOD)
       await updateSpot(scaledBN(1005, 8))
 
-      await perpetualMarketCore.withdraw(500000)
+      await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(499630)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(499630)
     })
 
     it('spread becomes high', async () => {
-      await perpetualMarketCore.deposit(1000000)
+      await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
       await updateSpot(scaledBN(995, 8))
 
-      await perpetualMarketCore.withdraw(500000)
+      await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1500000)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500000)
     })
 
     it('spread returns low after time passed', async () => {
-      await perpetualMarketCore.deposit(1000000)
+      await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
@@ -183,27 +185,27 @@ describe('PerpetualMarketCore', function () {
 
       await increaseTime(SAFETY_PERIOD)
 
-      await perpetualMarketCore.withdraw(500000)
+      await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1500304)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500304)
     })
 
     it('spread becomes high when withdraw', async () => {
-      await perpetualMarketCore.withdraw(500000)
+      await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
       await updateSpot(scaledBN(1005, 8))
 
-      await perpetualMarketCore.deposit(1000000)
+      await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1500000)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500000)
     })
 
     it('spread returns low when withdraw', async () => {
-      await perpetualMarketCore.withdraw(500000)
+      await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, 1000)
 
@@ -211,10 +213,10 @@ describe('PerpetualMarketCore', function () {
 
       await increaseTime(SAFETY_PERIOD)
 
-      await perpetualMarketCore.deposit(1000000)
+      await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.supply()).to.be.eq(1501273)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1501273)
     })
   })
 
@@ -231,7 +233,7 @@ describe('PerpetualMarketCore', function () {
 
     describe('after initialized', () => {
       beforeEach(async () => {
-        await perpetualMarketCore.initialize(scaledBN(10, 8), scaledBN(5, 5))
+        await perpetualMarketCore.initialize(wallet.address, scaledBN(10, 8), scaledBN(5, 5))
       })
 
       it('reverts if pool has no enough liquidity', async () => {
@@ -273,7 +275,7 @@ describe('PerpetualMarketCore', function () {
 
     describe('check utilization', () => {
       beforeEach(async () => {
-        await perpetualMarketCore.initialize(scaledBN(10, 8), scaledBN(5, 5))
+        await perpetualMarketCore.initialize(wallet.address, scaledBN(10, 8), scaledBN(5, 5))
       })
 
       it('utilization ratio becomes high', async () => {
@@ -287,7 +289,7 @@ describe('PerpetualMarketCore', function () {
 
   describe('updatePoolSnapshot', () => {
     beforeEach(async () => {
-      await perpetualMarketCore.initialize(scaledBN(10, 8), scaledBN(5, 5))
+      await perpetualMarketCore.initialize(wallet.address, scaledBN(10, 8), scaledBN(5, 5))
     })
 
     it('reverts if caller is not PerpetualMarket', async () => {
@@ -335,7 +337,7 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('get token amounts with min slippage tolerance', async () => {
-      await perpetualMarketCore.initialize(scaledBN(2000, 6), scaledBN(5, 5))
+      await perpetualMarketCore.initialize(wallet.address, scaledBN(2000, 6), scaledBN(5, 5))
 
       await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, scaledBN(1, 5))
 
@@ -348,7 +350,7 @@ describe('PerpetualMarketCore', function () {
     it('slippage tolerance becomes big price move', async () => {
       await updateSpot(scaledBN(980, 8))
 
-      await perpetualMarketCore.initialize(scaledBN(2000, 6), scaledBN(5, 5))
+      await perpetualMarketCore.initialize(wallet.address, scaledBN(2000, 6), scaledBN(5, 5))
 
       await updateSpot(scaledBN(1000, 8))
 
@@ -362,7 +364,7 @@ describe('PerpetualMarketCore', function () {
 
     describe('delta is negative', () => {
       beforeEach(async () => {
-        await perpetualMarketCore.initialize(scaledBN(2000, 6), scaledBN(5, 5))
+        await perpetualMarketCore.initialize(wallet.address, scaledBN(2000, 6), scaledBN(5, 5))
 
         await perpetualMarketCore.updatePoolPosition(SQUEETH_PRODUCT_ID, scaledBN(1, 5))
       })

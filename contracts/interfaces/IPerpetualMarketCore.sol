@@ -11,11 +11,15 @@ interface IPerpetualMarketCore {
         int128[2] amountsFundingPaidPerPosition;
     }
 
-    function initialize(uint256 _depositAmount, int256 _initialFundingRate) external returns (uint256 mintAmount);
+    function initialize(
+        address _depositor,
+        uint256 _depositAmount,
+        int256 _initialFundingRate
+    ) external returns (uint256 mintAmount);
 
-    function deposit(uint256 _depositAmount) external returns (uint256 mintAmount);
+    function deposit(address _depositor, uint256 _depositAmount) external returns (uint256 mintAmount);
 
-    function withdraw(uint256 _withdrawnAmount) external returns (uint256 burnAmount);
+    function withdraw(address _withdrawer, uint256 _withdrawnAmount) external returns (uint256 burnAmount);
 
     function addLiquidity(uint256 _amount) external;
 
