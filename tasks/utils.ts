@@ -1,5 +1,4 @@
 import { BigNumber } from "ethers"
-import { AggregatorV3Interface, PerpetualMarket } from "../typechain"
 
 export const networkNameToPriceFeed = (name: string) => {
   switch (name) {
@@ -52,10 +51,10 @@ export const getPriceFeed = async (ethers: any, deployer: string, networkName: s
   const usdcAddress = networkNameToPriceFeed(networkName)
   if (usdcAddress === undefined) {
     // use to local deployment as USDC
-    return ethers.getContract("AggregatorV3Interface", deployer) as AggregatorV3Interface
+    return ethers.getContract("AggregatorV3Interface", deployer)
   }
   // get contract instance at address
-  return ethers.getContractAt('AggregatorV3Interface', usdcAddress) as AggregatorV3Interface
+  return ethers.getContractAt('AggregatorV3Interface', usdcAddress)
 }
 
 export const getUSDC = async (ethers: any, deployer: string, networkName: string) => {
@@ -80,9 +79,9 @@ export const getWETH = async (ethers: any, deployer: string, networkName: string
 export const getPerpetualMarket = async (ethers: any, deployer: string, networkName: string) => {
   const perpetualMarketAddress = networkNameToPerpetualMarket(networkName)
   if (perpetualMarketAddress === undefined) {
-    return ethers.getContract("PerpetualMarket", deployer) as PerpetualMarket
+    return ethers.getContract("PerpetualMarket", deployer)
   }
-  return ethers.getContractAt('PerpetualMarket', perpetualMarketAddress) as PerpetualMarket
+  return ethers.getContractAt('PerpetualMarket', perpetualMarketAddress)
 }
 
 export const getPerpetualMarketCore = async (ethers: any, deployer: string, networkName: string) => {
