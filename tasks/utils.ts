@@ -1,5 +1,13 @@
 import { BigNumber } from "ethers"
-import { PerpetualMarket } from "../typechain"
+import { AggregatorV3Interface, PerpetualMarket } from "../typechain"
+
+export const networkNameToPriceFeed = (name: string) => {
+  switch (name) {
+    case 'kovan': return '0x9326BFA02ADD2366b30bacB125260Af641031331'
+    case 'rinkebyArbitrum': return '0x5f0423B1a6935dc5596e7A24d98532b67A0AeFd8'
+    default: return undefined
+  }
+}
 
 export const networkNameToUSDC = (name: string) => {
   switch (name) {
@@ -38,6 +46,16 @@ export const networkNameToFlashHedge = (name: string) => {
     case 'rinkebyArbitrum': return '0xd8EaC40f5DCbd68fb7D6B9275C0b39c5ED8ae8bf'
     default: return undefined
   }
+}
+
+export const getPriceFeed = async (ethers: any, deployer: string, networkName: string) => {
+  const usdcAddress = networkNameToPriceFeed(networkName)
+  if (usdcAddress === undefined) {
+    // use to local deployment as USDC
+    return ethers.getContract("AggregatorV3Interface", deployer) as AggregatorV3Interface
+  }
+  // get contract instance at address
+  return ethers.getContractAt('AggregatorV3Interface', usdcAddress) as AggregatorV3Interface
 }
 
 export const getUSDC = async (ethers: any, deployer: string, networkName: string) => {
