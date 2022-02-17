@@ -56,7 +56,7 @@ export class TestContractHelper {
     await this.testContractSet.perpetualMarket.connect(wallet).trade({
       vaultId,
       subVaultIndex: 0,
-      tradeAmounts: [tradeAmount, 0],
+      tradeAmounts: [0, tradeAmount],
       marginAmount: marginAmount || 0,
       limitPrices: [0, 0],
       deadline: 0,
@@ -67,7 +67,7 @@ export class TestContractHelper {
     await this.testContractSet.perpetualMarket.connect(wallet).trade({
       vaultId,
       subVaultIndex: 0,
-      tradeAmounts: [BigNumber.from(tradeAmount).mul(-1), 0],
+      tradeAmounts: [0, BigNumber.from(tradeAmount).mul(-1)],
       marginAmount: marginAmount || 0,
       limitPrices: [0, 0],
       deadline: 0,

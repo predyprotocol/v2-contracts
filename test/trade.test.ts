@@ -69,7 +69,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(2, 8)],
+          tradeAmounts: [scaledBN(2, 8), 0],
           marginAmount: MIN_MARGIN,
           limitPrices: [0, 0],
           deadline: 0,
@@ -80,7 +80,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(-2, 8)],
+          tradeAmounts: [scaledBN(-2, 8), 0],
           marginAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
@@ -110,7 +110,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(1, 12)],
+          tradeAmounts: [scaledBN(1, 12), 0],
           marginAmount: scaledBN(15000000, 6),
           limitPrices: [0, 0],
           deadline: 0,
@@ -121,7 +121,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(-1, 12)],
+          tradeAmounts: [scaledBN(-1, 12), 0],
           marginAmount: MAX_WITHDRAW_AMOUNT,
           limitPrices: [0, 0],
           deadline: 0,
@@ -164,14 +164,14 @@ describe('trade', function () {
     it('get trade price of perpetual future', async () => {
       const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 100)
 
-      expect(tradePrice.tradePrice).to.be.eq(120120000000)
+      expect(tradePrice.tradePrice).to.be.eq(120060000000)
       expect(tradePrice.indexPrice).to.be.eq(120000000000)
       expect(tradePrice.fundingFee).to.be.eq(0)
-      expect(tradePrice.tradeFee).to.be.eq(120000000)
+      expect(tradePrice.tradeFee).to.be.eq(60000000)
       expect(tradePrice.protocolFee).to.be.eq(48000000)
       expect(tradePrice.fundingRate).to.be.eq(0)
-      expect(tradePrice.totalValue).to.be.eq(120120)
-      expect(tradePrice.totalFee).to.be.eq(120)
+      expect(tradePrice.totalValue).to.be.eq(120060)
+      expect(tradePrice.totalFee).to.be.eq(60)
     })
 
     describe('position increased', () => {
@@ -184,7 +184,7 @@ describe('trade', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [scaledBN(1, 8), scaledBN(2, 8)],
+          tradeAmounts: [scaledBN(2, 8), scaledBN(1, 8)],
           marginAmount: scaledBN(2000, 6),
           limitPrices: [0, 0],
           deadline: 0,
@@ -233,14 +233,14 @@ describe('trade', function () {
       it("get perpetual future's trade price of large position", async () => {
         const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(1, 12))
 
-        expect(tradePrice.tradePrice).to.be.eq(100102801000)
+        expect(tradePrice.tradePrice).to.be.eq(100052801000)
         expect(tradePrice.indexPrice).to.be.eq(100000000000)
         expect(tradePrice.fundingFee).to.be.eq(2801000)
-        expect(tradePrice.tradeFee).to.be.eq(100000000)
+        expect(tradePrice.tradeFee).to.be.eq(50000000)
         expect(tradePrice.protocolFee).to.be.eq(40000000)
         expect(tradePrice.fundingRate).to.be.eq(2801)
-        expect(tradePrice.totalValue).to.be.eq(1001028010000000)
-        expect(tradePrice.totalFee).to.be.eq(1000000000000)
+        expect(tradePrice.totalValue).to.be.eq(1000528010000000)
+        expect(tradePrice.totalFee).to.be.eq(500000000000)
       })
     })
   })

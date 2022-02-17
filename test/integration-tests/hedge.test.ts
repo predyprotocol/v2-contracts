@@ -85,7 +85,7 @@ describe('FlashHedge', function () {
       await perpetualMarket.trade({
         vaultId,
         subVaultIndex,
-        tradeAmounts: [scaledBN(1, 6), 0],
+        tradeAmounts: [0, scaledBN(1, 6)],
         marginAmount: MIN_MARGIN,
         limitPrices: [0, 0],
         deadline: 0,
@@ -107,7 +107,7 @@ describe('FlashHedge', function () {
       await perpetualMarket.trade({
         vaultId,
         subVaultIndex,
-        tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 7)],
+        tradeAmounts: [scaledBN(-1, 7), scaledBN(1, 6)],
         marginAmount: MIN_MARGIN,
         limitPrices: [0, 0],
         deadline: 0,
@@ -120,7 +120,7 @@ describe('FlashHedge', function () {
       await perpetualMarket.trade({
         vaultId,
         subVaultIndex,
-        tradeAmounts: [scaledBN(1, 6), 0],
+        tradeAmounts: [0, scaledBN(1, 6)],
         marginAmount: MIN_MARGIN,
         limitPrices: [0, 0],
         deadline: 0,
@@ -136,7 +136,7 @@ describe('FlashHedge', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [scaledBN(1, 7), 0],
+          tradeAmounts: [0, scaledBN(1, 7)],
           marginAmount: MIN_MARGIN,
           limitPrices: [0, 0],
           deadline: 0,
@@ -151,7 +151,7 @@ describe('FlashHedge', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [scaledBN(-2, 6), 0],
+          tradeAmounts: [0, scaledBN(-2, 6)],
           marginAmount: scaledBN(1, 8),
           limitPrices: [0, 0],
           deadline: 0,
@@ -168,7 +168,7 @@ describe('FlashHedge', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [scaledBN(-2, 6), 0],
+          tradeAmounts: [0, scaledBN(-2, 6)],
           marginAmount: scaledBN(1, 8),
           limitPrices: [0, 0],
           deadline: 0,
@@ -185,7 +185,7 @@ describe('FlashHedge', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(1, 6)],
+          tradeAmounts: [scaledBN(1, 6), 0],
           marginAmount: MIN_MARGIN,
           limitPrices: [0, 0],
           deadline: 0,
@@ -200,7 +200,7 @@ describe('FlashHedge', function () {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
-          tradeAmounts: [0, scaledBN(-2, 6)],
+          tradeAmounts: [scaledBN(-2, 6), 0],
           marginAmount: MIN_MARGIN,
           limitPrices: [0, 0],
           deadline: 0,

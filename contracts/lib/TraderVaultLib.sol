@@ -298,8 +298,8 @@ library TraderVaultLib {
         returns (int256)
     {
         uint256 maxDelta = Math.abs(
-            ((2 * int256(_spotPrice).mul(positionPerpetuals[0])) / 1e12).add(positionPerpetuals[1])
-        ) + (2 * RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(Math.abs(positionPerpetuals[0] / 1e12))) / 1e4;
+            ((2 * int256(_spotPrice).mul(positionPerpetuals[1])) / 1e12).add(positionPerpetuals[0])
+        ) + (2 * RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(Math.abs(positionPerpetuals[1] / 1e12))) / 1e4;
 
         uint256 minCollateral = (RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(maxDelta)) / 1e12;
 
