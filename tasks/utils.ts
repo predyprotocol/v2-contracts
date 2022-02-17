@@ -16,14 +16,14 @@ export const networkNameToWETH = (name: string) => {
 
 export const networkNameToPerpetualMarket = (name: string) => {
   switch (name) {
-    case 'rinkebyArbitrum': return '0x51395b4e2b99e92C230Bc3800eF5fCbE4c7316Fd'
+    case 'rinkebyArbitrum': return '0x1A053d06058648CCdf158b9d1cB64C16690E84Cf'
     default: return undefined
   }
 }
 
 export const networkNameToPerpetualMarketCore = (name: string) => {
   switch (name) {
-    case 'rinkebyArbitrum': return '0xff6ecE96Ed48Fc19a6f7a30C88733e2A9b05c043'
+    case 'rinkebyArbitrum': return '0x99aA8873104d04484881Ea75B3431bC99d325EdD'
     default: return undefined
   }
 }
