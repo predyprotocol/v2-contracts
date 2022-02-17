@@ -61,12 +61,7 @@ library NettingLib {
             requiredMargin = -_info.amountsUsdc[_productId].toInt256();
         }
 
-        _info.amountsUsdc[_productId] = _info
-            .amountsUsdc[_productId]
-            .toInt256()
-            .add(requiredMargin)
-            .toUint256()
-            .toUint128();
+        _info.amountsUsdc[_productId] = Math.addDelta(_info.amountsUsdc[_productId], requiredMargin).toUint128();
     }
 
     function getRequiredTokenAmountsForHedge(
@@ -89,7 +84,7 @@ library NettingLib {
                 // if pool delta is positive
                 requiredUnderlyingAmount = -totalUnderlyingPosition;
 
-                completeParams.amountsRequiredUnderlying[1] = -_amountsUnderlying[1] + _deltas[0];
+                completeParams.amountsRequiredUnderlying[0] = -_amountsUnderlying[0] + _deltas[1];
             }
 
             completeParams.isLong = requiredUnderlyingAmount > 0;
@@ -141,10 +136,12 @@ library NettingLib {
      * @return RequiredMargin scaled by 1e8
      */
     function getRequiredMargin(uint256 _productId, AddMarginParams memory _params) internal pure returns (int256) {
+        int256 weightedDelta = calculateWeightedDelta(_productId, _params.delta0, _params.delta1);
+
         if (_productId == 0) {
-            return getRequiredMarginOfFuture(_params);
+            return getRequiredMarginOfFuture(_params, weightedDelta);
         } else if (_productId == 1) {
-            return getRequiredMarginOfSqueeth(_params);
+            return getRequiredMarginOfSqueeth(_params, weightedDelta);
         } else {
             revert("N0");
         }
@@ -155,10 +152,12 @@ library NettingLib {
      * RequiredMargin_{future} = (1+α)*S*WeightedDelta
      * @return RequiredMargin scaled by 1e8
      */
-    function getRequiredMarginOfFuture(AddMarginParams memory _params) internal pure returns (int256) {
-        int256 requiredMargin = (
-            _params.spotPrice.mul(Math.abs(calculateWeightedDelta(0, _params.delta0, _params.delta1)).toInt256())
-        ) / 1e8;
+    function getRequiredMarginOfFuture(AddMarginParams memory _params, int256 _weightedDelta)
+        internal
+        pure
+        returns (int256)
+    {
+        int256 requiredMargin = (_params.spotPrice.mul(Math.abs(_weightedDelta).toInt256())) / 1e8;
         return ((1e4 + _params.poolMarginRiskParam).mul(requiredMargin)) / 1e4;
     }
 
@@ -168,20 +167,23 @@ library NettingLib {
      * = max((1-α) * S * |WeightDelta_{sqeeth}-α * S * gamma|, (1+α) * S * |WeightDelta_{sqeeth}+α * S * gamma|)
      * @return RequiredMargin scaled by 1e8
      */
-    function getRequiredMarginOfSqueeth(AddMarginParams memory _params) internal pure returns (int256) {
-        int256 weightedDelta = calculateWeightedDelta(1, _params.delta0, _params.delta1);
+    function getRequiredMarginOfSqueeth(AddMarginParams memory _params, int256 _weightedDelta)
+        internal
+        pure
+        returns (int256)
+    {
         int256 deltaFromGamma = (_params.poolMarginRiskParam.mul(_params.spotPrice).mul(_params.gamma1)) / 1e12;
 
         return
             Math.max(
                 (
                     (1e4 - _params.poolMarginRiskParam).mul(_params.spotPrice).mul(
-                        Math.abs(weightedDelta.sub(deltaFromGamma)).toInt256()
+                        Math.abs(_weightedDelta.sub(deltaFromGamma)).toInt256()
                     )
                 ) / 1e12,
                 (
                     (1e4 + _params.poolMarginRiskParam).mul(_params.spotPrice).mul(
-                        Math.abs(weightedDelta.add(deltaFromGamma)).toInt256()
+                        Math.abs(_weightedDelta.add(deltaFromGamma)).toInt256()
                     )
                 ) / 1e12
             );

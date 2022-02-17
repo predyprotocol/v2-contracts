@@ -19,6 +19,7 @@ async function main() {
   let wethAddress
   let usdcAddress
   let feePoolAddress
+  let flashHedgeAddress
   let uniswapFactoryAddress
   let uniswapPositionManager
   let ethUsdcPoolAddress
@@ -80,6 +81,8 @@ async function main() {
     // usdcAddress = '0xF49C3973edF5A39d619A0Aa2b7F1614d08df1ce3' // Official
     usdcAddress = '0xb8588b977F48c28f8eBfb12f48bC74cE7eAFA281'
     feePoolAddress = '0x300Df3cD7DaCf191F6f7CECF3BCde535e2dd7e88'
+    flashHedgeAddress = '0xd8EaC40f5DCbd68fb7D6B9275C0b39c5ED8ae8bf'
+    ethUsdcPoolAddress = '0x32335D0e3d094Ae8BaF28A35EF615F761Aff0959'
     ethPrice = 3144
 
     operatorAddress = signer.address
@@ -167,7 +170,7 @@ async function main() {
     console.log(`ethUsdcPoolAddress deployed to ${ethUsdcPoolAddress}`)
   }
 
-  if (uniswapFactoryAddress !== undefined
+  if (flashHedgeAddress === undefined && uniswapFactoryAddress !== undefined
     && ethUsdcPoolAddress !== undefined) {
     const FlashHedge = await ethers.getContractFactory('FlashHedge')
     const flashHedge = await FlashHedge.deploy(

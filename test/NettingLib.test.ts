@@ -375,14 +375,14 @@ describe('NettingLib', function () {
       })
 
       it('delta of squared perpetual is negative and delta of perpetual future is positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([0, 0], [-120, 100], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge([0, 0], [100, -120], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(20000)
         expect(params.amountUnderlying).to.be.eq(20)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('120'), BigNumber.from('-100')])
+        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('-100'), BigNumber.from('120')])
       })
 
       it('deltas are positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([0, 0], [0, 100], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge([0, 0], [100, 0], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(0)
         expect(params.amountUnderlying).to.be.eq(0)
         expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('0'), BigNumber.from('0')])
@@ -398,21 +398,21 @@ describe('NettingLib', function () {
       })
 
       it('delta of squared perpetual is negative and delta of perpetual future is positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([100, 100], [-120, 100], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge([100, 100], [100, -120], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(180000)
         expect(params.amountUnderlying).to.be.eq(180)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('20'), BigNumber.from('-200')])
+        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('-200'), BigNumber.from('20')])
       })
 
       it('delta are positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([100, 100], [0, 100], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge([100, 100], [100, 0], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(200000)
         expect(params.amountUnderlying).to.be.eq(200)
         expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('-100'), BigNumber.from('-100')])
       })
 
       it('delta are greater than underlying positions', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([100, 100], [0, 200], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge([100, 100], [200, 0], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(200000)
         expect(params.amountUnderlying).to.be.eq(200)
         expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('-100'), BigNumber.from('-100')])
@@ -421,24 +421,24 @@ describe('NettingLib', function () {
 
     describe('underlying position of squared perpetual is positive and underlying position of perpetual future is negative', () => {
       it('deltas are negative', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([100, -100], [-100, -100], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge([-100, 100], [-100, -100], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(200000)
         expect(params.amountUnderlying).to.be.eq(200)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('0'), BigNumber.from('200')])
+        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('200'), BigNumber.from('0')])
       })
 
       it('delta of squared perpetual is negative and delta of perpetual future is positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([100, -100], [-120, 100], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge([-100, 100], [100, -120], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(20000)
         expect(params.amountUnderlying).to.be.eq(20)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('20'), BigNumber.from('0')])
+        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('0'), BigNumber.from('20')])
       })
 
       it('deltas are positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([100, -100], [0, 100], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge([-100, 100], [100, 0], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(0)
         expect(params.amountUnderlying).to.be.eq(0)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('-100'), BigNumber.from('100')])
+        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('100'), BigNumber.from('-100')])
       })
     })
   })

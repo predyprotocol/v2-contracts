@@ -565,6 +565,24 @@ describe('PerpetualMarket', function () {
           .withArgs(wallet.address, vaultId, subVaultIndex, SQUEETH_PRODUCT_ID, scaledBN(1, 6), 100300029, 0, 0)
 
         expect(await usdc.balanceOf(testContractSet.feePool.address)).to.be.gt(0)
+        expect((await testContractSet.perpetualMarketCore.pools(SQUEETH_PRODUCT_ID)).positionPerpetuals).to.be.eq(
+          -1000000,
+        )
+      })
+
+      it('open short', async () => {
+        await perpetualMarket.trade({
+          vaultId,
+          subVaultIndex,
+          tradeAmounts: [0, scaledBN(-1, 6)],
+          marginAmount: MIN_MARGIN,
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+
+        expect((await testContractSet.perpetualMarketCore.pools(SQUEETH_PRODUCT_ID)).positionPerpetuals).to.be.eq(
+          1000000,
+        )
       })
 
       it('close position', async () => {
@@ -655,7 +673,7 @@ describe('PerpetualMarket', function () {
     })
 
     describe('Future', () => {
-      it('open', async () => {
+      it('open long', async () => {
         await perpetualMarket.trade({
           vaultId,
           subVaultIndex,
@@ -664,6 +682,27 @@ describe('PerpetualMarket', function () {
           limitPrices: [0, 0],
           deadline: 0,
         })
+
+        expect((await testContractSet.perpetualMarketCore.pools(FUTURE_PRODUCT_ID)).positionPerpetuals).to.be.eq(
+          -1000000,
+        )
+        expect((await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 10)).fundingRate).to.be.gt(0)
+      })
+
+      it('open short', async () => {
+        await perpetualMarket.trade({
+          vaultId,
+          subVaultIndex,
+          tradeAmounts: [scaledBN(-1, 6), 0],
+          marginAmount: MIN_MARGIN,
+          limitPrices: [0, 0],
+          deadline: 0,
+        })
+
+        expect((await testContractSet.perpetualMarketCore.pools(FUTURE_PRODUCT_ID)).positionPerpetuals).to.be.eq(
+          1000000,
+        )
+        expect((await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 10)).fundingRate).to.be.lt(0)
       })
 
       it('close', async () => {
@@ -689,6 +728,7 @@ describe('PerpetualMarket', function () {
         const after = await usdc.balanceOf(wallet.address)
 
         expect(after.sub(before)).to.be.eq('-1003')
+        expect((await testContractSet.perpetualMarketCore.pools(FUTURE_PRODUCT_ID)).positionPerpetuals).to.be.eq(0)
       })
 
       it('close with profit', async () => {
