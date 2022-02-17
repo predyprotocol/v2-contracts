@@ -688,7 +688,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-2003')
+        expect(after.sub(before)).to.be.eq('-1003')
       })
 
       it('close with profit', async () => {
@@ -717,7 +717,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('97897')
+        expect(after.sub(before)).to.be.eq('98947')
       })
 
       it('close with loss', async () => {
@@ -743,7 +743,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-101903')
+        expect(after.sub(before)).to.be.eq('-100953')
       })
     })
 
@@ -788,7 +788,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-2023')
+        expect(after.sub(before)).to.be.eq('-1023')
       })
 
       it('close Squeeth', async () => {
@@ -813,7 +813,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-500002022')
+        expect(after.sub(before)).to.be.eq('-500001022')
       })
 
       it('close Future', async () => {
@@ -838,7 +838,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-500002023')
+        expect(after.sub(before)).to.be.eq('-500001023')
       })
 
       it('close positions with price move', async () => {
@@ -867,7 +867,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('99979')
+        expect(after.sub(before)).to.be.eq('101029')
       })
 
       it('large position', async () => {
@@ -939,7 +939,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-2022')
+        expect(after.sub(before)).to.be.eq('-1022')
       })
 
       it('price becomes high and close positions', async () => {
@@ -968,7 +968,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-100020')
+        expect(after.sub(before)).to.be.eq('-98970')
       })
 
       it('price becomes low and close positions', async () => {
@@ -997,7 +997,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('96176')
+        expect(after.sub(before)).to.be.eq('97126')
       })
     })
 

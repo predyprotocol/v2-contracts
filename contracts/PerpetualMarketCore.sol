@@ -149,8 +149,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         hedgeRateOfReturnThreshold = 25 * 1e5;
         // Pool collateral risk param is 40%
         poolMarginRiskParam = 4000;
-        // Trade fee is 0.1%
-        tradeFeeRate = 10 * 1e4;
+        // Trade fee is 0.05%
+        tradeFeeRate = 5 * 1e4;
         // Protocol fee is 0.04%
         protocolFeeRate = 4 * 1e4;
     }
@@ -788,9 +788,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         require(_indexPrice > 0);
 
         if (_isLong) {
-            return _indexPrice.mul(tradeFeeRate) / 1e8;
+            return _indexPrice.mul(tradeFeeRate).mul(int256(_productId + 1)) / 1e8;
         } else {
-            return -_indexPrice.mul(tradeFeeRate) / 1e8;
+            return -_indexPrice.mul(tradeFeeRate).mul(int256(_productId + 1)) / 1e8;
         }
     }
 
