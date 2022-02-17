@@ -597,13 +597,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         }
 
         if (deltaLiquidity != 0) {
-            amountLiquidity = amountLiquidity.toInt256().add(deltaLiquidity).toUint256().toUint128();
+            amountLiquidity = Math.addDelta(amountLiquidity, deltaLiquidity);
         }
-        pools[_productId].amountLockedLiquidity = pools[_productId]
-            .amountLockedLiquidity
-            .toInt256()
-            .add(deltaMargin)
-            .toUint256()
+        pools[_productId].amountLockedLiquidity = Math
+            .addDelta(pools[_productId].amountLockedLiquidity, deltaMargin)
             .toUint128();
     }
 

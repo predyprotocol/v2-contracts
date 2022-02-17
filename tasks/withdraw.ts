@@ -22,7 +22,13 @@ task("withdraw", "withdraw liquidity")
     const lpToken = await getPerpetualMarketCore(ethers, deployer, network.name)
 
     const tokenAmount = await lpToken.balanceOf(deployer)
-    await perpetualMarket.withdraw(BigNumber.from(withdrawAmount).eq(0) ? await getWithdrawalAmount(tokenAmount, 0) : withdrawAmount)
+
+    const finalWithdrawAmount = BigNumber.from(withdrawAmount).eq(0) ? await getWithdrawalAmount(tokenAmount, 0) : withdrawAmount
+
+    console.log('tokenAmount', tokenAmount)
+    console.log('finalWithdrawAmount', finalWithdrawAmount)
+
+    await perpetualMarket.withdraw(finalWithdrawAmount)
 
     async function getWithdrawalAmount(burnAmount: BigNumber, _withdrawnAmount: BigNumberish): Promise<BigNumber> {
       const withdrawnAmount = BigNumber.from(_withdrawnAmount)
@@ -30,7 +36,7 @@ task("withdraw", "withdraw liquidity")
       const lpTokenPrice = await perpetualMarket.getLPTokenPrice(withdrawnAmount.mul(-1))
       console.log('lpTokenPrice', lpTokenPrice)
 
-      const nextWithdrawnAmount = lpTokenPrice.mul(burnAmount).div('10000000000000000')
+      const nextWithdrawnAmount = lpTokenPrice.mul(burnAmount).div('1000000000000000000')
 
       if (withdrawnAmount.eq(nextWithdrawnAmount)) {
         return withdrawnAmount
