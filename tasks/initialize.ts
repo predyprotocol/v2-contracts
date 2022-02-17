@@ -4,7 +4,7 @@ import { getPerpetualMarket, getUSDC } from "./utils";
 
 // Example execution
 /**
- * npx hardhat initialize --network rinkebyArbitrum --deposit-amount 1000000 --funding-rate 2
+ * npx hardhat initialize --network rinkebyArbitrum --deposit-amount 10000000000 --funding-rate 290000
  */
 task("initialize", "initialize liquidity")
   .addParam('depositAmount', 'deposit amount', '1000000', types.string)
