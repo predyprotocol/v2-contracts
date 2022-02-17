@@ -1,6 +1,6 @@
 import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
-import { getPerpetualMarket, getUSDC, getWETH } from "./utils";
+import { getPerpetualMarket, getPerpetualMarketCore, getUSDC, getWETH } from "./utils";
 
 // Example execution
 /**
@@ -20,10 +20,10 @@ task("raw-hedge", "execute a hedge")
     const result = await perpetualMarket.getTokenAmountForHedging()
 
     let approveTx
-    if (result[0].isLong) {
-      approveTx = await weth.approve(perpetualMarket.address, result[2])
+    if (result[0]) {
+      approveTx = await weth.approve(perpetualMarket.address, result[2].mul(105).div(100))
     } else {
-      approveTx = await usdc.approve(perpetualMarket.address, result[1])
+      approveTx = await usdc.approve(perpetualMarket.address, result[1].mul(105).div(100))
     }
     await approveTx.wait()
 

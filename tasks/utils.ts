@@ -1,7 +1,9 @@
 import { BigNumber } from "ethers"
+import { PerpetualMarket } from "../typechain"
 
 export const networkNameToUSDC = (name: string) => {
   switch (name) {
+    case 'kovan': return '0xe22da380ee6b445bb8273c81944adeb6e8450422'
     case 'rinkebyArbitrum': return '0xb8588b977F48c28f8eBfb12f48bC74cE7eAFA281'
     default: return undefined
   }
@@ -9,6 +11,7 @@ export const networkNameToUSDC = (name: string) => {
 
 export const networkNameToWETH = (name: string) => {
   switch (name) {
+    case 'kovan': return '0xd0a1e359811322d97991e03f863a0c30c2cf029c'
     case 'rinkebyArbitrum': return '0x5D7E4863a7B312F4F8449FEC3d50b9Fc9068EC8E'
     default: return undefined
   }
@@ -16,6 +19,7 @@ export const networkNameToWETH = (name: string) => {
 
 export const networkNameToPerpetualMarket = (name: string) => {
   switch (name) {
+    case 'kovan': return '0x3A53C9e69950E8e2CDaC889E387fB182A009463D'
     case 'rinkebyArbitrum': return '0x1A053d06058648CCdf158b9d1cB64C16690E84Cf'
     default: return undefined
   }
@@ -23,6 +27,7 @@ export const networkNameToPerpetualMarket = (name: string) => {
 
 export const networkNameToPerpetualMarketCore = (name: string) => {
   switch (name) {
+    case 'kovan': return '0xe0cdA1F5433409B08D6f28FBe4c5daad88D897f6'
     case 'rinkebyArbitrum': return '0x99aA8873104d04484881Ea75B3431bC99d325EdD'
     default: return undefined
   }
@@ -57,9 +62,9 @@ export const getWETH = async (ethers: any, deployer: string, networkName: string
 export const getPerpetualMarket = async (ethers: any, deployer: string, networkName: string) => {
   const perpetualMarketAddress = networkNameToPerpetualMarket(networkName)
   if (perpetualMarketAddress === undefined) {
-    return ethers.getContract("PerpetualMarket", deployer);
+    return ethers.getContract("PerpetualMarket", deployer) as PerpetualMarket
   }
-  return ethers.getContractAt('PerpetualMarket', perpetualMarketAddress)
+  return ethers.getContractAt('PerpetualMarket', perpetualMarketAddress) as PerpetualMarket
 }
 
 export const getPerpetualMarketCore = async (ethers: any, deployer: string, networkName: string) => {

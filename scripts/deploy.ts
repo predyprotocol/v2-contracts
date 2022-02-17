@@ -43,6 +43,7 @@ async function main() {
     // wethAddress = '0xAD5ce863aE3E4E9394Ab43d4ba0D80f419F61789'
 
     usdcAddress = '0xe22da380ee6b445bb8273c81944adeb6e8450422'
+    feePoolAddress = '0xd180A1aD9eE1E975f29Cf9813B3946Bd897955c0'
     operatorAddress = signer.address
     uniswapFactoryAddress = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
     ethUsdcPoolAddress = '0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8'

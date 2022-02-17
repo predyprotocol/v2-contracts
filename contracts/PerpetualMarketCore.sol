@@ -297,7 +297,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
      * @notice Locks liquidity if more collateral required
      * and unlocks liquidity if there is unrequied collateral.
      */
-    function rebalance() external override {
+    function rebalance() external override onlyPerpetualMarket {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
