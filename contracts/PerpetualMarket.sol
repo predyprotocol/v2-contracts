@@ -292,6 +292,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
         // execute funding payment
         perpetualMarketCore.executeFundingPayment();
 
+        // rebalance
+        perpetualMarketCore.rebalance();
+
         NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
 
         perpetualMarketCore.completeHedgingProcedure(completeParams);
