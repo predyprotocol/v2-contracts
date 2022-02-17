@@ -13,7 +13,7 @@ The implementation is `PerpetualMarketCore.sol`.
 | ΔM_i  | deltaMargin | delta margin that pool lockes when opening or closing positions |
 | Supply  |  supply | total supply of LP token |
 
-`i` is index of subgroup {squared, future}.
+`i` is index of subgroup {future, squared}.
 
 ## Trade Price
 
@@ -31,9 +31,9 @@ function calculateTradePrice(uint256 _productId, int256 _spotPrice, bool _isLong
 
 ### Index Price
 
-`IndexPrice_{squared} = S^2 / 10000`
-
 `IndexPrice_{future} = S`
+
+`IndexPrice_{squared} = S^2 / 10000`
 
 where S is underlying price from chainlink oracle.
 

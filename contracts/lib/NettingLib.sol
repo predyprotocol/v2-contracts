@@ -25,7 +25,7 @@ library NettingLib {
     struct AddMarginParams {
         int256 delta0;
         int256 delta1;
-        int256 gamma0;
+        int256 gamma1;
         int256 spotPrice;
         int256 poolMarginRiskParam;
     }
@@ -170,7 +170,7 @@ library NettingLib {
      */
     function getRequiredMarginOfSqueeth(AddMarginParams memory _params) internal pure returns (int256) {
         int256 weightedDelta = calculateWeightedDelta(1, _params.delta0, _params.delta1);
-        int256 deltaFromGamma = (_params.poolMarginRiskParam.mul(_params.spotPrice).mul(_params.gamma0)) / 1e12;
+        int256 deltaFromGamma = (_params.poolMarginRiskParam.mul(_params.spotPrice).mul(_params.gamma1)) / 1e12;
 
         return
             Math.max(

@@ -14,7 +14,7 @@ The implementation is `lib/TraderVaultLib.sol`.
 | EntryPrices_{i,j}  | entryPrices  | entry price of product `i` in sub-vault `j` |
 | EntryFundingFee_{i,j}  | entryFundingFee  | entry funding fee of product `i` in sub-vault `j` |
 
-`i` is index of subgroup {squared, future}.
+`i` is index of subgroup {future, squared}.
 
 ### TraderVault
 

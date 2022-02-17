@@ -20,7 +20,7 @@ describe('NettingLib', function () {
     it('no positions', async function () {
       expect(
         await tester.getRequiredMargin(SQUEETH_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: 0,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -32,7 +32,7 @@ describe('NettingLib', function () {
     it('short sqeeth', async function () {
       expect(
         await tester.getRequiredMargin(SQUEETH_PRODUCT_ID, {
-          gamma0: -2,
+          gamma1: -2,
           delta0: 0,
           delta1: -2000,
           spotPrice: scaledBN(1000, 8),
@@ -44,7 +44,7 @@ describe('NettingLib', function () {
     it('short future', async function () {
       expect(
         await tester.getRequiredMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: -10,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -56,7 +56,7 @@ describe('NettingLib', function () {
     it('short sqeeth and long future', async function () {
       expect(
         await tester.getRequiredMargin(SQUEETH_PRODUCT_ID, {
-          gamma0: -2,
+          gamma1: -2,
           delta0: 2000,
           delta1: -2000,
           spotPrice: scaledBN(1000, 8),
@@ -83,7 +83,7 @@ describe('NettingLib', function () {
   describe('addMargin', () => {
     it('no positions', async function () {
       await tester.addMargin(SQUEETH_PRODUCT_ID, {
-        gamma0: 0,
+        gamma1: 0,
         delta0: 0,
         delta1: 0,
         spotPrice: scaledBN(1000, 8),
@@ -94,7 +94,7 @@ describe('NettingLib', function () {
 
     it('short sqeeth', async function () {
       await tester.addMargin(SQUEETH_PRODUCT_ID, {
-        gamma0: -2,
+        gamma1: -2,
         delta0: 0,
         delta1: -10,
         spotPrice: scaledBN(1000, 8),
@@ -105,7 +105,7 @@ describe('NettingLib', function () {
 
     it('short future', async function () {
       await tester.addMargin(FUTURE_PRODUCT_ID, {
-        gamma0: 0,
+        gamma1: 0,
         delta0: -10,
         delta1: 0,
         spotPrice: scaledBN(1000, 8),
@@ -116,7 +116,7 @@ describe('NettingLib', function () {
 
     it('short sqeeth and long future', async function () {
       await tester.addMargin(SQUEETH_PRODUCT_ID, {
-        gamma0: -2,
+        gamma1: -2,
         delta0: 10,
         delta1: -10,
         spotPrice: scaledBN(1000, 8),
@@ -129,7 +129,7 @@ describe('NettingLib', function () {
     describe('delta of perpetual future is negative', () => {
       beforeEach(async () => {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: -100,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -154,7 +154,7 @@ describe('NettingLib', function () {
 
       it('delta increases', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: -90,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -167,7 +167,7 @@ describe('NettingLib', function () {
 
       it('delta increases but no enough usdc', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: -50,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -180,7 +180,7 @@ describe('NettingLib', function () {
 
       it('delta becomes 0', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: 0,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -193,7 +193,7 @@ describe('NettingLib', function () {
 
       it('delta becomes positive', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: 50,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -208,14 +208,14 @@ describe('NettingLib', function () {
     describe('deltas are negative', () => {
       beforeEach(async () => {
         await tester.addMargin(SQUEETH_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: -100,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: -100,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
@@ -240,7 +240,7 @@ describe('NettingLib', function () {
 
       it('delta increases', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: -90,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -253,7 +253,7 @@ describe('NettingLib', function () {
 
       it('delta increases but no enough usdc', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: -50,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -266,7 +266,7 @@ describe('NettingLib', function () {
 
       it('delta becomes 0', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: 0,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -279,7 +279,7 @@ describe('NettingLib', function () {
 
       it('delta becomes positive', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: 50,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -294,14 +294,14 @@ describe('NettingLib', function () {
     describe('delta of squared is negative and delta of future is positive', () => {
       beforeEach(async () => {
         await tester.addMargin(SQUEETH_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: 100,
           delta1: -120,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: 100,
           delta1: -120,
           spotPrice: scaledBN(1000, 8),
@@ -326,7 +326,7 @@ describe('NettingLib', function () {
 
       it('delta decreases', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: 50,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -339,7 +339,7 @@ describe('NettingLib', function () {
 
       it('delta becomes 0', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: 0,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -352,7 +352,7 @@ describe('NettingLib', function () {
 
       it('delta becomes negative', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: -50,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -458,7 +458,7 @@ describe('NettingLib', function () {
 
     it('reverts if there are no positions', async function () {
       await tester.addMargin(SQUEETH_PRODUCT_ID, {
-        gamma0: 0,
+        gamma1: 0,
         delta0: 0,
         delta1: 0,
         spotPrice: scaledBN(1000, 8),
@@ -471,7 +471,7 @@ describe('NettingLib', function () {
     describe('short squared perpetual', () => {
       beforeEach(async () => {
         await tester.addMargin(SQUEETH_PRODUCT_ID, {
-          gamma0: -2,
+          gamma1: -2,
           delta0: 0,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
@@ -520,7 +520,7 @@ describe('NettingLib', function () {
     describe('short perpetual future', () => {
       beforeEach(async () => {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: 0,
+          gamma1: 0,
           delta0: -100,
           delta1: 0,
           spotPrice: scaledBN(1000, 8),
@@ -565,14 +565,14 @@ describe('NettingLib', function () {
     describe('short squared perpetual and short perpetual future', () => {
       beforeEach(async () => {
         await tester.addMargin(SQUEETH_PRODUCT_ID, {
-          gamma0: -2,
+          gamma1: -2,
           delta0: -100,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: -2,
+          gamma1: -2,
           delta0: -100,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
@@ -617,14 +617,14 @@ describe('NettingLib', function () {
     describe('short squared perpetual and long perpetual future', () => {
       beforeEach(async () => {
         await tester.addMargin(SQUEETH_PRODUCT_ID, {
-          gamma0: -2,
+          gamma1: -2,
           delta0: 100,
           delta1: -120,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma0: -2,
+          gamma1: -2,
           delta0: 100,
           delta1: -120,
           spotPrice: scaledBN(1000, 8),
