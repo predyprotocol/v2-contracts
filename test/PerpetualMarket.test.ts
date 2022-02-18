@@ -225,10 +225,15 @@ describe('PerpetualMarket', function () {
     it('reverts if withdraw with closing but there are no liquidity', async function () {
       await perpetualMarket.trade({
         vaultId: 0,
-        subVaultIndex: 0,
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex: 0,
+            tradeAmount: scaledBN(1, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        tradeAmounts: [0, scaledBN(1, 8)],
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -257,10 +262,21 @@ describe('PerpetualMarket', function () {
         const pool1 = await testContractSet.perpetualMarketCore.pools(1)
         await perpetualMarket.trade({
           vaultId: 0,
-          subVaultIndex: 0,
-          tradeAmounts: [pool0.positionPerpetuals, pool1.positionPerpetuals],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex: 0,
+              tradeAmount: pool0.positionPerpetuals,
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex: 0,
+              tradeAmount: pool1.positionPerpetuals,
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -274,10 +290,15 @@ describe('PerpetualMarket', function () {
       it('some trades', async function () {
         await perpetualMarket.trade({
           vaultId: 0,
-          subVaultIndex: 0,
-          tradeAmounts: ['0', '500000000'],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex: 0,
+              tradeAmount: '500000000',
+              limitPrice: 0,
+            },
+          ],
           marginAmount: scaledBN(5000, 6),
-          limitPrices: [0, 0],
           deadline: 0,
         })
         await increaseTime(SAFETY_PERIOD)
@@ -294,10 +315,15 @@ describe('PerpetualMarket', function () {
         )
         await perpetualMarket.trade({
           vaultId: 0,
-          subVaultIndex: 0,
-          tradeAmounts: ['0', '500000000'],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex: 0,
+              tradeAmount: '500000000',
+              limitPrice: 0,
+            },
+          ],
           marginAmount: minCollateral.sub(vault.positionValue).add(10000000),
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -310,10 +336,21 @@ describe('PerpetualMarket', function () {
       it('hedge', async function () {
         await perpetualMarket.trade({
           vaultId: 0,
-          subVaultIndex: 0,
-          tradeAmounts: [scaledBN(-5, 7), scaledBN(2, 8)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex: 0,
+              tradeAmount: scaledBN(-5, 7),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex: 0,
+              tradeAmount: scaledBN(2, 8),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: scaledBN(5000, 6),
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -326,10 +363,21 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId: 0,
-          subVaultIndex: 0,
-          tradeAmounts: [scaledBN(5, 7), scaledBN(-2, 8)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex: 0,
+              tradeAmount: scaledBN(5, 7),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex: 0,
+              tradeAmount: scaledBN(-2, 8),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: 0,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -341,10 +389,21 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId: 0,
-          subVaultIndex: 0,
-          tradeAmounts: [scaledBN(5, 7), scaledBN(5, 7)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex: 0,
+              tradeAmount: scaledBN(5, 7),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex: 0,
+              tradeAmount: scaledBN(5, 7),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: 0,
-          limitPrices: [0, 0],
           deadline: 0,
         })
       })
@@ -440,10 +499,15 @@ describe('PerpetualMarket', function () {
     it('variance updated', async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, scaledBN(1, 6)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 6),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -455,10 +519,15 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, scaledBN(1, 6)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 6),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -468,10 +537,15 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, scaledBN(1, 6)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 6),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -484,20 +558,30 @@ describe('PerpetualMarket', function () {
       const blockNumber = await ethers.provider.getBlockNumber()
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, scaledBN(1, 6)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 6),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: blockNumber + 1,
       })
 
       await expect(
         perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(1, 6)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: blockNumber,
         }),
       ).to.be.revertedWith('PM0')
@@ -507,20 +591,30 @@ describe('PerpetualMarket', function () {
       it('reverts long by limit price', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: '11000000000',
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: ['11000000000', 0],
           deadline: 0,
         })
 
         await expect(
           perpetualMarket.trade({
             vaultId,
-            subVaultIndex,
-            tradeAmounts: [scaledBN(1, 6), 0],
+            trades: [
+              {
+                productId: FUTURE_PRODUCT_ID,
+                subVaultIndex,
+                tradeAmount: scaledBN(1, 6),
+                limitPrice: '9000000000',
+              },
+            ],
             marginAmount: MIN_MARGIN,
-            limitPrices: ['9000000000', 0],
             deadline: 0,
           }),
         ).to.be.revertedWith('PM1')
@@ -529,20 +623,30 @@ describe('PerpetualMarket', function () {
       it('reverts short by limit price', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: '9000000000',
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: ['9000000000', 0],
           deadline: 0,
         })
 
         await expect(
           perpetualMarket.trade({
             vaultId,
-            subVaultIndex,
-            tradeAmounts: [scaledBN(-1, 6), 0],
+            trades: [
+              {
+                productId: FUTURE_PRODUCT_ID,
+                subVaultIndex,
+                tradeAmount: scaledBN(-1, 6),
+                limitPrice: '11000000000',
+              },
+            ],
             marginAmount: MIN_MARGIN,
-            limitPrices: ['11000000000', 0],
             deadline: 0,
           }),
         ).to.be.revertedWith('PM1')
@@ -554,10 +658,15 @@ describe('PerpetualMarket', function () {
         await expect(
           perpetualMarket.trade({
             vaultId,
-            subVaultIndex,
-            tradeAmounts: [0, scaledBN(1, 6)],
+            trades: [
+              {
+                productId: SQUEETH_PRODUCT_ID,
+                subVaultIndex,
+                tradeAmount: scaledBN(1, 6),
+                limitPrice: 0,
+              },
+            ],
             marginAmount: MIN_MARGIN,
-            limitPrices: [0, 0],
             deadline: 0,
           }),
         )
@@ -573,10 +682,15 @@ describe('PerpetualMarket', function () {
       it('open short', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(-1, 6)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -590,10 +704,15 @@ describe('PerpetualMarket', function () {
         await expect(
           perpetualMarket.trade({
             vaultId,
-            subVaultIndex,
-            tradeAmounts: [0, scaledBN(1, 6)],
+            trades: [
+              {
+                productId: SQUEETH_PRODUCT_ID,
+                subVaultIndex,
+                tradeAmount: scaledBN(1, 6),
+                limitPrice: 0,
+              },
+            ],
             marginAmount: MIN_MARGIN,
-            limitPrices: [0, 0],
             deadline: 0,
           }),
         )
@@ -602,10 +721,15 @@ describe('PerpetualMarket', function () {
         await expect(
           perpetualMarket.trade({
             vaultId,
-            subVaultIndex,
-            tradeAmounts: [0, scaledBN(-1, 6)],
+            trades: [
+              {
+                productId: SQUEETH_PRODUCT_ID,
+                subVaultIndex,
+                tradeAmount: scaledBN(-1, 6),
+                limitPrice: 0,
+              },
+            ],
             marginAmount: '-200000000',
-            limitPrices: [0, 0],
             deadline: 0,
           }),
         )
@@ -621,10 +745,15 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(1, 6)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -633,10 +762,15 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(-1, 6)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -650,20 +784,30 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(1, 6)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(-1, 6)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
         const after = await usdc.balanceOf(wallet.address)
@@ -676,10 +820,15 @@ describe('PerpetualMarket', function () {
       it('open long', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -692,10 +841,15 @@ describe('PerpetualMarket', function () {
       it('open short', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -710,18 +864,28 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -736,10 +900,15 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -748,10 +917,15 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -765,19 +939,29 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
         await testContractHelper.updateSpot(scaledBN(90, 8))
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -791,10 +975,21 @@ describe('PerpetualMarket', function () {
       it('open Squeeth and Future contracts', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -811,18 +1006,40 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), scaledBN(-1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -836,18 +1053,34 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(-1, 6)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -861,18 +1094,34 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -886,10 +1135,21 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), scaledBN(1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -898,10 +1158,21 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), scaledBN(-1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -917,10 +1188,21 @@ describe('PerpetualMarket', function () {
         // 1M Squeeth and 1M ETH future
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 14), scaledBN(1, 14)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 14),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 14),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: scaledBN(100000000, 6),
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -929,10 +1211,21 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 14), scaledBN(-1, 14)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 14),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 14),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
       })
@@ -942,10 +1235,21 @@ describe('PerpetualMarket', function () {
       it('open long sqeeths and short futures', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -962,18 +1266,40 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -987,10 +1313,21 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -999,10 +1336,21 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -1016,10 +1364,21 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -1028,77 +1387,27 @@ describe('PerpetualMarket', function () {
 
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), scaledBN(-1, 6)],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
         const after = await usdc.balanceOf(wallet.address)
 
         expect(after.sub(before)).to.be.eq('97126')
-      })
-    })
-
-    describe('multicall', () => {
-      it('reverts multicall tx if a trade reverts', async () => {
-        const data = [
-          {
-            vaultId,
-            subVaultIndex: 0,
-            tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
-            marginAmount: MIN_MARGIN,
-            limitPrices: [0, 0],
-            deadline: 0,
-          },
-          {
-            vaultId,
-            subVaultIndex: 1,
-            tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
-            marginAmount: MIN_MARGIN,
-            limitPrices: [0, 0],
-            deadline: 1,
-          },
-        ].map((args: any) => perpetualMarket.interface.encodeFunctionData('trade', [args]))
-
-        await expect(perpetualMarket.multicall(data)).to.be.reverted
-      })
-
-      it('succeed to execute 2 trade txs', async () => {
-        const data = [
-          {
-            vaultId,
-            subVaultIndex: 0,
-            tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
-            marginAmount: MIN_MARGIN,
-            limitPrices: [0, 0],
-            deadline: 0,
-          },
-          {
-            vaultId,
-            subVaultIndex: 1,
-            tradeAmounts: [scaledBN(-1, 6), scaledBN(1, 6)],
-            marginAmount: MIN_MARGIN,
-            limitPrices: [0, 0],
-            deadline: 0,
-          },
-        ].map((args: any) => perpetualMarket.interface.encodeFunctionData('trade', [args]))
-
-        const before = await usdc.balanceOf(wallet.address)
-        await perpetualMarket.multicall(data)
-        const after = await usdc.balanceOf(wallet.address)
-
-        const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
-        const rawVaultData = vaultStatus.rawVaultData
-
-        expect(vaultStatus.minCollateral).to.be.gt(0)
-        expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
-        expect(rawVaultData.positionUsdc).to.be.eq(before.sub(after).mul(100))
-        expect(rawVaultData.subVaults[0].positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
-        expect(rawVaultData.subVaults[0].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(-1, 6))
-        expect(rawVaultData.subVaults[1].positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
-        expect(rawVaultData.subVaults[1].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(-1, 6))
       })
     })
   })
@@ -1118,10 +1427,15 @@ describe('PerpetualMarket', function () {
     it('net delta is decreased', async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, scaledBN(1, 7)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 7),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -1145,10 +1459,21 @@ describe('PerpetualMarket', function () {
     it('nothing happens if net delta is positive', async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [scaledBN(-1, 7), scaledBN(1, 6)],
+        trades: [
+          {
+            productId: FUTURE_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(-1, 7),
+            limitPrice: 0,
+          },
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 6),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -1163,10 +1488,15 @@ describe('PerpetualMarket', function () {
       beforeEach(async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(1, 7)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 7),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -1178,10 +1508,15 @@ describe('PerpetualMarket', function () {
       it('net delta increased', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(-2, 6)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-2, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -1199,10 +1534,15 @@ describe('PerpetualMarket', function () {
       it('net delta becomes 0', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(-1, 7)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 7),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -1234,10 +1574,15 @@ describe('PerpetualMarket', function () {
     it('pool receives funding fee from squeeth positions', async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, scaledBN(1, 8)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: scaledBN(2000, 6),
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -1248,10 +1593,15 @@ describe('PerpetualMarket', function () {
       await expect(
         perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(1, 8)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 8),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: 0,
-          limitPrices: [0, 0],
           deadline: 0,
         }),
       ).to.emit(testContractSet.perpetualMarketCore, 'FundingPayment')
@@ -1268,10 +1618,15 @@ describe('PerpetualMarket', function () {
     it('pool receives from positive funding fee of future positions', async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [scaledBN(1, 8), 0],
+        trades: [
+          {
+            productId: FUTURE_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: scaledBN(2000, 6),
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -1281,10 +1636,15 @@ describe('PerpetualMarket', function () {
 
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [scaledBN(1, 8), 0],
+        trades: [
+          {
+            productId: FUTURE_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: 0,
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -1296,10 +1656,15 @@ describe('PerpetualMarket', function () {
     it('pool receives from negative funding fee of future positions', async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [scaledBN(-1, 8), 0],
+        trades: [
+          {
+            productId: FUTURE_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(-1, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: scaledBN(2000, 6),
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -1310,10 +1675,15 @@ describe('PerpetualMarket', function () {
       await expect(
         perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-1, 8), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 8),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: 0,
-          limitPrices: [0, 0],
           deadline: 0,
         }),
       ).to.emit(testContractSet.perpetualMarketCore, 'FundingPayment')
@@ -1394,10 +1764,15 @@ describe('PerpetualMarket', function () {
     it('get min collateral of the vault that has positions', async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, scaledBN(10, 8)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(10, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: scaledBN(5000, 6),
-        limitPrices: [0, 0],
         deadline: 0,
       })
       const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(

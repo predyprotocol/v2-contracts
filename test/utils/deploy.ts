@@ -24,6 +24,7 @@ import {
 } from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 import { convertToken0PriceToSqrtX96Price, convertToken1PriceToSqrtX96Price } from './calculator'
 import { INonfungiblePositionManager } from '../../typechain/INonfungiblePositionManager'
+import { SQUEETH_PRODUCT_ID } from './constants'
 
 export type TestContractSet = {
   priceFeed: MockChainlinkAggregator
@@ -55,10 +56,15 @@ export class TestContractHelper {
   async openLong(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, marginAmount?: BigNumberish) {
     await this.testContractSet.perpetualMarket.connect(wallet).trade({
       vaultId,
-      subVaultIndex: 0,
-      tradeAmounts: [0, tradeAmount],
+      trades: [
+        {
+          productId: SQUEETH_PRODUCT_ID,
+          subVaultIndex: 0,
+          tradeAmount: tradeAmount,
+          limitPrice: 0,
+        },
+      ],
       marginAmount: marginAmount || 0,
-      limitPrices: [0, 0],
       deadline: 0,
     })
   }
@@ -66,10 +72,15 @@ export class TestContractHelper {
   async openShort(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, marginAmount?: BigNumberish) {
     await this.testContractSet.perpetualMarket.connect(wallet).trade({
       vaultId,
-      subVaultIndex: 0,
-      tradeAmounts: [0, BigNumber.from(tradeAmount).mul(-1)],
+      trades: [
+        {
+          productId: SQUEETH_PRODUCT_ID,
+          subVaultIndex: 0,
+          tradeAmount: BigNumber.from(tradeAmount).mul(-1),
+          limitPrice: 0,
+        },
+      ],
       marginAmount: marginAmount || 0,
-      limitPrices: [0, 0],
       deadline: 0,
     })
   }

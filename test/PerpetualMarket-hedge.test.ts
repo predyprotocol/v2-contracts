@@ -63,19 +63,41 @@ describe('hedge', function () {
 
       await perpetualMarket.trade({
         vaultId: 0,
-        subVaultIndex,
-        tradeAmounts: [scaledBN(-1, 8), scaledBN(1, 8)],
+        trades: [
+          {
+            productId: FUTURE_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(-1, 8),
+            limitPrice: 0,
+          },
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
       await perpetualMarket.trade({
         vaultId: 1,
-        subVaultIndex,
-        tradeAmounts: [scaledBN(5, 7), scaledBN(1, 8)],
+        trades: [
+          {
+            productId: FUTURE_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(5, 7),
+            limitPrice: 0,
+          },
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: 0,
       })
     })

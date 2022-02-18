@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
-import { MAX_WITHDRAW_AMOUNT, SAFETY_PERIOD } from './utils/constants'
+import { MAX_WITHDRAW_AMOUNT, SAFETY_PERIOD, SQUEETH_PRODUCT_ID } from './utils/constants'
 
 describe('liquidation', function () {
   let wallet: Wallet, other: Wallet
@@ -71,10 +71,15 @@ describe('liquidation', function () {
     beforeEach(async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, scaledBN(10, 8)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(10, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: scaledBN(615, 6),
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -86,10 +91,8 @@ describe('liquidation', function () {
       // Deposit USDC
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, 0],
+        trades: [],
         marginAmount: scaledBN(100, 6),
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -110,10 +113,8 @@ describe('liquidation', function () {
       await expect(
         perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, 0],
+          trades: [],
           marginAmount: scaledBN(1, 8),
-          limitPrices: [0, 0],
           deadline: 0,
         }),
       ).to.be.revertedWith('T2')
@@ -148,10 +149,8 @@ describe('liquidation', function () {
         const before = await usdc.balanceOf(wallet.address)
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, 0],
+          trades: [],
           marginAmount: MAX_WITHDRAW_AMOUNT,
-          limitPrices: [0, 0],
           deadline: 0,
         })
         const after = await usdc.balanceOf(wallet.address)
@@ -178,10 +177,8 @@ describe('liquidation', function () {
           // Withdraw unrequired USDC
           await perpetualMarket.trade({
             vaultId,
-            subVaultIndex,
-            tradeAmounts: [0, 0],
+            trades: [],
             marginAmount: MAX_WITHDRAW_AMOUNT,
-            limitPrices: [0, 0],
             deadline: 0,
           })
 
@@ -202,10 +199,8 @@ describe('liquidation', function () {
           const before = await usdc.balanceOf(wallet.address)
           await perpetualMarket.trade({
             vaultId,
-            subVaultIndex,
-            tradeAmounts: [0, 0],
+            trades: [],
             marginAmount: MAX_WITHDRAW_AMOUNT,
-            limitPrices: [0, 0],
             deadline: 0,
           })
           const after = await usdc.balanceOf(wallet.address)
@@ -220,18 +215,28 @@ describe('liquidation', function () {
     beforeEach(async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex: 0,
-        tradeAmounts: [0, scaledBN(10, 8)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex: 0,
+            tradeAmount: scaledBN(10, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: scaledBN(1220, 6),
-        limitPrices: [0, 0],
         deadline: 0,
       })
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex: 1,
-        tradeAmounts: [0, scaledBN(10, 8)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex: 1,
+            tradeAmount: scaledBN(10, 8),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: 0,
-        limitPrices: [0, 0],
         deadline: 0,
       })
     })
@@ -244,10 +249,8 @@ describe('liquidation', function () {
       const before = await usdc.balanceOf(wallet.address)
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex: 0,
-        tradeAmounts: [0, 0],
+        trades: [],
         marginAmount: MAX_WITHDRAW_AMOUNT,
-        limitPrices: [0, 0],
         deadline: 0,
       })
       const after = await usdc.balanceOf(wallet.address)
@@ -263,10 +266,8 @@ describe('liquidation', function () {
       const before = await usdc.balanceOf(wallet.address)
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex: 0,
-        tradeAmounts: [0, 0],
+        trades: [],
         marginAmount: MAX_WITHDRAW_AMOUNT,
-        limitPrices: [0, 0],
         deadline: 0,
       })
       const after = await usdc.balanceOf(wallet.address)
@@ -282,10 +283,8 @@ describe('liquidation', function () {
       await expect(
         perpetualMarket.trade({
           vaultId,
-          subVaultIndex: 0,
-          tradeAmounts: [0, 0],
+          trades: [],
           marginAmount: scaledBN(1, 8),
-          limitPrices: [0, 0],
           deadline: 0,
         }),
       ).to.be.revertedWith('T2')
@@ -298,10 +297,8 @@ describe('liquidation', function () {
       // Deposit USDC
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex: 0,
-        tradeAmounts: [0, 0],
+        trades: [],
         marginAmount: scaledBN(5, 7),
-        limitPrices: [0, 0],
         deadline: 0,
       })
 

@@ -4,7 +4,6 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@uniswap/v3-periphery/contracts/base/Multicall.sol";
 import "./interfaces/IFeePool.sol";
 import "./interfaces/IPerpetualMarketCore.sol";
 import "./interfaces/IPerpetualMarket.sol";
@@ -16,7 +15,7 @@ import "./lib/TraderVaultLib.sol";
  * @notice Perpetual Market Contract is entry point of traders and liquidity providers.
  * It manages traders' vault storage and holds funds from traders and liquidity providers.
  */
-contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multicall {
+contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     using SafeCast for int256;
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -130,15 +129,15 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable, Multic
 
         uint256 totalProtocolFee;
 
-        for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
+        for (uint256 i = 0; i < _tradeParams.trades.length; i++) {
             totalProtocolFee = totalProtocolFee.add(
                 updatePosition(
                     traderVaults[msg.sender][_tradeParams.vaultId],
-                    productId,
+                    _tradeParams.trades[i].productId,
                     _tradeParams.vaultId,
-                    _tradeParams.subVaultIndex,
-                    _tradeParams.tradeAmounts[productId],
-                    _tradeParams.limitPrices[productId]
+                    _tradeParams.trades[i].subVaultIndex,
+                    _tradeParams.trades[i].tradeAmount,
+                    _tradeParams.trades[i].limitPrice
                 )
             );
         }
