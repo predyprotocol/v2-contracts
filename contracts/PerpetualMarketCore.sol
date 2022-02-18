@@ -62,10 +62,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     // allowable percentage of movement in the underlying spot price
     int256 private poolMarginRiskParam;
 
-    // trade fee is 0.1%
+    // trade fee
     int256 private tradeFeeRate;
 
-    // protocol fee is 0.04%
+    // protocol fee
     int256 private protocolFeeRate;
 
     struct Pool {
@@ -151,8 +151,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         poolMarginRiskParam = 4000;
         // Trade fee is 0.05%
         tradeFeeRate = 5 * 1e4;
-        // Protocol fee is 0.04%
-        protocolFeeRate = 4 * 1e4;
+        // Protocol fee is 0.02%
+        protocolFeeRate = 2 * 1e4;
     }
 
     function setPerpetualMarket(address _perpetualMarket) external onlyOwner {
@@ -780,7 +780,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         tradePrice = tradePrice.add(tradeFee);
 
-        protocolFee = getProtocolFee(indexPrice);
+        protocolFee = getProtocolFee(_productId, indexPrice);
 
         return (tradePrice, indexPrice, fundingRate, Math.abs(tradeFee).toInt256(), protocolFee);
     }
@@ -807,10 +807,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
      * @notice Gets protocol fee
      * ProtocolFee = IndxPrice * protocolFeeRate
      */
-    function getProtocolFee(int256 _indexPrice) internal view returns (int256) {
+    function getProtocolFee(uint256 _productId, int256 _indexPrice) internal view returns (int256) {
         require(_indexPrice > 0);
 
-        return _indexPrice.mul(protocolFeeRate) / 1e8;
+        return _indexPrice.mul(protocolFeeRate).mul(int256(_productId + 1)) / 1e8;
     }
 
     function getDeltas(
