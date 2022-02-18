@@ -28,7 +28,7 @@ task("vault", "get vault status")
     console.log('Value          : $', toUnscaled(vaultStatus.positionValue, 8).toLocaleString())
     console.log('MinCollateral  : $', toUnscaled(vaultStatus.minCollateral, 8).toLocaleString())
 
-    const liquidationPrices = getVaultLiquidationPrice(vaultStatus.rawVaultData)
+    const liquidationPrices = getVaultLiquidationPrice(vaultStatus)
 
     console.log('Underlying Price  : $', toUnscaled(roundData.answer, 8).toLocaleString())
 
@@ -67,18 +67,20 @@ task("vault", "get vault status")
     }
   })
 
-function getVaultLiquidationPrice(rawVaultData: any) {
+function getVaultLiquidationPrice(vaultStatus: any) {
+  const rawVaultData = vaultStatus.rawVaultData
   const a0 = rawVaultData.subVaults.reduce((acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[0]), BigNumber.from(0))
   const a1 = rawVaultData.subVaults.reduce((acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[1]), BigNumber.from(0))
   const e0 = rawVaultData.subVaults.reduce((acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[0].mul(subVault.entryPrices[0])), BigNumber.from(0))
   const e1 = rawVaultData.subVaults.reduce((acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[1].mul(subVault.entryPrices[1])), BigNumber.from(0))
+  const fundingPaid = vaultStatus.fundingPaid.reduce((acc: BigNumber, fundingPaid: any) => acc.add(fundingPaid[0].add(fundingPaid[1])), BigNumber.from(0))
 
   return getLiquidationPrice(
     toUnscaled(a0, 8),
     toUnscaled(a1, 8),
     a0.eq(0) ? 0 : toUnscaled(e0.div(a0), 8),
     a1.eq(0) ? 0 : toUnscaled(e1.div(a1), 8),
-    toUnscaled(rawVaultData.positionUsdc, 8)
+    toUnscaled(rawVaultData.positionUsdc.add(fundingPaid), 8)
   )
 }
 
