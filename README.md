@@ -57,3 +57,21 @@ Check contract size
 ```shell
 npx hardhat size-contracts
 ```
+
+### Deploy
+
+To deploy contract on testnet or mainnet, you'll need to provide an infura key to connect to an infura node.
+Copy .env.example file as .env and specify your keys there.
+
+```shell
+npx hardhat run --network rinkebyArbitrum ./scripts/deploy.ts
+```
+
+### Call Contracts
+
+Gets vault status.
+
+```shell
+npx hardhat vault --network rinkebyArbitrum
+```
+

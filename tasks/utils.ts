@@ -27,7 +27,7 @@ export const networkNameToWETH = (name: string) => {
 export const networkNameToPerpetualMarket = (name: string) => {
   switch (name) {
     case 'kovan': return '0x3A53C9e69950E8e2CDaC889E387fB182A009463D'
-    case 'rinkebyArbitrum': return '0x1A053d06058648CCdf158b9d1cB64C16690E84Cf'
+    case 'rinkebyArbitrum': return '0x0B638F90B9C5F3AF2353Fa1981a40Ba0DfA80Af9'
     default: return undefined
   }
 }
@@ -35,7 +35,7 @@ export const networkNameToPerpetualMarket = (name: string) => {
 export const networkNameToPerpetualMarketCore = (name: string) => {
   switch (name) {
     case 'kovan': return '0xe0cdA1F5433409B08D6f28FBe4c5daad88D897f6'
-    case 'rinkebyArbitrum': return '0x99aA8873104d04484881Ea75B3431bC99d325EdD'
+    case 'rinkebyArbitrum': return '0xe35DC57CBa81e9EC00A6ad80265280F06f29d6cC'
     default: return undefined
   }
 }
