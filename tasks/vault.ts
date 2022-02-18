@@ -1,6 +1,6 @@
 import { task, types } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
-import { getPerpetualMarket, toUnscaled } from "./utils";
+import { getPerpetualMarket, getPriceFeed, toUnscaled } from "./utils";
 
 // Example execution
 /**
@@ -17,6 +17,10 @@ task("vault", "get vault status")
     const { deployer } = await getNamedAccounts();
 
     const perpetualMarket = await getPerpetualMarket(ethers, deployer, network.name)
+    const priceFeed = await getPriceFeed(ethers, deployer, network.name)
+
+    const roundData = await priceFeed.latestRoundData()
+    console.log(roundData.answer)
 
     const vaultStatus = await perpetualMarket.getVaultStatus(deployer, vaultId)
 
@@ -28,21 +32,26 @@ task("vault", "get vault status")
     for (let i = 0; i < vaultStatus.positionValues.length; i++) {
       console.log(` SubVault: ${i}`)
       console.log('  Future : $', toUnscaled(vaultStatus.positionValues[i][0], 8).toLocaleString())
-      console.log('  Sqeeth : $', toUnscaled(vaultStatus.positionValues[i][1], 8).toLocaleString())
+      console.log('  Squared : $', toUnscaled(vaultStatus.positionValues[i][1], 8).toLocaleString())
     }
 
     console.log('FundingPaid')
     for (let i = 0; i < vaultStatus.fundingPaid.length; i++) {
       console.log(` SubVault: ${i}`)
       console.log('  Future : $', toUnscaled(vaultStatus.fundingPaid[i][0], 8).toLocaleString())
-      console.log('  Sqeeth : $', toUnscaled(vaultStatus.fundingPaid[i][1], 8).toLocaleString())
+      console.log('  Squared : $', toUnscaled(vaultStatus.fundingPaid[i][1], 8).toLocaleString())
     }
 
     console.log('Positions')
     for (let i = 0; i < vaultStatus.rawVaultData.subVaults.length; i++) {
+      const future = vaultStatus.rawVaultData.subVaults[i].positionPerpetuals[0]
+      const squared = vaultStatus.rawVaultData.subVaults[i].positionPerpetuals[1]
+      const delta = squared.mul(2).mul(roundData.answer).div('1000000000000').add(future)
+
       console.log(` SubVault: ${i}`)
-      console.log('  Future :  ', toUnscaled(vaultStatus.rawVaultData.subVaults[i].positionPerpetuals[0], 8).toLocaleString())
-      console.log('  Sqeeth :  ', toUnscaled(vaultStatus.rawVaultData.subVaults[i].positionPerpetuals[1], 8).toLocaleString())
+      console.log('  Future :  ', toUnscaled(future, 8).toLocaleString())
+      console.log('  Squared :  ', toUnscaled(squared, 8).toLocaleString())
+      console.log('  Delta   :  ', toUnscaled(delta, 8).toLocaleString())
     }
   })
 

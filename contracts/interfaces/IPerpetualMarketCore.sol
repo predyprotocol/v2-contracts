@@ -50,6 +50,8 @@ interface IPerpetualMarketCore {
             int256
         );
 
+    function rebalance() external;
+
     function getTokenAmountForHedging() external view returns (NettingLib.CompleteParams memory completeParams);
 
     function getLPTokenPrice(int256 _deltaLiquidityAmount) external view returns (uint256);

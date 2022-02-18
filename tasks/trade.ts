@@ -2,6 +2,7 @@ import { task, types } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import { getPerpetualMarket, getUSDC } from "./utils";
 import { BigNumber } from "ethers";
+import { FUTURE_PRODUCT_ID, SQUEETH_PRODUCT_ID } from "../test/utils/constants";
 
 // Example execution
 /**
@@ -34,7 +35,29 @@ task("trade", "trade perpetuals")
     }
 
     console.log('Start to trade')
-    const tx = await perpetualMarket.trade({ vaultId, subVaultIndex, tradeAmounts: [tradeAmount0, tradeAmount1], marginAmount, limitPrices: [0, 0], deadline: 0 })
+    const tradeParams = []
+    if (!BigNumber.from(tradeAmount0).eq(0)) {
+      tradeParams.push({
+        productId: FUTURE_PRODUCT_ID,
+        subVaultIndex,
+        tradeAmount: tradeAmount0,
+        limitPrice: 0
+      })
+    }
+    if (!BigNumber.from(tradeAmount1).eq(0)) {
+      tradeParams.push({
+        productId: SQUEETH_PRODUCT_ID,
+        subVaultIndex,
+        tradeAmount: tradeAmount1,
+        limitPrice: 0
+      })
+    }
+    const tx = await perpetualMarket.trade({
+      vaultId,
+      trades: tradeParams,
+      marginAmount,
+      deadline: 0
+    })
     await tx.wait()
     console.log('Suceed to trade')
   })

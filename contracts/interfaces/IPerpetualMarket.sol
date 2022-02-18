@@ -7,11 +7,16 @@ import "../lib/TraderVaultLib.sol";
 interface IPerpetualMarket {
     struct MultiTradeParams {
         uint256 vaultId;
-        uint256 subVaultIndex;
-        int128[2] tradeAmounts;
+        TradeParams[] trades;
         int256 marginAmount;
-        uint256[2] limitPrices;
         uint256 deadline;
+    }
+
+    struct TradeParams {
+        uint256 productId;
+        uint256 subVaultIndex;
+        int128 tradeAmount;
+        uint256 limitPrice;
     }
 
     struct VaultStatus {

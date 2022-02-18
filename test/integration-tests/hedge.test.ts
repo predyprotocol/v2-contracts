@@ -15,7 +15,7 @@ import {
 } from '../utils/deploy'
 import { increaseTime, scaledBN } from '../utils/helpers'
 import { FlashHedge } from '../../typechain/FlashHedge'
-import { MIN_MARGIN } from '../utils/constants'
+import { FUTURE_PRODUCT_ID, MIN_MARGIN, SQUEETH_PRODUCT_ID } from '../utils/constants'
 
 describe('FlashHedge', function () {
   let wallet: Wallet
@@ -84,10 +84,15 @@ describe('FlashHedge', function () {
     it('buy ETH to hedge', async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, scaledBN(1, 6)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 6),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -106,10 +111,21 @@ describe('FlashHedge', function () {
     it('reverts if net delta is positive', async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [scaledBN(-1, 7), scaledBN(1, 6)],
+        trades: [
+          {
+            productId: FUTURE_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(-1, 7),
+            limitPrice: 0,
+          },
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 6),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -119,10 +135,15 @@ describe('FlashHedge', function () {
     it('reverts if ETH price in Uniswap is too high', async () => {
       await perpetualMarket.trade({
         vaultId,
-        subVaultIndex,
-        tradeAmounts: [0, scaledBN(1, 6)],
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 6),
+            limitPrice: 0,
+          },
+        ],
         marginAmount: MIN_MARGIN,
-        limitPrices: [0, 0],
         deadline: 0,
       })
 
@@ -135,10 +156,15 @@ describe('FlashHedge', function () {
       beforeEach(async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(1, 7)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 7),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -150,10 +176,15 @@ describe('FlashHedge', function () {
       it('sell ETH to hedge', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(-2, 6)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-2, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: scaledBN(1, 8),
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -167,10 +198,15 @@ describe('FlashHedge', function () {
       it('reverts if ETH price in Uniswap is too low', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [0, scaledBN(-2, 6)],
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-2, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: scaledBN(1, 8),
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -184,10 +220,15 @@ describe('FlashHedge', function () {
       beforeEach(async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(1, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 
@@ -199,10 +240,15 @@ describe('FlashHedge', function () {
       it('net delta is positive and sell all ETH to hedge', async () => {
         await perpetualMarket.trade({
           vaultId,
-          subVaultIndex,
-          tradeAmounts: [scaledBN(-2, 6), 0],
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-2, 6),
+              limitPrice: 0,
+            },
+          ],
           marginAmount: MIN_MARGIN,
-          limitPrices: [0, 0],
           deadline: 0,
         })
 

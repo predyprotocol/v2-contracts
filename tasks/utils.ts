@@ -1,7 +1,16 @@
 import { BigNumber } from "ethers"
 
+export const networkNameToPriceFeed = (name: string) => {
+  switch (name) {
+    case 'kovan': return '0x9326BFA02ADD2366b30bacB125260Af641031331'
+    case 'rinkebyArbitrum': return '0x5f0423B1a6935dc5596e7A24d98532b67A0AeFd8'
+    default: return undefined
+  }
+}
+
 export const networkNameToUSDC = (name: string) => {
   switch (name) {
+    case 'kovan': return '0xe22da380ee6b445bb8273c81944adeb6e8450422'
     case 'rinkebyArbitrum': return '0xb8588b977F48c28f8eBfb12f48bC74cE7eAFA281'
     default: return undefined
   }
@@ -9,6 +18,7 @@ export const networkNameToUSDC = (name: string) => {
 
 export const networkNameToWETH = (name: string) => {
   switch (name) {
+    case 'kovan': return '0xd0a1e359811322d97991e03f863a0c30c2cf029c'
     case 'rinkebyArbitrum': return '0x5D7E4863a7B312F4F8449FEC3d50b9Fc9068EC8E'
     default: return undefined
   }
@@ -16,14 +26,16 @@ export const networkNameToWETH = (name: string) => {
 
 export const networkNameToPerpetualMarket = (name: string) => {
   switch (name) {
-    case 'rinkebyArbitrum': return '0x51395b4e2b99e92C230Bc3800eF5fCbE4c7316Fd'
+    case 'kovan': return '0x3A53C9e69950E8e2CDaC889E387fB182A009463D'
+    case 'rinkebyArbitrum': return '0x1A053d06058648CCdf158b9d1cB64C16690E84Cf'
     default: return undefined
   }
 }
 
 export const networkNameToPerpetualMarketCore = (name: string) => {
   switch (name) {
-    case 'rinkebyArbitrum': return '0xff6ecE96Ed48Fc19a6f7a30C88733e2A9b05c043'
+    case 'kovan': return '0xe0cdA1F5433409B08D6f28FBe4c5daad88D897f6'
+    case 'rinkebyArbitrum': return '0x99aA8873104d04484881Ea75B3431bC99d325EdD'
     default: return undefined
   }
 }
@@ -33,6 +45,16 @@ export const networkNameToFlashHedge = (name: string) => {
     case 'rinkebyArbitrum': return '0xd8EaC40f5DCbd68fb7D6B9275C0b39c5ED8ae8bf'
     default: return undefined
   }
+}
+
+export const getPriceFeed = async (ethers: any, deployer: string, networkName: string) => {
+  const usdcAddress = networkNameToPriceFeed(networkName)
+  if (usdcAddress === undefined) {
+    // use to local deployment as USDC
+    return ethers.getContract("AggregatorV3Interface", deployer)
+  }
+  // get contract instance at address
+  return ethers.getContractAt('AggregatorV3Interface', usdcAddress)
 }
 
 export const getUSDC = async (ethers: any, deployer: string, networkName: string) => {
@@ -57,7 +79,7 @@ export const getWETH = async (ethers: any, deployer: string, networkName: string
 export const getPerpetualMarket = async (ethers: any, deployer: string, networkName: string) => {
   const perpetualMarketAddress = networkNameToPerpetualMarket(networkName)
   if (perpetualMarketAddress === undefined) {
-    return ethers.getContract("PerpetualMarket", deployer);
+    return ethers.getContract("PerpetualMarket", deployer)
   }
   return ethers.getContractAt('PerpetualMarket', perpetualMarketAddress)
 }
