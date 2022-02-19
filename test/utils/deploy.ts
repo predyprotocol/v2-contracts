@@ -111,7 +111,11 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const priceFeed = (await MockChainlinkAggregator.deploy()) as MockChainlinkAggregator
 
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
-  const perpetualMarketCore = (await PerpetualMarketCore.deploy(priceFeed.address)) as PerpetualMarketCore
+  const perpetualMarketCore = (await PerpetualMarketCore.deploy(
+    priceFeed.address,
+    'Predy V2 LP Token',
+    'PREDY-V2-LP',
+  )) as PerpetualMarketCore
 
   const MockFeePool = await ethers.getContractFactory('MockFeePool')
   const mockFeePool = (await MockFeePool.deploy(usdc.address)) as MockFeePool

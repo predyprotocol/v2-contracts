@@ -9,7 +9,7 @@ import "../PerpetualMarketCore.sol";
  * @notice Tester contract for Perpetual Market Core
  */
 contract PerpetualMarketCoreTester is PerpetualMarketCore {
-    constructor(address _priceFeedAddress) PerpetualMarketCore(_priceFeedAddress) {}
+    constructor(address _priceFeedAddress) PerpetualMarketCore(_priceFeedAddress, "TestLPToken", "TestLPToken") {}
 
     function testCalculateUnlockedLiquidity(
         uint256 _amountLockedLiquidity,

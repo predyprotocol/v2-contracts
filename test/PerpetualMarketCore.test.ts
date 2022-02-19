@@ -29,7 +29,7 @@ describe('PerpetualMarketCore', function () {
     priceFeed = (await MockChainlinkAggregator.deploy()) as MockChainlinkAggregator
 
     const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
-    perpetualMarketCore = (await PerpetualMarketCore.deploy(priceFeed.address)) as PerpetualMarketCore
+    perpetualMarketCore = (await PerpetualMarketCore.deploy(priceFeed.address, '', '')) as PerpetualMarketCore
 
     await perpetualMarketCore.setPerpetualMarket(wallet.address)
 
