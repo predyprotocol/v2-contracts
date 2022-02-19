@@ -127,7 +127,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         _;
     }
 
-    constructor(address _priceFeedAddress) ERC20("Predy V2 LP Token", "PREDY-V2-LP") {
+    constructor(
+        address _priceFeedAddress,
+        string memory _tokenName,
+        string memory _tokenSymbol
+    ) ERC20(_tokenName, _tokenSymbol) {
         // The decimals of LP token is 6
         _setupDecimals(6);
 

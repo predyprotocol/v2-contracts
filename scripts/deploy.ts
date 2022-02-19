@@ -14,6 +14,8 @@ async function main() {
     return
   }
 
+  const lpTokenName = 'Predy V2 LP Token'
+  const lpTokenSymbol = 'PREDY-V2-LP'
 
   let priceFeedAddress
   let wethAddress
@@ -127,7 +129,7 @@ async function main() {
   }
 
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
-  const perpetualMarketCore = await PerpetualMarketCore.deploy(priceFeedAddress)
+  const perpetualMarketCore = await PerpetualMarketCore.deploy(priceFeedAddress, lpTokenName, lpTokenSymbol)
   await perpetualMarketCore.deployed();
   console.log(`PerpetualMarketCore deployed to ${perpetualMarketCore.address}`)
 
