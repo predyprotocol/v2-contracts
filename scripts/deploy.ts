@@ -16,6 +16,8 @@ async function main() {
 
   const lpTokenName = 'Predy V2 LP Token'
   const lpTokenSymbol = 'PREDY-V2-LP'
+  const vaultTokenName = 'Vault Token'
+  const vaultTokenSymbol = 'ΔΓVault'
 
   let priceFeedAddress
   let wethAddress
@@ -136,8 +138,12 @@ async function main() {
   const TraderVaultLib = await ethers.getContractFactory('TraderVaultLib')
   const traderVaultLib = await TraderVaultLib.deploy()
   await traderVaultLib.deployed();
-
   console.log(`TraderVaultLib deployed to ${traderVaultLib.address}`)
+
+  const VaultNFT = await ethers.getContractFactory('VaultNFT')
+  const vaultNFT = await VaultNFT.deploy(vaultTokenName, vaultTokenSymbol)
+  await vaultNFT.deployed();
+  console.log(`VaultNFT deployed to ${vaultNFT.address}`)
 
   const PerpetualMarket = await ethers.getContractFactory('PerpetualMarket', {
     libraries: {
@@ -148,7 +154,8 @@ async function main() {
     perpetualMarketCore.address,
     usdcAddress,
     wethAddress,
-    feePoolAddress
+    feePoolAddress,
+    vaultNFT.address
   )
   await perpetualMarket.deployed();
   console.log(`PerpetualMarket deployed to ${perpetualMarket.address}`)
