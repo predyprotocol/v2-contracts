@@ -137,7 +137,7 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     usdc.address,
     weth.address,
     mockFeePool.address,
-    vaultNFT.address
+    vaultNFT.address,
   )) as PerpetualMarket
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)

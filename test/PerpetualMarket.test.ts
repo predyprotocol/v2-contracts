@@ -87,8 +87,6 @@ describe('PerpetualMarket', function () {
   })
 
   describe('deposit', () => {
-    const vaultId = 0
-
     describe('failure cases', () => {
       it('reverts if amount is 0', async () => {
         await expect(perpetualMarket.deposit(0)).to.be.reverted
@@ -249,8 +247,6 @@ describe('PerpetualMarket', function () {
     })
 
     describe('withdraw all liquidity', () => {
-      const vaultId = 0
-
       beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(2951, 8))
         await perpetualMarket.deposit(scaledBN(100000 - 100, 6))
@@ -307,11 +303,7 @@ describe('PerpetualMarket', function () {
       it('liquidation happened', async function () {
         const vault = await perpetualMarket.getVaultStatus(1)
 
-        const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(
-          1,
-          ['0', '500000000'],
-          0,
-        )
+        const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(1, ['0', '500000000'], 0)
         await perpetualMarket.trade({
           vaultId: 0,
           trades: [
@@ -480,7 +472,6 @@ describe('PerpetualMarket', function () {
   })
 
   describe('trade', () => {
-    const vaultId = 0
     const subVaultIndex = 0
 
     beforeEach(async () => {
@@ -684,6 +675,35 @@ describe('PerpetualMarket', function () {
           }),
         ).to.be.revertedWith('ERC721: owner query for nonexistent token')
       })
+    })
+
+    it('reverts if try to trade with the vault that has no margin', async () => {
+      await expect(
+        perpetualMarket.trade({
+          vaultId: 0,
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: 1234567,
+              limitPrice: 0,
+            },
+          ],
+          marginAmount: 0,
+          deadline: 0,
+        }),
+      ).to.be.revertedWith('T4')
+    })
+
+    it('reverts if try to withdraw from the vault that has no margin', async () => {
+      await expect(
+        perpetualMarket.trade({
+          vaultId: 0,
+          trades: [],
+          marginAmount: MAX_WITHDRAW_AMOUNT,
+          deadline: 0,
+        }),
+      ).to.be.revertedWith('T4')
     })
 
     describe('Squeeth', () => {
@@ -1446,7 +1466,6 @@ describe('PerpetualMarket', function () {
   })
 
   describe('execHedge', () => {
-    const vaultId = 0
     const subVaultIndex = 0
 
     beforeEach(async () => {
@@ -1593,7 +1612,6 @@ describe('PerpetualMarket', function () {
   })
 
   describe('funding payment', () => {
-    const vaultId = 0
     const subVaultIndex = 0
 
     beforeEach(async () => {
@@ -1745,11 +1763,7 @@ describe('PerpetualMarket', function () {
     })
 
     it('get min collateral of 0 positions', async () => {
-      const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(
-        vaultId,
-        [0, 0],
-        scaledBN(1000, 8),
-      )
+      const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(vaultId, [0, 0], scaledBN(1000, 8))
       expect(minCollateral).to.be.eq(0)
     })
 
