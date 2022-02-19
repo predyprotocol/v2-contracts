@@ -9,11 +9,17 @@ import "./interfaces/IPerpetualMarketCore.sol";
 import "./interfaces/IPerpetualMarket.sol";
 import "./base/BaseLiquidityPool.sol";
 import "./lib/TraderVaultLib.sol";
+import "./interfaces/IVaultNFT.sol";
 
 /**
  * @title Perpetual Market
  * @notice Perpetual Market Contract is entry point of traders and liquidity providers.
  * It manages traders' vault storage and holds funds from traders and liquidity providers.
+ *
+ * Error Codes
+ * PM0: tx exceed deadline
+ * PM1: limit price
+ * PM2: caller is not vault owner
  */
 contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     using SafeCast for int256;
@@ -32,8 +38,10 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     // Fee recepient address
     IFeePool public feeRecepient;
 
+    address private vaultNFT;
+
     // trader's vaults storage
-    mapping(address => mapping(uint256 => TraderVaultLib.TraderVault)) private traderVaults;
+    mapping(uint256 => TraderVaultLib.TraderVault) private traderVaults;
 
     event Deposited(address indexed account, uint256 issued, uint256 amount);
 
@@ -51,7 +59,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     );
     event DepositedToVault(address indexed trader, uint256 vaultId, uint256 amount);
     event WithdrawnFromVault(address indexed trader, uint256 vaultId, uint256 amount);
-    event Liquidated(address liquidator, address indexed vaultOwner, uint256 vaultId, uint256 reward);
+    event Liquidated(address indexed vaultOwner, uint256 vaultId, uint256 reward);
 
     event Hedged(address hedger, bool isBuyingUnderlying, uint256 usdcAmount, uint256 underlyingAmount);
 
@@ -64,12 +72,14 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         address _perpetualMarketCoreAddress,
         address _quoteAsset,
         address _underlyingAsset,
-        address _feeRecepient
+        address _feeRecepient,
+        address _vaultNFT
     ) BaseLiquidityPool(_quoteAsset, _underlyingAsset) {
         require(_feeRecepient != address(0));
 
         perpetualMarketCore = IPerpetualMarketCore(_perpetualMarketCoreAddress);
         feeRecepient = IFeePool(_feeRecepient);
+        vaultNFT = _vaultNFT;
     }
 
     /**
@@ -127,12 +137,18 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         // check the transaction not exceed deadline
         require(_tradeParams.deadline == 0 || _tradeParams.deadline >= block.number, "PM0");
 
+        if (_tradeParams.vaultId == 0) {
+            _tradeParams.vaultId = IVaultNFT(vaultNFT).mintNFT(msg.sender);
+        } else {
+            require(IVaultNFT(vaultNFT).ownerOf(_tradeParams.vaultId) == msg.sender, "PM2");
+        }
+
         uint256 totalProtocolFee;
 
         for (uint256 i = 0; i < _tradeParams.trades.length; i++) {
             totalProtocolFee = totalProtocolFee.add(
                 updatePosition(
-                    traderVaults[msg.sender][_tradeParams.vaultId],
+                    traderVaults[_tradeParams.vaultId],
                     _tradeParams.trades[i].productId,
                     _tradeParams.vaultId,
                     _tradeParams.trades[i].subVaultIndex,
@@ -150,11 +166,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         int256 finalDepositOrWithdrawAmount;
 
-        finalDepositOrWithdrawAmount = traderVaults[msg.sender][_tradeParams.vaultId].updateUsdcPosition(
+        finalDepositOrWithdrawAmount = traderVaults[_tradeParams.vaultId].updateUsdcPosition(
             _tradeParams.marginAmount.mul(1e2),
-            perpetualMarketCore.getTradePriceInfo(
-                traderVaults[msg.sender][_tradeParams.vaultId].getPositionPerpetuals()
-            )
+            perpetualMarketCore.getTradePriceInfo(traderVaults[_tradeParams.vaultId].getPositionPerpetuals())
         );
 
         perpetualMarketCore.updatePoolSnapshot();
@@ -174,11 +188,10 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      * @notice Liquidates a vault by Pool
      * Anyone can liquidate a vault whose PositionValue is less than MinCollateral.
      * The caller gets a portion of the margin as reward.
-     * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
      */
-    function liquidateByPool(address _vaultOwner, uint256 _vaultId) external override {
-        TraderVaultLib.TraderVault storage traderVault = traderVaults[_vaultOwner][_vaultId];
+    function liquidateByPool(uint256 _vaultId) external override {
+        TraderVaultLib.TraderVault storage traderVault = traderVaults[_vaultId];
 
         IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
             traderVault.getPositionPerpetuals()
@@ -217,7 +230,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
         }
 
-        emit Liquidated(msg.sender, _vaultOwner, _vaultId, reward);
+        emit Liquidated(msg.sender, _vaultId, reward);
     }
 
     function updatePosition(
@@ -377,19 +390,17 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
     /**
      * @notice Gets value of min collateral to add positions
-     * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
      * @param _tradeAmounts amounts to trade
      * @param _spotPrice spot price if 0 current oracle price will be used
      * @return minCollateral scaled by 1e6
      */
     function getMinCollateralToAddPosition(
-        address _vaultOwner,
         uint256 _vaultId,
         int128[2] memory _tradeAmounts,
         uint256 _spotPrice
     ) external view override returns (int256 minCollateral) {
-        TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
+        TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultId];
 
         minCollateral = traderVault.getMinCollateralToAddPosition(
             _tradeAmounts,
@@ -402,12 +413,11 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
     /**
      * @notice Gets position value of a vault
-     * @param _vaultOwner The address of vault owner
      * @param _vaultId The id of target vault
      * @return vault status
      */
-    function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view override returns (VaultStatus memory) {
-        TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultOwner][_vaultId];
+    function getVaultStatus(uint256 _vaultId) external view override returns (VaultStatus memory) {
+        TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultId];
 
         IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
             traderVault.getPositionPerpetuals()

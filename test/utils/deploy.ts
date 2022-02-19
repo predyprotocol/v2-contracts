@@ -8,6 +8,7 @@ import {
   MockERC20,
   MockChainlinkAggregator,
   IFeePool,
+  VaultNFT,
 } from '../../typechain'
 import { scaledBN } from './helpers'
 import {
@@ -117,6 +118,9 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     'PREDY-V2-LP',
   )) as PerpetualMarketCore
 
+  const VaultNFT = await ethers.getContractFactory('VaultNFT')
+  const vaultNFT = (await VaultNFT.deploy('Vault NFT', 'ΔΓVault')) as VaultNFT
+
   const MockFeePool = await ethers.getContractFactory('MockFeePool')
   const mockFeePool = (await MockFeePool.deploy(usdc.address)) as MockFeePool
 
@@ -133,9 +137,11 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     usdc.address,
     weth.address,
     mockFeePool.address,
+    vaultNFT.address
   )) as PerpetualMarket
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
+  await vaultNFT.init(perpetualMarket.address)
 
   return {
     weth,

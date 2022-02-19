@@ -46,7 +46,7 @@ interface IPerpetualMarket {
 
     function trade(MultiTradeParams memory _tradeParams) external;
 
-    function liquidateByPool(address _vaultOwner, uint256 _vaultId) external;
+    function liquidateByPool(uint256 _vaultId) external;
 
     function getTokenAmountForHedging()
         external
@@ -67,11 +67,10 @@ interface IPerpetualMarket {
         returns (TradeInfo memory tradePriceInfo);
 
     function getMinCollateralToAddPosition(
-        address _vaultOwner,
         uint256 _vaultId,
         int128[2] memory _tradeAmounts,
         uint256 spotPrice
     ) external view returns (int256 minCollateral);
 
-    function getVaultStatus(address _vaultOwner, uint256 _vaultId) external view returns (VaultStatus memory);
+    function getVaultStatus(uint256 _vaultId) external view returns (VaultStatus memory);
 }

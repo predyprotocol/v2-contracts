@@ -125,11 +125,11 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.updateSpot(scaledBN(100, 8))
 
-        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8), MIN_MARGIN)
+        await testContractHelper.openLong(wallet, 0, scaledBN(1, 8), MIN_MARGIN)
 
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, scaledBN(5, 7))
+        await testContractHelper.openShort(wallet, 1, scaledBN(5, 7))
       })
 
       it('deposit', async () => {
@@ -176,11 +176,11 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.updateSpot(scaledBN(100, 8))
 
-        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8), MIN_MARGIN)
+        await testContractHelper.openLong(wallet, 0, scaledBN(1, 8), MIN_MARGIN)
 
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, scaledBN(5, 7))
+        await testContractHelper.openShort(wallet, 1, scaledBN(5, 7))
 
         await increaseTime(SAFETY_PERIOD)
       })
@@ -261,7 +261,7 @@ describe('PerpetualMarket', function () {
         const pool0 = await testContractSet.perpetualMarketCore.pools(0)
         const pool1 = await testContractSet.perpetualMarketCore.pools(1)
         await perpetualMarket.trade({
-          vaultId: 0,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -305,11 +305,10 @@ describe('PerpetualMarket', function () {
       })
 
       it('liquidation happened', async function () {
-        const vault = await perpetualMarket.getVaultStatus(wallet.address, 0)
+        const vault = await perpetualMarket.getVaultStatus(1)
 
         const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(
-          wallet.address,
-          0,
+          1,
           ['0', '500000000'],
           0,
         )
@@ -330,7 +329,7 @@ describe('PerpetualMarket', function () {
         await testContractHelper.updateSpot(scaledBN(2800, 8))
         await increaseTime(SAFETY_PERIOD)
 
-        await perpetualMarket.liquidateByPool(wallet.address, vaultId)
+        await perpetualMarket.liquidateByPool(1)
       })
 
       it('hedge', async function () {
@@ -362,7 +361,7 @@ describe('PerpetualMarket', function () {
         await increaseTime(SAFETY_PERIOD)
 
         await perpetualMarket.trade({
-          vaultId: 0,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -388,7 +387,7 @@ describe('PerpetualMarket', function () {
         await increaseTime(SAFETY_PERIOD)
 
         await perpetualMarket.trade({
-          vaultId: 0,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -410,17 +409,15 @@ describe('PerpetualMarket', function () {
     })
 
     describe('tokenPrice becomes high', () => {
-      const vaultId = 0
-
       beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(100, 8))
 
-        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8), MIN_MARGIN)
+        await testContractHelper.openLong(wallet, 0, scaledBN(1, 8), MIN_MARGIN)
 
         await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot(scaledBN(94, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8))
+        await testContractHelper.openShort(wallet, 1, scaledBN(1, 8))
       })
 
       it('withdraw all', async function () {
@@ -447,17 +444,15 @@ describe('PerpetualMarket', function () {
     })
 
     describe('tokenPrice becomes low', () => {
-      const vaultId = 0
-
       beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(100, 8))
 
-        await testContractHelper.openLong(wallet, vaultId, scaledBN(1, 8), MIN_MARGIN)
+        await testContractHelper.openLong(wallet, 0, scaledBN(1, 8), MIN_MARGIN)
 
         await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot(scaledBN(106, 8))
 
-        await testContractHelper.openShort(wallet, vaultId, scaledBN(1, 8))
+        await testContractHelper.openShort(wallet, 1, scaledBN(1, 8))
       })
 
       it('withdraw all', async function () {
@@ -498,7 +493,7 @@ describe('PerpetualMarket', function () {
 
     it('variance updated', async () => {
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 0,
         trades: [
           {
             productId: SQUEETH_PRODUCT_ID,
@@ -518,7 +513,7 @@ describe('PerpetualMarket', function () {
       await increaseTime(VARIANCE_UPDATE_INTERVAL)
 
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 1,
         trades: [
           {
             productId: SQUEETH_PRODUCT_ID,
@@ -536,7 +531,7 @@ describe('PerpetualMarket', function () {
       await increaseTime(VARIANCE_UPDATE_INTERVAL)
 
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 1,
         trades: [
           {
             productId: SQUEETH_PRODUCT_ID,
@@ -557,7 +552,7 @@ describe('PerpetualMarket', function () {
     it('reverts by deadline', async () => {
       const blockNumber = await ethers.provider.getBlockNumber()
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 0,
         trades: [
           {
             productId: SQUEETH_PRODUCT_ID,
@@ -572,7 +567,7 @@ describe('PerpetualMarket', function () {
 
       await expect(
         perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -590,7 +585,7 @@ describe('PerpetualMarket', function () {
     describe('limit price', () => {
       it('reverts long by limit price', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -605,7 +600,7 @@ describe('PerpetualMarket', function () {
 
         await expect(
           perpetualMarket.trade({
-            vaultId,
+            vaultId: 1,
             trades: [
               {
                 productId: FUTURE_PRODUCT_ID,
@@ -622,7 +617,7 @@ describe('PerpetualMarket', function () {
 
       it('reverts short by limit price', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -637,7 +632,7 @@ describe('PerpetualMarket', function () {
 
         await expect(
           perpetualMarket.trade({
-            vaultId,
+            vaultId: 1,
             trades: [
               {
                 productId: FUTURE_PRODUCT_ID,
@@ -653,11 +648,49 @@ describe('PerpetualMarket', function () {
       })
     })
 
+    describe('access control', () => {
+      it('reverts if caller is not vault owner', async () => {
+        await perpetualMarket.trade({
+          vaultId: 0,
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(1, 6),
+              limitPrice: '11000000000',
+            },
+          ],
+          marginAmount: MIN_MARGIN,
+          deadline: 0,
+        })
+
+        await expect(
+          perpetualMarket.connect(other).trade({
+            vaultId: 1,
+            trades: [],
+            marginAmount: MAX_WITHDRAW_AMOUNT,
+            deadline: 0,
+          }),
+        ).to.be.revertedWith('PM2')
+      })
+
+      it('reverts if vault does not exist', async () => {
+        await expect(
+          perpetualMarket.connect(other).trade({
+            vaultId: 1,
+            trades: [],
+            marginAmount: MAX_WITHDRAW_AMOUNT,
+            deadline: 0,
+          }),
+        ).to.be.revertedWith('ERC721: owner query for nonexistent token')
+      })
+    })
+
     describe('Squeeth', () => {
       it('open position and emit an event', async () => {
         await expect(
           perpetualMarket.trade({
-            vaultId,
+            vaultId: 0,
             trades: [
               {
                 productId: SQUEETH_PRODUCT_ID,
@@ -671,7 +704,7 @@ describe('PerpetualMarket', function () {
           }),
         )
           .to.emit(perpetualMarket, 'PositionUpdated')
-          .withArgs(wallet.address, vaultId, subVaultIndex, SQUEETH_PRODUCT_ID, scaledBN(1, 6), 100300029, 0, 0)
+          .withArgs(wallet.address, 1, subVaultIndex, SQUEETH_PRODUCT_ID, scaledBN(1, 6), 100300029, 0, 0)
 
         expect(await usdc.balanceOf(testContractSet.feePool.address)).to.be.gt(0)
         expect((await testContractSet.perpetualMarketCore.pools(SQUEETH_PRODUCT_ID)).positionPerpetuals).to.be.eq(
@@ -681,7 +714,7 @@ describe('PerpetualMarket', function () {
 
       it('open short', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -703,7 +736,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
         await expect(
           perpetualMarket.trade({
-            vaultId,
+            vaultId: 0,
             trades: [
               {
                 productId: SQUEETH_PRODUCT_ID,
@@ -717,10 +750,10 @@ describe('PerpetualMarket', function () {
           }),
         )
           .to.emit(perpetualMarket, 'DepositedToVault')
-          .withArgs(wallet.address, vaultId, MIN_MARGIN)
+          .withArgs(wallet.address, 1, MIN_MARGIN)
         await expect(
           perpetualMarket.trade({
-            vaultId,
+            vaultId: 1,
             trades: [
               {
                 productId: SQUEETH_PRODUCT_ID,
@@ -734,7 +767,7 @@ describe('PerpetualMarket', function () {
           }),
         )
           .to.emit(perpetualMarket, 'WithdrawnFromVault')
-          .withArgs(wallet.address, vaultId, '200000000')
+          .withArgs(wallet.address, 1, '200000000')
         const after = await usdc.balanceOf(wallet.address)
 
         expect(after.sub(before)).to.be.eq('-800000000')
@@ -744,7 +777,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -761,7 +794,7 @@ describe('PerpetualMarket', function () {
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -783,7 +816,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -798,7 +831,7 @@ describe('PerpetualMarket', function () {
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -819,7 +852,7 @@ describe('PerpetualMarket', function () {
     describe('Future', () => {
       it('open long', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -840,7 +873,7 @@ describe('PerpetualMarket', function () {
 
       it('open short', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -863,7 +896,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -876,7 +909,7 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -899,7 +932,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -916,7 +949,7 @@ describe('PerpetualMarket', function () {
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -938,7 +971,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -952,7 +985,7 @@ describe('PerpetualMarket', function () {
         })
         await testContractHelper.updateSpot(scaledBN(90, 8))
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -974,7 +1007,7 @@ describe('PerpetualMarket', function () {
     describe('Squeeth and Future', () => {
       it('open Squeeth and Future contracts', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -993,7 +1026,7 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
 
-        const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
+        const vaultStatus = await perpetualMarket.getVaultStatus(1)
 
         expect(vaultStatus.minCollateral).to.be.gt(0)
         expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
@@ -1005,7 +1038,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1024,7 +1057,7 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1052,7 +1085,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1071,7 +1104,7 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -1093,7 +1126,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1112,7 +1145,7 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1134,7 +1167,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1157,7 +1190,7 @@ describe('PerpetualMarket', function () {
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1187,7 +1220,7 @@ describe('PerpetualMarket', function () {
 
         // 1M Squeeth and 1M ETH future
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1210,7 +1243,7 @@ describe('PerpetualMarket', function () {
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1234,7 +1267,7 @@ describe('PerpetualMarket', function () {
     describe('long squeeth and short future', () => {
       it('open long sqeeths and short futures', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1253,7 +1286,7 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
 
-        const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
+        const vaultStatus = await perpetualMarket.getVaultStatus(1)
 
         expect(vaultStatus.minCollateral).to.be.gt(0)
         expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
@@ -1265,7 +1298,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1284,7 +1317,7 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1312,7 +1345,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1335,7 +1368,7 @@ describe('PerpetualMarket', function () {
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1363,7 +1396,7 @@ describe('PerpetualMarket', function () {
         const before = await usdc.balanceOf(wallet.address)
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1386,7 +1419,7 @@ describe('PerpetualMarket', function () {
         await testContractHelper.updateSpot(scaledBN(90, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1426,7 +1459,7 @@ describe('PerpetualMarket', function () {
 
     it('net delta is decreased', async () => {
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 0,
         trades: [
           {
             productId: SQUEETH_PRODUCT_ID,
@@ -1458,7 +1491,7 @@ describe('PerpetualMarket', function () {
 
     it('nothing happens if net delta is positive', async () => {
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 0,
         trades: [
           {
             productId: FUTURE_PRODUCT_ID,
@@ -1487,7 +1520,7 @@ describe('PerpetualMarket', function () {
     describe('net delta is negative', () => {
       beforeEach(async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -1507,7 +1540,7 @@ describe('PerpetualMarket', function () {
 
       it('net delta increased', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -1533,7 +1566,7 @@ describe('PerpetualMarket', function () {
 
       it('net delta becomes 0', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -1573,7 +1606,7 @@ describe('PerpetualMarket', function () {
 
     it('pool receives funding fee from squeeth positions', async () => {
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 0,
         trades: [
           {
             productId: SQUEETH_PRODUCT_ID,
@@ -1592,7 +1625,7 @@ describe('PerpetualMarket', function () {
 
       await expect(
         perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -1610,14 +1643,14 @@ describe('PerpetualMarket', function () {
       expect(afterLPTokenPrice).to.be.gt(beforeLPTokenPrice)
 
       // check vault status
-      const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
+      const vaultStatus = await perpetualMarket.getVaultStatus(1)
       expect(vaultStatus.fundingPaid[0][SQUEETH_PRODUCT_ID]).to.be.lt(0)
       expect(vaultStatus.fundingPaid[0][FUTURE_PRODUCT_ID]).to.be.eq(0)
     })
 
     it('pool receives from positive funding fee of future positions', async () => {
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 0,
         trades: [
           {
             productId: FUTURE_PRODUCT_ID,
@@ -1635,7 +1668,7 @@ describe('PerpetualMarket', function () {
       const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 1,
         trades: [
           {
             productId: FUTURE_PRODUCT_ID,
@@ -1655,7 +1688,7 @@ describe('PerpetualMarket', function () {
 
     it('pool receives from negative funding fee of future positions', async () => {
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 0,
         trades: [
           {
             productId: FUTURE_PRODUCT_ID,
@@ -1674,7 +1707,7 @@ describe('PerpetualMarket', function () {
 
       await expect(
         perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -1693,14 +1726,14 @@ describe('PerpetualMarket', function () {
       expect(afterLPTokenPrice).to.be.gt(beforeLPTokenPrice)
 
       // check vault status
-      const vaultStatus = await perpetualMarket.getVaultStatus(wallet.address, vaultId)
+      const vaultStatus = await perpetualMarket.getVaultStatus(1)
       expect(vaultStatus.fundingPaid[0][SQUEETH_PRODUCT_ID]).to.be.eq(0)
       expect(vaultStatus.fundingPaid[0][FUTURE_PRODUCT_ID]).to.be.lt(0)
     })
   })
 
   describe('getMinCollateralToAddPosition', () => {
-    const vaultId = 0
+    const vaultId = 1
     const subVaultIndex = 0
 
     beforeEach(async () => {
@@ -1713,7 +1746,6 @@ describe('PerpetualMarket', function () {
 
     it('get min collateral of 0 positions', async () => {
       const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(
-        wallet.address,
         vaultId,
         [0, 0],
         scaledBN(1000, 8),
@@ -1723,7 +1755,6 @@ describe('PerpetualMarket', function () {
 
     it('get min collateral of the vault that has no positions', async () => {
       const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(
-        wallet.address,
         vaultId,
         [0, scaledBN(10, 8)],
         scaledBN(1000, 8),
@@ -1733,7 +1764,6 @@ describe('PerpetualMarket', function () {
 
     it('get min collateral with $2,000 spot price', async () => {
       const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(
-        wallet.address,
         vaultId,
         [0, scaledBN(10, 8)],
         scaledBN(2000, 8),
@@ -1743,7 +1773,6 @@ describe('PerpetualMarket', function () {
 
     it('get min collateral of squared perpetual and perpetual future', async () => {
       const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(
-        wallet.address,
         vaultId,
         [scaledBN(-10, 8), scaledBN(10, 8)],
         scaledBN(1000, 8),
@@ -1753,7 +1782,6 @@ describe('PerpetualMarket', function () {
 
     it('get min collateral of squared perpetual and perpetual future with $2,000 spot price', async () => {
       const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(
-        wallet.address,
         vaultId,
         [scaledBN(-10, 8), scaledBN(10, 8)],
         scaledBN(2000, 8),
@@ -1763,7 +1791,7 @@ describe('PerpetualMarket', function () {
 
     it('get min collateral of the vault that has positions', async () => {
       await perpetualMarket.trade({
-        vaultId,
+        vaultId: 0,
         trades: [
           {
             productId: SQUEETH_PRODUCT_ID,
@@ -1776,7 +1804,6 @@ describe('PerpetualMarket', function () {
         deadline: 0,
       })
       const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(
-        wallet.address,
         vaultId,
         [0, scaledBN(1, 8)],
         scaledBN(1000, 8),

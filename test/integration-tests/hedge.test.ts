@@ -155,7 +155,7 @@ describe('FlashHedge', function () {
     describe('net delta is negative', () => {
       beforeEach(async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -175,7 +175,7 @@ describe('FlashHedge', function () {
 
       it('sell ETH to hedge', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -197,7 +197,7 @@ describe('FlashHedge', function () {
 
       it('reverts if ETH price in Uniswap is too low', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: SQUEETH_PRODUCT_ID,
@@ -219,7 +219,7 @@ describe('FlashHedge', function () {
     describe('net delta is negative because the pool has short perpetual future positions', () => {
       beforeEach(async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -239,7 +239,7 @@ describe('FlashHedge', function () {
 
       it('net delta is positive and sell all ETH to hedge', async () => {
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,

@@ -67,7 +67,7 @@ describe('trade', function () {
         await testContractHelper.updateSpot(scaledBN(1000, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -83,7 +83,7 @@ describe('trade', function () {
         await testContractHelper.updateSpot(scaledBN(950, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -111,14 +111,13 @@ describe('trade', function () {
     })
 
     describe('large amount of trade', () => {
-      const vaultId = 0
       const subVaultIndex = 0
 
       beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(1000, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 0,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
@@ -134,7 +133,7 @@ describe('trade', function () {
         await testContractHelper.updateSpot(scaledBN(950, 8))
 
         await perpetualMarket.trade({
-          vaultId,
+          vaultId: 1,
           trades: [
             {
               productId: FUTURE_PRODUCT_ID,
