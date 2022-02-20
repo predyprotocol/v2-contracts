@@ -137,6 +137,10 @@ function getLiquidationPrice(a0: number, a1: number, e0: number, e1: number, v: 
 }
 
 function solveQuadraticFormula(a: number, b: number, c: number) {
+  if (a === 0) {
+    return [-c / b]
+  }
+
   const e = Math.sqrt(b ** 2 - 4 * a * c)
   return [
     (-b + e) / (2 * a),
