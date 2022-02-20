@@ -196,6 +196,7 @@ async function main() {
   }
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
+  await vaultNFT.init(perpetualMarket.address)
 
   await perpetualMarket.transferOwnership(operatorAddress)
   await perpetualMarketCore.transferOwnership(operatorAddress)

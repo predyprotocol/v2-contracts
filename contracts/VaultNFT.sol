@@ -40,7 +40,7 @@ contract VaultNFT is ERC721, IVaultNFT, Initializable {
      */
     function init(address _perpetualMarket) public initializer {
         require(msg.sender == deployer, "Caller is not deployer");
-        require(_perpetualMarket != address(0), "Invalid address");
+        require(_perpetualMarket != address(0), "Zero address");
         perpetualMarket = _perpetualMarket;
     }
 
