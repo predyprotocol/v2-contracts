@@ -59,7 +59,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     );
     event DepositedToVault(address indexed trader, uint256 vaultId, uint256 amount);
     event WithdrawnFromVault(address indexed trader, uint256 vaultId, uint256 amount);
-    event Liquidated(address indexed vaultOwner, uint256 vaultId, uint256 reward);
+    event Liquidated(address liquidator, uint256 indexed vaultId, uint256 reward);
 
     event Hedged(address hedger, bool isBuyingUnderlying, uint256 usdcAmount, uint256 underlyingAmount);
 

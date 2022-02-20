@@ -27,7 +27,7 @@ export const networkNameToWETH = (name: string) => {
 export const networkNameToPerpetualMarket = (name: string) => {
   switch (name) {
     case 'kovan': return '0x3A53C9e69950E8e2CDaC889E387fB182A009463D'
-    case 'rinkebyArbitrum': return '0x0B638F90B9C5F3AF2353Fa1981a40Ba0DfA80Af9'
+    case 'rinkebyArbitrum': return '0x9A2C5809c3987081F2c6a524aa0B29B15afDA2D4'
     default: return undefined
   }
 }
@@ -35,7 +35,7 @@ export const networkNameToPerpetualMarket = (name: string) => {
 export const networkNameToPerpetualMarketCore = (name: string) => {
   switch (name) {
     case 'kovan': return '0xe0cdA1F5433409B08D6f28FBe4c5daad88D897f6'
-    case 'rinkebyArbitrum': return '0xe35DC57CBa81e9EC00A6ad80265280F06f29d6cC'
+    case 'rinkebyArbitrum': return '0xa9cDeABe33b1CfE3a3C29Ba1ccaBF94A25c63078'
     default: return undefined
   }
 }
@@ -43,6 +43,13 @@ export const networkNameToPerpetualMarketCore = (name: string) => {
 export const networkNameToFlashHedge = (name: string) => {
   switch (name) {
     case 'rinkebyArbitrum': return '0xd8EaC40f5DCbd68fb7D6B9275C0b39c5ED8ae8bf'
+    default: return undefined
+  }
+}
+
+export const networkNameToVaultNFT = (name: string) => {
+  switch (name) {
+    case 'rinkebyArbitrum': return '0x963c02379c63452f7DBc0f0160e19F73e0A2500D'
     default: return undefined
   }
 }
@@ -98,6 +105,14 @@ export const getFlashHedge = async (ethers: any, deployer: string, networkName: 
     return ethers.getContract("FlashHedge", deployer);
   }
   return ethers.getContractAt('FlashHedge', flashHedgeAddress)
+}
+
+export const getVaultNFT = async (ethers: any, deployer: string, networkName: string) => {
+  const vaultNFTAddress = networkNameToVaultNFT(networkName)
+  if (vaultNFTAddress === undefined) {
+    return ethers.getContract("VaultNFT", deployer);
+  }
+  return ethers.getContractAt('VaultNFT', vaultNFTAddress)
 }
 
 export const toUnscaled = (n: BigNumber, decimals: number) => {
