@@ -706,6 +706,39 @@ describe('PerpetualMarket', function () {
       ).to.be.revertedWith('T4')
     })
 
+    it('open multiple vaults', async () => {
+      await perpetualMarket.trade({
+        vaultId: 0,
+        trades: [
+          {
+            productId: FUTURE_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 6),
+            limitPrice: 0,
+          },
+        ],
+        marginAmount: MIN_MARGIN,
+        deadline: 0,
+      })
+
+      perpetualMarket.trade({
+        vaultId: 0,
+        trades: [
+          {
+            productId: FUTURE_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(2, 6),
+            limitPrice: 0,
+          },
+        ],
+        marginAmount: MIN_MARGIN,
+        deadline: 0,
+      })
+
+      const vaultStatus = await perpetualMarket.getVaultStatus(2)
+      expect(vaultStatus.rawVaultData.subVaults[0].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(2, 6))
+    })
+
     describe('Squeeth', () => {
       it('open position and emit an event', async () => {
         await expect(
