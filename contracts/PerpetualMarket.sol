@@ -138,8 +138,10 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         require(_tradeParams.deadline == 0 || _tradeParams.deadline >= block.number, "PM0");
 
         if (_tradeParams.vaultId == 0) {
+            // open new vault
             _tradeParams.vaultId = IVaultNFT(vaultNFT).mintNFT(msg.sender);
         } else {
+            // check caller is vault owner
             require(IVaultNFT(vaultNFT).ownerOf(_tradeParams.vaultId) == msg.sender, "PM2");
         }
 
