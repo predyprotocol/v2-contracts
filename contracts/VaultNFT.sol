@@ -23,9 +23,15 @@ contract VaultNFT is ERC721, IVaultNFT, Initializable {
      * @notice Vault NFT constructor
      * @param _name token name for ERC721
      * @param _symbol token symbol for ERC721
+     * @param _baseURI base URI
      */
-    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        string memory _baseURI
+    ) ERC721(_name, _symbol) {
         deployer = msg.sender;
+        _setBaseURI(_baseURI);
     }
 
     /**

@@ -119,7 +119,7 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   )) as PerpetualMarketCore
 
   const VaultNFT = await ethers.getContractFactory('VaultNFT')
-  const vaultNFT = (await VaultNFT.deploy('Vault NFT', 'ΔΓVault')) as VaultNFT
+  const vaultNFT = (await VaultNFT.deploy('Vault NFT', 'ΔΓVault', 'http://example.com')) as VaultNFT
 
   const MockFeePool = await ethers.getContractFactory('MockFeePool')
   const mockFeePool = (await MockFeePool.deploy(usdc.address)) as MockFeePool

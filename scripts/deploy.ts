@@ -18,6 +18,7 @@ async function main() {
   const lpTokenSymbol = 'PREDY-V2-LP'
   const vaultTokenName = 'Vault Token'
   const vaultTokenSymbol = 'ΔΓVault'
+  const vaultTokenBaseUri = 'https://metadata.predy.finance/'
 
   let priceFeedAddress
   let wethAddress
@@ -141,7 +142,7 @@ async function main() {
   console.log(`TraderVaultLib deployed to ${traderVaultLib.address}`)
 
   const VaultNFT = await ethers.getContractFactory('VaultNFT')
-  const vaultNFT = await VaultNFT.deploy(vaultTokenName, vaultTokenSymbol)
+  const vaultNFT = await VaultNFT.deploy(vaultTokenName, vaultTokenSymbol, vaultTokenBaseUri)
   await vaultNFT.deployed();
   console.log(`VaultNFT deployed to ${vaultNFT.address}`)
 

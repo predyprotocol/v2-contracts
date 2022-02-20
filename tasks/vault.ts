@@ -22,7 +22,7 @@ task("vault", "get vault status")
 
     const roundData = await priceFeed.latestRoundData()
 
-    const vaultStatus = await perpetualMarket.getVaultStatus(deployer, vaultId)
+    const vaultStatus = await perpetualMarket.getVaultStatus(vaultId)
 
     console.log('USDC           : $', toUnscaled(vaultStatus.rawVaultData.positionUsdc, 8).toLocaleString())
     console.log('Value          : $', toUnscaled(vaultStatus.positionValue, 8).toLocaleString())
