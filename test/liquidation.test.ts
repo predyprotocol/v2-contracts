@@ -90,9 +90,28 @@ describe('liquidation', function () {
     it('reverts if the vault has enough margin', async () => {
       // Deposit USDC
       await perpetualMarket.trade({
-        vaultId: 0,
+        vaultId: 1,
         trades: [],
         marginAmount: scaledBN(100, 6),
+        deadline: 0,
+      })
+
+      await expect(perpetualMarket.liquidateByPool(1)).revertedWith('vault is not danger')
+    })
+
+    it('reverts if the vault holds no positions', async () => {
+      // Close position
+      await perpetualMarket.trade({
+        vaultId: 1,
+        trades: [
+          {
+            productId: SQUEETH_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(-10, 8),
+            limitPrice: 0,
+          },
+        ],
+        marginAmount: MAX_WITHDRAW_AMOUNT,
         deadline: 0,
       })
 
