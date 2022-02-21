@@ -1,0 +1,12 @@
+node_modules
+.env
+coverage
+coverage.json
+typechain
+typechain-ovm
+
+#Hardhat files
+cache
+cache-ovm
+artifacts
+artifacts-ovm
