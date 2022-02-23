@@ -38,9 +38,9 @@ interface IPerpetualMarket {
         uint256 totalFee;
     }
 
-    function initialize(uint128 _depositAmount, int128 _initialFundingRate) external;
+    function initialize(uint256 _depositAmount, int256 _initialFundingRate) external;
 
-    function deposit(uint128 _depositAmount) external;
+    function deposit(uint256 _depositAmount) external;
 
     function withdraw(uint128 _withdrawnAmount) external;
 
