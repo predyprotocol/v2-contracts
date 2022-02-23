@@ -48,6 +48,10 @@ contract FlashHedge is BaseFlashSwap {
         address _uniswapFactory,
         address _ethUsdcPool
     ) BaseFlashSwap(_uniswapFactory) {
+        require(_collateral != address(0), "invalid collateral address");
+        require(_underlying != address(0), "invalid underlying address");
+        require(_perpetualMarket != address(0), "invalid perpetual market address");
+        require(_ethUsdcPool != address(0), "invalid eth-usdc pool address");
         collateral = _collateral;
         underlying = _underlying;
         perpetualMarket = IPerpetualMarket(_perpetualMarket);
