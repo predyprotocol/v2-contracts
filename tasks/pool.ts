@@ -1,20 +1,17 @@
-import { task, types } from "hardhat/config";
-import "@nomiclabs/hardhat-waffle";
-import { getPerpetualMarket, getPerpetualMarketCore, toUnscaled } from "./utils";
+import { task, types } from 'hardhat/config'
+import '@nomiclabs/hardhat-waffle'
+import { getPerpetualMarket, getPerpetualMarketCore, toUnscaled } from './utils'
 
 // Example execution
 /**
  * npx hardhat pool --network rinkebyArbitrum
  */
-task("pool", "get pool status")
+task('pool', 'get pool status')
   .addParam('vaultId', 'vault id', '0', types.string)
-  .setAction(async ({
-    vaultId
-  }, hre) => {
+  .setAction(async ({ vaultId }, hre) => {
+    const { getNamedAccounts, ethers, network } = hre
 
-    const { getNamedAccounts, ethers, network } = hre;
-
-    const { deployer } = await getNamedAccounts();
+    const { deployer } = await getNamedAccounts()
 
     const perpetualMarket = await getPerpetualMarket(ethers, deployer, network.name)
     const perpetualMarketCore = await getPerpetualMarketCore(ethers, deployer, network.name)
