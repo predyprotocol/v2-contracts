@@ -1,22 +1,18 @@
-import { task, types } from "hardhat/config";
-import "@nomiclabs/hardhat-waffle";
-import { getPerpetualMarket, toUnscaled } from "./utils";
+import { task, types } from 'hardhat/config'
+import '@nomiclabs/hardhat-waffle'
+import { getPerpetualMarket, toUnscaled } from './utils'
 
 // Example execution
 /**
  * npx hardhat price --network rinkebyArbitrum --trade-amount 100000000
  */
-task("price", "get trade price")
+task('price', 'get trade price')
   .addParam('productId', 'product id', '0', types.string)
   .addParam('tradeAmount', 'trade amount', '100000000', types.string)
-  .setAction(async ({
-    productId,
-    tradeAmount
-  }, hre) => {
+  .setAction(async ({ productId, tradeAmount }, hre) => {
+    const { getNamedAccounts, ethers, network } = hre
 
-    const { getNamedAccounts, ethers, network } = hre;
-
-    const { deployer } = await getNamedAccounts();
+    const { deployer } = await getNamedAccounts()
 
     const perpetualMarket = await getPerpetualMarket(ethers, deployer, network.name)
 
