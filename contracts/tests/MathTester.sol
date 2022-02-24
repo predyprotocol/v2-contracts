@@ -8,11 +8,19 @@ import "../lib/Math.sol";
  * @notice Tester contract for Math library
  */
 contract MathTester {
+    function testAddDelta(uint256 _x, int256 _y) external pure returns (uint256) {
+        return Math.addDelta(_x, _y);
+    }
+
     function testScale(
         uint256 _a,
         uint256 _from,
         uint256 _to
     ) external pure returns (uint256) {
         return Math.scale(_a, _from, _to);
+    }
+
+    function testLogTaylor(int256 _x) external pure returns (int256) {
+        return Math.logTaylor(_x);
     }
 }

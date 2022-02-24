@@ -1,6 +1,8 @@
 import { expect } from 'chai'
+import { BigNumber, constants } from 'ethers'
 import { ethers } from 'hardhat'
 import { MathTester } from '../typechain'
+import { assertCloseToPercentage } from './utils/helpers'
 
 describe('Math', function () {
   let tester: MathTester
@@ -9,6 +11,16 @@ describe('Math', function () {
     const MathTester = await ethers.getContractFactory('MathTester')
 
     tester = (await MathTester.deploy()) as MathTester
+  })
+
+  describe('addDelta', () => {
+    it('reverts on overflow because y is too small', async () => {
+      await expect(tester.testAddDelta(0, -1)).to.be.revertedWith('M0')
+    })
+
+    it('reverts on overflow because y is too large', async () => {
+      await expect(tester.testAddDelta(constants.MaxUint256, 1)).to.be.revertedWith('M1')
+    })
   })
 
   describe('scale', () => {
@@ -34,6 +46,34 @@ describe('Math', function () {
       const result = await tester.testScale('12345', 6, 6)
 
       expect(result).to.be.eq(12345)
+    })
+
+    it('reverts on overflow', async () => {
+      await expect(tester.testScale('12345', 6, 80)).to.be.revertedWith('M2')
+    })
+  })
+
+  describe('logTaylor', async () => {
+    const logTests = [1, 2, 100, 100000, 250000, 500000, 1000000, 1000000000]
+
+    const numToBn = (n: number, decimals: number) => {
+      return BigNumber.from(Math.floor(n * 10 ** decimals).toString())
+    }
+
+    it('returns a correct value for a number of cases', async () => {
+      const decimalsOfLogTaylor = 8
+
+      for (const value of logTests) {
+        const result = await tester.testLogTaylor(numToBn(value, decimalsOfLogTaylor))
+        const expected = Math.log(value)
+        assertCloseToPercentage(result, numToBn(expected, decimalsOfLogTaylor))
+      }
+    })
+
+    it('reverts on overflow', async () => {
+      await expect(tester.testLogTaylor(constants.MaxInt256)).to.be.revertedWith(
+        'SignedSafeMath: multiplication overflow',
+      )
     })
   })
 })
