@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity =0.7.6;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 /**
  * @title Base Liquidity Pool
  * @notice Base Liquidity Pool Contract
  */
 abstract contract BaseLiquidityPool {
+    using SafeERC20 for IERC20;
+
     address public immutable quoteAsset;
     address public immutable underlyingAsset;
 
@@ -23,10 +25,10 @@ abstract contract BaseLiquidityPool {
     }
 
     function sendLiquidity(address _recipient, uint256 _amount) internal {
-        ERC20(quoteAsset).transfer(_recipient, _amount);
+        IERC20(quoteAsset).safeTransfer(_recipient, _amount);
     }
 
     function sendUndrlying(address _recipient, uint256 _amount) internal {
-        ERC20(underlyingAsset).transfer(_recipient, _amount);
+        IERC20(underlyingAsset).safeTransfer(_recipient, _amount);
     }
 }

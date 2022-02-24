@@ -3,7 +3,7 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "./interfaces/IPerpetualMarket.sol";
 import "./base/BaseFlashSwap.sol";
 
@@ -17,6 +17,7 @@ import "./base/BaseFlashSwap.sol";
  * FH3: amounts must not be 0
  */
 contract FlashHedge is BaseFlashSwap {
+    using SafeERC20 for IERC20;
     using LowGasSafeMath for uint256;
     using LowGasSafeMath for int256;
 
@@ -78,30 +79,30 @@ contract FlashHedge is BaseFlashSwap {
         FlashHedgeData memory data = abi.decode(_callData, (FlashHedgeData));
 
         if (FLASH_SOURCE(_callSource) == FLASH_SOURCE.FLASH_HEDGE_SELL) {
-            require(ERC20(collateral).balanceOf(address(this)) >= data.amountUsdc, "FH0");
+            require(IERC20(collateral).balanceOf(address(this)) >= data.amountUsdc, "FH0");
 
-            ERC20(collateral).approve(address(perpetualMarket), data.amountUsdc);
+            IERC20(collateral).approve(address(perpetualMarket), data.amountUsdc);
             perpetualMarket.execHedge();
 
-            // Repay and transfer profit
-            uint256 usdcProfit = ERC20(collateral).balanceOf(address(this));
+            // Repay and safeTransfer profit
+            uint256 usdcProfit = IERC20(collateral).balanceOf(address(this));
 
-            ERC20(underlying).transfer(ethUsdcPool, _amountToPay);
-            ERC20(collateral).transfer(_caller, usdcProfit);
+            IERC20(underlying).safeTransfer(ethUsdcPool, _amountToPay);
+            IERC20(collateral).safeTransfer(_caller, usdcProfit);
 
             require(usdcProfit >= data.minUsdc, "FH2");
         } else if (FLASH_SOURCE(_callSource) == FLASH_SOURCE.FLASH_HEDGE_BUY) {
-            ERC20(underlying).approve(address(perpetualMarket), data.amountUnderlying);
+            IERC20(underlying).approve(address(perpetualMarket), data.amountUnderlying);
 
             (uint256 receivedUsdcAmount, ) = perpetualMarket.execHedge();
 
             require(receivedUsdcAmount >= _amountToPay, "FH1");
 
-            // Repay and transfer profit
+            // Repay and safeTransfer profit
             uint256 usdcProfit = data.amountUsdc.sub(_amountToPay);
 
-            ERC20(collateral).transfer(ethUsdcPool, _amountToPay);
-            ERC20(collateral).transfer(_caller, usdcProfit);
+            IERC20(collateral).safeTransfer(ethUsdcPool, _amountToPay);
+            IERC20(collateral).safeTransfer(_caller, usdcProfit);
 
             require(usdcProfit >= data.minUsdc, "FH2");
         }
