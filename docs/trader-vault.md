@@ -1,7 +1,7 @@
 TraderVault
 =====
 
-Predy's trader vault offers cross margin trading of Squared perpetual and Perpetual future.
+Predy's trader vault offers portfolio margin trading of Squared perpetual and Perpetual future.
 The implementation is `lib/TraderVaultLib.sol`.
 
 | Notation  | Variable Name | Description | 

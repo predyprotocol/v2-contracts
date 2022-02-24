@@ -7,7 +7,9 @@
 ## Overview
 
 Predy V2 is AMM(Automated Market Maker) for Perpetual Contracts.
-It supports cross margin trading of Squared perpetual and Perpetual future.
+It supports portfolio margin trading of Squared perpetual and Perpetual future.
+Portfolio Margin is a margin method that utilizes the unrealized profits of other positions in the relevant asset to avoid liquidations on the positions using the same settlement asset.
+As a result, Predy's margin requirements for perpetual positions are significantly reduced compared to traditional policy rules.
 
 ### Contracts
 
@@ -19,7 +21,7 @@ It supports cross margin trading of Squared perpetual and Perpetual future.
 
 ### Libraries
 
-`lib/TraderVaultLib.sol` has functions to calculate position value and minimum collateral for implementing cross margin wallet.
+`lib/TraderVaultLib.sol` has functions to calculate position value and minimum collateral for implementing margin wallet.
 
 `lib/NettingLib.sol` has functions to calculate pool's required collateral.
 
