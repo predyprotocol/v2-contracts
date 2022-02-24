@@ -1,21 +1,18 @@
-import { task, types } from "hardhat/config";
-import "@nomiclabs/hardhat-waffle";
-import { getPerpetualMarket, getPriceFeed, toUnscaled } from "./utils";
-import { BigNumber } from "ethers";
+import { task, types } from 'hardhat/config'
+import '@nomiclabs/hardhat-waffle'
+import { getPerpetualMarket, getPriceFeed, toUnscaled } from './utils'
+import { BigNumber } from 'ethers'
 
 // Example execution
 /**
  * npx hardhat vault --network rinkebyArbitrum
  */
-task("vault", "get vault status")
+task('vault', 'get vault status')
   .addParam('vaultId', 'vault id', '0', types.string)
-  .setAction(async ({
-    vaultId
-  }, hre) => {
+  .setAction(async ({ vaultId }, hre) => {
+    const { getNamedAccounts, ethers, network } = hre
 
-    const { getNamedAccounts, ethers, network } = hre;
-
-    const { deployer } = await getNamedAccounts();
+    const { deployer } = await getNamedAccounts()
 
     const perpetualMarket = await getPerpetualMarket(ethers, deployer, network.name)
     const priceFeed = await getPriceFeed(ethers, deployer, network.name)
@@ -69,71 +66,93 @@ task("vault", "get vault status")
 
 function getVaultLiquidationPrice(vaultStatus: any) {
   const rawVaultData = vaultStatus.rawVaultData
-  const a0 = rawVaultData.subVaults.reduce((acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[0]), BigNumber.from(0))
-  const a1 = rawVaultData.subVaults.reduce((acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[1]), BigNumber.from(0))
-  const e0 = rawVaultData.subVaults.reduce((acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[0].mul(subVault.entryPrices[0])), BigNumber.from(0))
-  const e1 = rawVaultData.subVaults.reduce((acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[1].mul(subVault.entryPrices[1])), BigNumber.from(0))
-  const fundingPaid = vaultStatus.fundingPaid.reduce((acc: BigNumber, fundingPaid: any) => acc.add(fundingPaid[0].add(fundingPaid[1])), BigNumber.from(0))
+  const a0 = rawVaultData.subVaults.reduce(
+    (acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[0]),
+    BigNumber.from(0),
+  )
+  const a1 = rawVaultData.subVaults.reduce(
+    (acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[1]),
+    BigNumber.from(0),
+  )
+  const e0 = rawVaultData.subVaults.reduce(
+    (acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[0].mul(subVault.entryPrices[0])),
+    BigNumber.from(0),
+  )
+  const e1 = rawVaultData.subVaults.reduce(
+    (acc: BigNumber, subVault: any) => acc.add(subVault.positionPerpetuals[1].mul(subVault.entryPrices[1])),
+    BigNumber.from(0),
+  )
+  const fundingPaid = vaultStatus.fundingPaid.reduce(
+    (acc: BigNumber, fundingPaid: any) => acc.add(fundingPaid[0].add(fundingPaid[1])),
+    BigNumber.from(0),
+  )
 
   return getLiquidationPrice(
+    toUnscaled(vaultStatus.minCollateral, 8),
     toUnscaled(a0, 8),
     toUnscaled(a1, 8),
     a0.eq(0) ? 0 : toUnscaled(e0.div(a0), 8),
     a1.eq(0) ? 0 : toUnscaled(e1.div(a1), 8),
-    toUnscaled(rawVaultData.positionUsdc.add(fundingPaid), 8)
+    toUnscaled(rawVaultData.positionUsdc.add(fundingPaid), 8),
   )
 }
 
-function getLiquidationPrice(a0: number, a1: number, e0: number, e1: number, v: number) {
+function getLiquidationPrice(minCollateral: number, a0: number, a1: number, e0: number, e1: number, v: number) {
+  const minMargin = 500
   const alpha = 0.075
+
+  if (minCollateral <= minMargin) {
+    return solveQuadraticFormula(a1, a0, v - (minMargin + a0 * e0 + a1 * e1))
+  }
+
   const r1 = solveQuadraticFormula(
-    (2 * alpha * (1 + alpha) - 1) * a1 / 10000,
+    ((2 * alpha * (1 + alpha) - 1) * a1) / 10000,
     a0 * (alpha - 1),
-    a0 * e0 + a1 * e1 - v
+    a0 * e0 + a1 * e1 - v,
   )
   const r2 = solveQuadraticFormula(
-    (2 * alpha * (alpha - 1) - 1) * a1 / 10000,
-    - a0 * (alpha + 1),
-    a0 * e0 + a1 * e1 - v
+    ((2 * alpha * (alpha - 1) - 1) * a1) / 10000,
+    -a0 * (alpha + 1),
+    a0 * e0 + a1 * e1 - v,
   )
   const r3 = solveQuadraticFormula(
-    (2 * alpha * (1 - alpha) - 1) * a1 / 10000,
+    ((2 * alpha * (1 - alpha) - 1) * a1) / 10000,
     a0 * (alpha - 1),
-    a0 * e0 + a1 * e1 - v
+    a0 * e0 + a1 * e1 - v,
   )
   const r4 = solveQuadraticFormula(
-    (2 * alpha * (- alpha - 1) - 1) * a1 / 10000,
-    - a0 * (alpha + 1),
-    a0 * e0 + a1 * e1 - v
+    ((2 * alpha * (-alpha - 1) - 1) * a1) / 10000,
+    -a0 * (alpha + 1),
+    a0 * e0 + a1 * e1 - v,
   )
 
   const results: number[] = []
 
   if (a1 >= 0) {
-    r1.forEach(r => {
+    r1.forEach((r) => {
       if (2 * r * a1 >= -a0 * 10000) {
         results.push(r)
       }
     })
-    r2.forEach(r => {
+    r2.forEach((r) => {
       if (2 * r * a1 < -a0 * 10000) {
         results.push(r)
       }
     })
   } else {
-    r3.forEach(r => {
+    r3.forEach((r) => {
       if (2 * r * a1 >= -a0 * 10000) {
         results.push(r)
       }
     })
-    r4.forEach(r => {
+    r4.forEach((r) => {
       if (2 * r * a1 < -a0 * 10000) {
         results.push(r)
       }
     })
   }
 
-  return results.filter(r => r >= 0)
+  return results.filter((r) => r >= 0)
 }
 
 function solveQuadraticFormula(a: number, b: number, c: number) {
@@ -142,8 +161,5 @@ function solveQuadraticFormula(a: number, b: number, c: number) {
   }
 
   const e = Math.sqrt(b ** 2 - 4 * a * c)
-  return [
-    (-b + e) / (2 * a),
-    (-b - e) / (2 * a)
-  ]
+  return [(-b + e) / (2 * a), (-b - e) / (2 * a)]
 }
