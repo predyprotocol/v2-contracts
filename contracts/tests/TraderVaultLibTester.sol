@@ -40,10 +40,9 @@ contract TraderVaultLibTester {
 
     function testGetMinCollateralToAddPosition(
         int128[2] memory _tradeAmounts,
-        uint256 _spotPrice,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) external view returns (int256) {
-        return TraderVaultLib.getMinCollateralToAddPosition(traderVault, _tradeAmounts, _spotPrice, _tradePriceInfo);
+        return TraderVaultLib.getMinCollateralToAddPosition(traderVault, _tradeAmounts, _tradePriceInfo);
     }
 
     function testUpdateUsdcPosition(int256 _amount, IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
@@ -68,8 +67,12 @@ contract TraderVaultLibTester {
         r = int128(TraderVaultLib.decreaseLiquidationReward(traderVault, _minCollateral, liquidationFee));
     }
 
-    function getMinCollateral(uint128 _spot) external view returns (int256) {
-        return TraderVaultLib.getMinCollateral(traderVault, _spot);
+    function getMinCollateral(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
+        external
+        view
+        returns (int256)
+    {
+        return TraderVaultLib.getMinCollateral(traderVault, _tradePriceInfo);
     }
 
     function getPositionValue(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)

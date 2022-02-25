@@ -30,7 +30,7 @@ import "./EntryPriceMath.sol";
  *  T1: PositionValue must be less than MinCollateral
  *  T2: Vault is insolvent
  *  T3: subVaultIndex is too large
- *  T4: ratio is too large
+ *  T4: position must not be 0
  */
 library TraderVaultLib {
     using SafeCast for int256;
@@ -45,8 +45,8 @@ library TraderVaultLib {
     /// @dev minimum margin is 500 USDC
     uint256 private constant MIN_MARGIN = 500 * 1e8;
 
-    /// @dev risk parameter for MinCollateral calculation is 7.5%
-    uint256 private constant RISK_PARAM_FOR_VAULT = 750;
+    /// @dev risk parameter for MinCollateral calculation is 5.0%
+    uint256 private constant RISK_PARAM_FOR_VAULT = 500;
 
     struct SubVault {
         int128[2] positionPerpetuals;
@@ -63,14 +63,13 @@ library TraderVaultLib {
     /**
      * @notice Gets amount of min collateral to add Squees/Future
      * @param _traderVault trader vault object
-     * @param _spotPrice spot price
+     * @param _tradeAmounts amount to trade
      * @param _tradePriceInfo trade price info
      * @return minCollateral and positionValue
      */
     function getMinCollateralToAddPosition(
         TraderVault memory _traderVault,
         int128[2] memory _tradeAmounts,
-        uint256 _spotPrice,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal pure returns (int256 minCollateral) {
         int128[2] memory positionPerpetuals = getPositionPerpetuals(_traderVault);
@@ -79,10 +78,7 @@ library TraderVaultLib {
             positionPerpetuals[i] = positionPerpetuals[i].add(_tradeAmounts[i]).toInt128();
         }
 
-        minCollateral = calculateMinCollateral(
-            positionPerpetuals,
-            _spotPrice == 0 ? _tradePriceInfo.spotPrice : _spotPrice
-        );
+        minCollateral = calculateMinCollateral(positionPerpetuals, _tradePriceInfo);
     }
 
     /**
@@ -102,7 +98,7 @@ library TraderVaultLib {
         require(!_traderVault.isInsolvent, "T2");
 
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
-        int256 minCollateral = getMinCollateral(_traderVault, _tradePriceInfo.spotPrice);
+        int256 minCollateral = getMinCollateral(_traderVault, _tradePriceInfo);
         int256 maxWithdrawable = positionValue - minCollateral;
 
         // If trader wants to withdraw all USDC, set maxWithdrawable.
@@ -112,7 +108,7 @@ library TraderVaultLib {
 
         _traderVault.positionUsdc = _traderVault.positionUsdc.add(finalUsdcPosition).toInt128();
 
-        require(!checkVaultIsLiquidatable(_traderVault, _tradePriceInfo), "T4");
+        require(!checkVaultIsLiquidatable(_traderVault, _tradePriceInfo), "T0");
     }
 
     /**
@@ -225,7 +221,7 @@ library TraderVaultLib {
     ) internal pure returns (bool) {
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
 
-        return positionValue < getMinCollateral(_traderVault, _tradePriceInfo.spotPrice);
+        return positionValue < getMinCollateral(_traderVault, _tradePriceInfo);
     }
 
     /**
@@ -276,32 +272,52 @@ library TraderVaultLib {
     /**
      * @notice Gets min collateral of the vault
      * @param _traderVault trader vault object
-     * @param _spotPrice spot price
+     * @param _tradePriceInfo trade price info
      * @return MinCollateral scaled by 1e8
      */
-    function getMinCollateral(TraderVault memory _traderVault, uint256 _spotPrice) internal pure returns (int256) {
+    function getMinCollateral(
+        TraderVault memory _traderVault,
+        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
+    ) internal pure returns (int256) {
         int128[2] memory assetAmounts = getPositionPerpetuals(_traderVault);
 
-        return calculateMinCollateral(assetAmounts, _spotPrice);
+        return calculateMinCollateral(assetAmounts, _tradePriceInfo);
     }
 
     /**
      * @notice Calculates min collateral
-     * MinCollateral = 0.075 * S * (|2*S*PositionSqueeth+PositionFuture| + 0.15*S*|PositionSqueeth|)
+     * MinCollateral = alpha*S*(|2*S*(1+fundingSqueeth)*PositionSqueeth + (1+fundingFuture)*PositionFuture| + 2*alpha*S*(1+fundingSqueeth)*|PositionSqueeth|)
+     * where alpha is 0.05
      * @param positionPerpetuals amount of perpetual positions
-     * @param _spotPrice spot price
+     * @param _tradePriceInfo trade price info
      * @return MinCollateral scaled by 1e8
      */
-    function calculateMinCollateral(int128[2] memory positionPerpetuals, uint256 _spotPrice)
-        internal
-        pure
-        returns (int256)
-    {
+    function calculateMinCollateral(
+        int128[2] memory positionPerpetuals,
+        IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
+    ) internal pure returns (int256) {
         uint256 maxDelta = Math.abs(
-            ((2 * int256(_spotPrice).mul(positionPerpetuals[1])) / 1e12).add(positionPerpetuals[0])
-        ) + (2 * RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(Math.abs(positionPerpetuals[1] / 1e12))) / 1e4;
+            (
+                int256(_tradePriceInfo.spotPrice)
+                    .mul(_tradePriceInfo.fundingRates[1].add(1e8))
+                    .mul(positionPerpetuals[1])
+                    .mul(2)
+                    .div(1e20)
+            ).add(positionPerpetuals[0].mul(_tradePriceInfo.fundingRates[0].add(1e8)).div(1e8))
+        );
 
-        uint256 minCollateral = (RISK_PARAM_FOR_VAULT.mul(_spotPrice).mul(maxDelta)) / 1e12;
+        maxDelta = maxDelta.add(
+            Math.abs(
+                int256(RISK_PARAM_FOR_VAULT)
+                    .mul(int256(_tradePriceInfo.spotPrice))
+                    .mul(_tradePriceInfo.fundingRates[1].add(1e8))
+                    .mul(2)
+                    .mul(positionPerpetuals[1])
+                    .div(1e24)
+            )
+        );
+
+        uint256 minCollateral = (RISK_PARAM_FOR_VAULT.mul(_tradePriceInfo.spotPrice).mul(maxDelta)) / 1e12;
 
         if ((positionPerpetuals[0] != 0 || positionPerpetuals[1] != 0) && minCollateral < MIN_MARGIN) {
             minCollateral = MIN_MARGIN;

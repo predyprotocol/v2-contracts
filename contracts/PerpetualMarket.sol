@@ -202,7 +202,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         // Check if PositionValue is less than MinCollateral or not
         require(traderVault.checkVaultIsLiquidatable(tradePriceInfo), "vault is not danger");
 
-        int256 minCollateral = traderVault.getMinCollateral(tradePriceInfo.spotPrice);
+        int256 minCollateral = traderVault.getMinCollateral(tradePriceInfo);
 
         // Close all positions in the vault
         uint256 totalProtocolFee;
@@ -394,19 +394,18 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      * @notice Gets value of min collateral to add positions
      * @param _vaultId The id of target vault
      * @param _tradeAmounts amounts to trade
-     * @param _spotPrice spot price if 0 current oracle price will be used
      * @return minCollateral scaled by 1e6
      */
-    function getMinCollateralToAddPosition(
-        uint256 _vaultId,
-        int128[2] memory _tradeAmounts,
-        uint256 _spotPrice
-    ) external view override returns (int256 minCollateral) {
+    function getMinCollateralToAddPosition(uint256 _vaultId, int128[2] memory _tradeAmounts)
+        external
+        view
+        override
+        returns (int256 minCollateral)
+    {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultId];
 
         minCollateral = traderVault.getMinCollateralToAddPosition(
             _tradeAmounts,
-            _spotPrice,
             perpetualMarketCore.getTradePriceInfo(traderVault.getPositionPerpetuals())
         );
 
@@ -446,7 +445,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         return
             VaultStatus(
                 traderVault.getPositionValue(tradePriceInfo),
-                traderVault.getMinCollateral(tradePriceInfo.spotPrice),
+                traderVault.getMinCollateral(tradePriceInfo),
                 positionValues,
                 fundingPaid,
                 traderVault
