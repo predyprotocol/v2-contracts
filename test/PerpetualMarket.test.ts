@@ -314,7 +314,7 @@ describe('PerpetualMarket', function () {
               limitPrice: 0,
             },
           ],
-          marginAmount: minCollateral.sub(vault.positionValue).add(10000000),
+          marginAmount: minCollateral.sub(vault.positionValue).add(100000000),
           deadline: 0,
         })
 
@@ -692,7 +692,7 @@ describe('PerpetualMarket', function () {
           marginAmount: 0,
           deadline: 0,
         }),
-      ).to.be.revertedWith('T4')
+      ).to.be.revertedWith('T0')
     })
 
     it('reverts if try to withdraw from the vault that has no margin', async () => {
@@ -703,7 +703,7 @@ describe('PerpetualMarket', function () {
           marginAmount: MAX_WITHDRAW_AMOUNT,
           deadline: 0,
         }),
-      ).to.be.revertedWith('T4')
+      ).to.be.revertedWith('T0')
     })
 
     it('open multiple vaults', async () => {
@@ -1807,10 +1807,10 @@ describe('PerpetualMarket', function () {
 
     it('get min collateral of squared perpetual and perpetual future', async () => {
       const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(vaultId, [
-        scaledBN(-10, 8),
-        scaledBN(10, 8),
+        scaledBN(-20, 8),
+        scaledBN(20, 8),
       ])
-      expect(minCollateral).to.be.eq(610972500)
+      expect(minCollateral).to.be.eq(809620000)
     })
 
     it('get min collateral of the vault that has positions', async () => {

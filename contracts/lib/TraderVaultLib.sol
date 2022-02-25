@@ -30,7 +30,7 @@ import "./EntryPriceMath.sol";
  *  T1: PositionValue must be less than MinCollateral
  *  T2: Vault is insolvent
  *  T3: subVaultIndex is too large
- *  T4: ratio is too large
+ *  T4: position must not be 0
  */
 library TraderVaultLib {
     using SafeCast for int256;
@@ -45,8 +45,8 @@ library TraderVaultLib {
     /// @dev minimum margin is 500 USDC
     uint256 private constant MIN_MARGIN = 500 * 1e8;
 
-    /// @dev risk parameter for MinCollateral calculation is 7.5%
-    uint256 private constant RISK_PARAM_FOR_VAULT = 750;
+    /// @dev risk parameter for MinCollateral calculation is 5.0%
+    uint256 private constant RISK_PARAM_FOR_VAULT = 500;
 
     struct SubVault {
         int128[2] positionPerpetuals;
@@ -108,7 +108,7 @@ library TraderVaultLib {
 
         _traderVault.positionUsdc = _traderVault.positionUsdc.add(finalUsdcPosition).toInt128();
 
-        require(!checkVaultIsLiquidatable(_traderVault, _tradePriceInfo), "T4");
+        require(!checkVaultIsLiquidatable(_traderVault, _tradePriceInfo), "T0");
     }
 
     /**
@@ -287,7 +287,7 @@ library TraderVaultLib {
     /**
      * @notice Calculates min collateral
      * MinCollateral = alpha*S*(|2*S*(1+fundingSqueeth)*PositionSqueeth + (1+fundingFuture)*PositionFuture| + 2*alpha*S*(1+fundingSqueeth)*|PositionSqueeth|)
-     * where alpha is 0.075
+     * where alpha is 0.05
      * @param positionPerpetuals amount of perpetual positions
      * @param _tradePriceInfo trade price info
      * @return MinCollateral scaled by 1e8

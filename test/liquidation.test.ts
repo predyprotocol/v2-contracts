@@ -75,16 +75,16 @@ describe('liquidation', function () {
           {
             productId: SQUEETH_PRODUCT_ID,
             subVaultIndex,
-            tradeAmount: scaledBN(10, 8),
+            tradeAmount: scaledBN(20, 8),
             limitPrice: 0,
           },
         ],
-        marginAmount: scaledBN(660, 6),
+        marginAmount: scaledBN(870, 6),
         deadline: 0,
       })
 
       const vault = await perpetualMarket.getVaultStatus(1)
-      expect(vault.rawVaultData.positionUsdc).to.be.eq(66000000000)
+      expect(vault.rawVaultData.positionUsdc).to.be.eq(87000000000)
     })
 
     it('reverts if the vault has enough margin', async () => {
@@ -107,7 +107,7 @@ describe('liquidation', function () {
           {
             productId: SQUEETH_PRODUCT_ID,
             subVaultIndex,
-            tradeAmount: scaledBN(-10, 8),
+            tradeAmount: scaledBN(-20, 8),
             limitPrice: 0,
           },
         ],
@@ -242,7 +242,7 @@ describe('liquidation', function () {
             limitPrice: 0,
           },
         ],
-        marginAmount: scaledBN(1320, 6),
+        marginAmount: scaledBN(870, 6),
         deadline: 0,
       })
       await perpetualMarket.trade({

@@ -168,59 +168,59 @@ describe('TraderVaultLib', function () {
     }
 
     it('long squeeth', async function () {
-      await checkMinCollateral([0, '1000000000'], [0, 0], '500000000000', '403125000000')
+      await checkMinCollateral([0, '1000000000'], [0, 0], '500000000000', '262500000000')
     })
 
     it('short squeeth', async function () {
-      await checkMinCollateral([0, '-1000000000'], [0, 0], '500000000000', '403125000000')
+      await checkMinCollateral([0, '-1000000000'], [0, 0], '500000000000', '262500000000')
     })
 
     it('long future', async function () {
-      await checkMinCollateral(['1000000000', 0], [0, 0], '100000000000', '75000000000')
+      await checkMinCollateral(['2000000000', 0], [0, 0], '100000000000', '100000000000')
     })
 
     it('short future', async function () {
-      await checkMinCollateral(['-1000000000', 0], [0, 0], '100000000000', '75000000000')
+      await checkMinCollateral(['-2000000000', 0], [0, 0], '100000000000', '100000000000')
     })
 
     describe('short future and long squeeth', () => {
       it('long future and short squeeth with positive delta', async function () {
-        await checkMinCollateral(['-2000000000', '2000000000'], [0, 0], '400000000000', '156000000000')
+        await checkMinCollateral(['-5000000000', '5000000000'], [0, 0], '400000000000', '240000000000')
       })
 
       it('long future and short squeeth with zero delta', async function () {
-        await checkMinCollateral(['-2000000000', '2000000000'], [0, 0], '500000000000', '56250000000')
+        await checkMinCollateral(['-5000000000', '5000000000'], [0, 0], '500000000000', '62500000000')
       })
 
       it('long future and short squeeth with negative delta', async function () {
-        await checkMinCollateral(['-2000000000', '2000000000'], [0, 0], '600000000000', '261000000000')
+        await checkMinCollateral(['-5000000000', '5000000000'], [0, 0], '600000000000', '390000000000')
       })
 
       it('long future and short squeeth with funding rate', async function () {
-        await checkMinCollateral(['-2000000000', '2000000000'], ['100000', '1000000'], '500000000000', '63562500000')
+        await checkMinCollateral(['-5000000000', '5000000000'], ['100000', '1000000'], '500000000000', '74375000000')
       })
     })
 
     describe('long future and short squeeth', () => {
       it('long future and short squeeth with positive delta', async function () {
-        await checkMinCollateral(['2000000000', '-2000000000'], [0, 0], '400000000000', '156000000000')
+        await checkMinCollateral(['5000000000', '-5000000000'], [0, 0], '400000000000', '240000000000')
       })
 
       it('long future and short squeeth with zero delta', async function () {
-        await checkMinCollateral(['2000000000', '-2000000000'], [0, 0], '500000000000', '56250000000')
+        await checkMinCollateral(['5000000000', '-5000000000'], [0, 0], '500000000000', '62500000000')
       })
 
       it('long future and short squeeth with negative delta', async function () {
-        await checkMinCollateral(['2000000000', '-2000000000'], [0, 0], '600000000000', '261000000000')
+        await checkMinCollateral(['5000000000', '-5000000000'], [0, 0], '600000000000', '390000000000')
       })
 
       it('long future and short squeeth with funding rate', async function () {
-        await checkMinCollateral(['2000000000', '-2000000000'], ['100000', '1000000'], '500000000000', '63562500000')
+        await checkMinCollateral(['5000000000', '-5000000000'], ['100000', '1000000'], '500000000000', '74375000000')
       })
     })
 
     it('short squeeth and short future', async function () {
-      await checkMinCollateral(['-1000000000', '-1000000000'], [0, 0], '100000000000', '91125000000')
+      await checkMinCollateral(['-1000000000', '-1000000000'], [0, 0], '100000000000', '60500000000')
     })
 
     it('positions in different sub-vaults', async function () {
@@ -233,7 +233,7 @@ describe('TraderVaultLib', function () {
         fundingRates: [0, 0],
         amountsFundingPaidPerPosition: [0, 0],
       })
-      expect(minCollateral).to.be.eq('91125000000')
+      expect(minCollateral).to.be.eq('60500000000')
     })
 
     it('min limit is 500 * 1e8', async function () {
@@ -542,8 +542,8 @@ describe('TraderVaultLib', function () {
           fundingRates: [0, 0],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        expect(await tester.r()).to.be.eq('-214887500000')
-        expect((await tester.traderVault()).positionUsdc).to.be.eq('-14887500000')
+        expect(await tester.r()).to.be.eq('-282950000000')
+        expect((await tester.traderVault()).positionUsdc).to.be.eq('-82950000000')
       })
     })
   })
@@ -552,7 +552,7 @@ describe('TraderVaultLib', function () {
     describe('single sub-vault', () => {
       beforeEach(async () => {
         await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '7000000000', '10000000000', '0')
-        await tester.testUpdateUsdcPosition('112900000000', {
+        await tester.testUpdateUsdcPosition('73500000000', {
           spotPrice: '100000000000',
           tradePrices: ['100000000000', '10000000000'],
           fundingRates: [0, 0],

@@ -34,7 +34,7 @@ MinCollateral is defined as follow:
 
 where `PositionSquared = ΣPositionPerpetual_{0,j}` and `PositionFuture = ΣPositionPerpetual_{1,j}`.
 
-The risk parameter `alpha` is 0.075.
+The risk parameter `alpha` is 0.05.
 
 ### Liquidation
 
