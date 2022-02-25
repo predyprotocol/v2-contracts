@@ -30,9 +30,11 @@ PositionValue is defined as follow:
 
 MinCollateral is defined as follow:
 
-`MinCollateral = 0.075 * S * (|2*S*PositionSquared+PositionFuture| + 0.15*S*|PositionSquared|)`
+`MinCollateral = alpha * S * (|2*S*(1+n_1)*PositionSquared+(1+n_0)*PositionFuture| + 2*alpha*S*(1+n_1)*|PositionSquared|)`
 
 where `PositionSquared = ΣPositionPerpetual_{0,j}` and `PositionFuture = ΣPositionPerpetual_{1,j}`.
+
+The risk parameter `alpha` is 0.075.
 
 ### Liquidation
 

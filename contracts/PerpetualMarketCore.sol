@@ -523,19 +523,19 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         int256[2] memory tradePrices;
+        int256[2] memory fundingRates;
         int128[2] memory amountFundingPaidPerPositionGlobals;
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
             int256 indexPrice;
-            int256 fundingRate;
-            (tradePrices[i], indexPrice, fundingRate, , ) = calculateTradePriceReadOnly(
+            (tradePrices[i], indexPrice, fundingRates[i], , ) = calculateTradePriceReadOnly(
                 i,
                 spotPrice,
                 -amountAssets[i],
                 0
             );
 
-            int256 fundingFeePerPosition = (indexPrice.mul(fundingRate)) / 1e8;
+            int256 fundingFeePerPosition = (indexPrice.mul(fundingRates[i])) / 1e8;
 
             fundingFeePerPosition = (fundingFeePerPosition.mul(int256(block.timestamp.sub(pools[i].lastTradeTime))))
                 .div(FUNDING_PERIOD);
@@ -546,7 +546,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
                 .toInt128();
         }
 
-        return TradePriceInfo(uint128(spotPrice), tradePrices, amountFundingPaidPerPositionGlobals);
+        return TradePriceInfo(uint128(spotPrice), tradePrices, fundingRates, amountFundingPaidPerPositionGlobals);
     }
 
     /////////////////////////
