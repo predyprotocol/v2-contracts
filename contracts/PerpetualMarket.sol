@@ -3,6 +3,7 @@ pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IFeePool.sol";
 import "./interfaces/IPerpetualMarketCore.sol";
@@ -22,6 +23,7 @@ import "./interfaces/IVaultNFT.sol";
  * PM2: caller is not vault owner
  */
 contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
+    using SafeERC20 for IERC20;
     using SafeCast for int256;
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -92,7 +94,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         uint256 lpTokenAmount = perpetualMarketCore.initialize(msg.sender, _depositAmount * 1e2, _initialFundingRate);
 
-        ERC20(quoteAsset).transferFrom(msg.sender, address(this), _depositAmount);
+        IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), _depositAmount);
 
         emit Deposited(msg.sender, lpTokenAmount, _depositAmount);
     }
@@ -107,7 +109,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         uint256 lpTokenAmount = perpetualMarketCore.deposit(msg.sender, _depositAmount * 1e2);
 
-        ERC20(quoteAsset).transferFrom(msg.sender, address(this), _depositAmount);
+        IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), _depositAmount);
 
         emit Deposited(msg.sender, lpTokenAmount, _depositAmount);
     }
@@ -162,7 +164,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         // Add protocol fee
         if (totalProtocolFee > 0) {
-            ERC20(quoteAsset).approve(address(feeRecepient), totalProtocolFee);
+            IERC20(quoteAsset).approve(address(feeRecepient), totalProtocolFee);
             feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
         }
 
@@ -177,7 +179,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         if (finalDepositOrWithdrawAmount > 0) {
             uint256 depositAmount = uint256(finalDepositOrWithdrawAmount / 1e2);
-            ERC20(quoteAsset).transferFrom(msg.sender, address(this), depositAmount);
+            IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), depositAmount);
             emit DepositedToVault(msg.sender, _tradeParams.vaultId, depositAmount);
         } else if (finalDepositOrWithdrawAmount < 0) {
             uint256 withdrawAmount = uint256(-finalDepositOrWithdrawAmount) / 1e2;
@@ -228,7 +230,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         // Sends protocol fee
         if (totalProtocolFee > 0) {
-            ERC20(quoteAsset).approve(address(feeRecepient), totalProtocolFee);
+            IERC20(quoteAsset).approve(address(feeRecepient), totalProtocolFee);
             feeRecepient.sendProfitERC20(address(this), totalProtocolFee);
         }
 
@@ -317,10 +319,10 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         amountUnderlying = Math.scale(completeParams.amountUnderlying, 8, ERC20(underlyingAsset).decimals());
 
         if (completeParams.isLong) {
-            ERC20(underlyingAsset).transferFrom(msg.sender, address(this), amountUnderlying);
+            IERC20(underlyingAsset).safeTransferFrom(msg.sender, address(this), amountUnderlying);
             sendLiquidity(msg.sender, amountUsdc);
         } else {
-            ERC20(quoteAsset).transferFrom(msg.sender, address(this), amountUsdc);
+            IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), amountUsdc);
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
