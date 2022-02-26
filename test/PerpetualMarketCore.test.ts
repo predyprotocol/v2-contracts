@@ -321,7 +321,7 @@ describe('PerpetualMarketCore', function () {
       const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 6))
 
       await increaseTime(VARIANCE_UPDATE_INTERVAL)
-      await updateSpot(scaledBN(1050, 8))
+      await updateSpot(scaledBN(1060, 8))
       await perpetualMarketCore.updatePoolSnapshot()
       await updateSpot(scaledBN(1000, 8))
 
