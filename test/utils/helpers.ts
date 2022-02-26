@@ -1,3 +1,4 @@
+import { expect } from 'chai'
 import { BigNumber, BigNumberish } from 'ethers'
 import { ethers } from 'hardhat'
 
@@ -35,4 +36,13 @@ export const getExpiry = async (date: number) => {
 
 export function genRangeId(s: number, e: number): number {
   return s + 1e2 * e
+}
+
+export function assertCloseToPercentage(a: BigNumber, b: BigNumber, percentage: BigNumber = BigNumber.from('50000')) {
+  if (b.eq(0)) {
+    expect(a.eq(0)).is.true
+    return
+  }
+  console.log(a, b)
+  expect(b.sub(a).mul('100000000').div(b).abs().lte(percentage)).is.true
 }

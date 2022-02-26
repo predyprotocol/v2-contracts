@@ -84,7 +84,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1999736)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1999760)
     })
 
     it('deposits after pool gets profit', async () => {
@@ -95,7 +95,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1998735)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1998759)
     })
 
     it('deposits after pool gets loss', async () => {
@@ -107,7 +107,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(2000741)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(2000766)
     })
   })
 
@@ -148,7 +148,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(500633)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(500609)
     })
 
     it('withdraws after the pool gets loss', async () => {
@@ -160,7 +160,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(499630)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(499605)
     })
 
     it('spread becomes high', async () => {
@@ -188,7 +188,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500304)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500299)
     })
 
     it('spread becomes high when withdraw', async () => {
@@ -216,7 +216,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1501273)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1501351)
     })
   })
 
