@@ -519,6 +519,37 @@ describe('PerpetualMarketCore', function () {
     })
   })
 
+  describe('testUpdateVariance', () => {
+    const timestamp = 60 * 60 * 24
+
+    it('12 hours', async () => {
+      await tester.setPoolSnapshot('100000000000', '300000', timestamp)
+      await updateSpot('110000000000')
+      await tester.testUpdateVariance(timestamp + 60 * 60 * 12)
+      const variance = await tester.getEthVariance()
+
+      expect(variance).to.be.eq(402000)
+    })
+
+    it('24 hours', async () => {
+      await tester.setPoolSnapshot('100000000000', '300000', timestamp)
+      await updateSpot('110000000000')
+      await tester.testUpdateVariance(timestamp + 60 * 60 * 24)
+      const variance = await tester.getEthVariance()
+
+      expect(variance).to.be.eq(342000)
+    })
+
+    it('36 hours', async () => {
+      await tester.setPoolSnapshot('100000000000', '300000', timestamp)
+      await updateSpot('110000000000')
+      await tester.testUpdateVariance(timestamp + 60 * 60 * 36)
+      const variance = await tester.getEthVariance()
+
+      expect(variance).to.be.eq(321999)
+    })
+  })
+
   describe('calculateUnlockedLiquidity', () => {
     it('lockedLiquidityAmount=100, deltaM=100, hedgePositionValue=100', async () => {
       const result = await tester.testCalculateUnlockedLiquidity(100, -100, 100)

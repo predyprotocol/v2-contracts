@@ -96,7 +96,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     SpreadLib.Info private lpTokenSpreadInfo;
 
     // Snapshot of pool state at last ETH variance calculation
-    PoolSnapshot private poolSnapshot;
+    PoolSnapshot internal poolSnapshot;
 
     // Infos for collateral calculation
     NettingLib.Info private nettingInfo;
@@ -370,7 +370,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             return;
         }
 
-        updateVariance();
+        updateVariance(block.timestamp);
         updateBaseFundingRate();
     }
 
@@ -386,7 +386,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     /**
      * @notice Calculates ETH variance under the Exponentially Weighted Moving Average Model.
      */
-    function updateVariance() internal {
+    function updateVariance(uint256 _timestamp) internal {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         // u_{t-1} = (S_t - S_{t-1}) / S_{t-1}
@@ -395,14 +395,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 uPower2 = u.mul(u).div(1e8);
 
         // normalization
-        uPower2 = (uPower2.mul(FUNDING_PERIOD)).div((block.timestamp - poolSnapshot.lastSnapshotTime).toInt256());
+        uPower2 = (uPower2.mul(FUNDING_PERIOD)).div((_timestamp - poolSnapshot.lastSnapshotTime).toInt256());
 
         // Updates snapshot
         // variance_{t} = λ * variance_{t-1} + (1 - λ) * u_{t-1}^2
         poolSnapshot.ethVariance = ((LAMBDA.mul(poolSnapshot.ethVariance).add((1e8 - LAMBDA).mul(uPower2))) / 1e8)
             .toInt128();
         poolSnapshot.ethPrice = spotPrice.toInt128();
-        poolSnapshot.lastSnapshotTime = block.timestamp.toUint128();
+        poolSnapshot.lastSnapshotTime = _timestamp.toUint128();
     }
 
     function updateBaseFundingRate() internal {
