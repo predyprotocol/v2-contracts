@@ -87,12 +87,12 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      * @param _depositAmount deposit amount
      * @param _initialFundingRate initial funding rate
      */
-    function initialize(uint128 _depositAmount, int128 _initialFundingRate) external override {
+    function initialize(uint256 _depositAmount, int256 _initialFundingRate) external override {
         require(_depositAmount > 0 && _initialFundingRate > 0);
 
         uint256 lpTokenAmount = perpetualMarketCore.initialize(msg.sender, _depositAmount * 1e2, _initialFundingRate);
 
-        ERC20(quoteAsset).transferFrom(msg.sender, address(this), uint128(_depositAmount));
+        ERC20(quoteAsset).transferFrom(msg.sender, address(this), _depositAmount);
 
         emit Deposited(msg.sender, lpTokenAmount, _depositAmount);
     }
@@ -100,14 +100,14 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     /**
      * @notice Provides liquidity to the pool and mints LP tokens
      */
-    function deposit(uint128 _depositAmount) external override {
+    function deposit(uint256 _depositAmount) external override {
         require(_depositAmount > 0);
 
         perpetualMarketCore.executeFundingPayment();
 
         uint256 lpTokenAmount = perpetualMarketCore.deposit(msg.sender, _depositAmount * 1e2);
 
-        ERC20(quoteAsset).transferFrom(msg.sender, address(this), uint128(_depositAmount));
+        ERC20(quoteAsset).transferFrom(msg.sender, address(this), _depositAmount);
 
         emit Deposited(msg.sender, lpTokenAmount, _depositAmount);
     }
