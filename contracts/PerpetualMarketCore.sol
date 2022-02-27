@@ -111,6 +111,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     address private perpetualMarket;
 
     event FundingPayment(uint256 productId, int256 fundingRate, int256 fundingPaidPerPosition, int256 poolReceived);
+    event VarianceUpdated(int256 variance, int256 underlyingPrice, uint256 timestamp);
 
     event SetSquaredPerpFundingMultiplier(int256 squaredPerpFundingMultiplier);
     event SetPerpFutureMaxFundingRate(int256 perpFutureMaxFundingRate);
@@ -257,9 +258,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         (int256 spotPrice, ) = getUnderlyingPrice();
 
-        // Funding payment
-        _executeFundingPayment(_productId, spotPrice);
-
         // Updates pool position
         pools[_productId].positionPerpetuals -= _tradeAmount;
 
@@ -403,6 +401,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             .toInt128();
         poolSnapshot.ethPrice = spotPrice.toInt128();
         poolSnapshot.lastSnapshotTime = _timestamp.toUint128();
+
+        emit VarianceUpdated(poolSnapshot.ethVariance, poolSnapshot.ethPrice, _timestamp);
     }
 
     function updateBaseFundingRate() internal {

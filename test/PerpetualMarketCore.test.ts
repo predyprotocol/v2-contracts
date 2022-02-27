@@ -525,28 +525,25 @@ describe('PerpetualMarketCore', function () {
     it('12 hours', async () => {
       await tester.setPoolSnapshot('100000000000', '300000', timestamp)
       await updateSpot('110000000000')
-      await tester.testUpdateVariance(timestamp + 60 * 60 * 12)
-      const variance = await tester.getEthVariance()
-
-      expect(variance).to.be.eq(402000)
+      await expect(tester.testUpdateVariance(timestamp + 60 * 60 * 12))
+        .to.be.emit(tester, 'VarianceUpdated')
+        .withArgs(402000, '110000000000', timestamp + 60 * 60 * 12)
     })
 
     it('24 hours', async () => {
       await tester.setPoolSnapshot('100000000000', '300000', timestamp)
       await updateSpot('110000000000')
-      await tester.testUpdateVariance(timestamp + 60 * 60 * 24)
-      const variance = await tester.getEthVariance()
-
-      expect(variance).to.be.eq(342000)
+      await expect(tester.testUpdateVariance(timestamp + 60 * 60 * 24))
+        .to.be.emit(tester, 'VarianceUpdated')
+        .withArgs(342000, '110000000000', timestamp + 60 * 60 * 24)
     })
 
     it('36 hours', async () => {
       await tester.setPoolSnapshot('100000000000', '300000', timestamp)
       await updateSpot('110000000000')
-      await tester.testUpdateVariance(timestamp + 60 * 60 * 36)
-      const variance = await tester.getEthVariance()
-
-      expect(variance).to.be.eq(321999)
+      await expect(tester.testUpdateVariance(timestamp + 60 * 60 * 36))
+        .to.be.emit(tester, 'VarianceUpdated')
+        .withArgs(321999, '110000000000', timestamp + 60 * 60 * 36)
     })
   })
 

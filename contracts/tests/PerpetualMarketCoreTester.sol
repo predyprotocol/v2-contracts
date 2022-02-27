@@ -21,10 +21,6 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
         poolSnapshot.lastSnapshotTime = _lastSnapshotTime;
     }
 
-    function getEthVariance() external view returns (int256) {
-        return poolSnapshot.ethVariance;
-    }
-
     function testCalculateUnlockedLiquidity(
         uint256 _amountLockedLiquidity,
         int256 _deltaM,
