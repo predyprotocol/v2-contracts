@@ -105,6 +105,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     function deposit(uint256 _depositAmount) external override {
         require(_depositAmount > 0);
 
+        // Funding payment should be proceeded before deposit
         perpetualMarketCore.executeFundingPayment();
 
         uint256 lpTokenAmount = perpetualMarketCore.deposit(msg.sender, _depositAmount * 1e2);
@@ -120,6 +121,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     function withdraw(uint128 _withdrawnAmount) external override {
         require(_withdrawnAmount > 0);
 
+        // Funding payment should be proceeded before withdrawal
         perpetualMarketCore.executeFundingPayment();
 
         uint256 lpTokenAmount = perpetualMarketCore.withdraw(msg.sender, _withdrawnAmount * 1e2);
@@ -146,6 +148,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             // check caller is vault owner
             require(IVaultNFT(vaultNFT).ownerOf(_tradeParams.vaultId) == msg.sender, "PM2");
         }
+
+        // funding payment should bee proceeded before trade
+        perpetualMarketCore.executeFundingPayment();
 
         uint256 totalProtocolFee;
 
@@ -175,6 +180,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             perpetualMarketCore.getTradePriceInfo(traderVaults[_tradeParams.vaultId].getPositionPerpetuals())
         );
 
+        // Try to update variance after trade
         perpetualMarketCore.updatePoolSnapshot();
 
         if (finalDepositOrWithdrawAmount > 0) {
@@ -195,6 +201,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      * @param _vaultId The id of target vault
      */
     function liquidateByPool(uint256 _vaultId) external override {
+        // funding payment should bee proceeded before liquidation
+        perpetualMarketCore.executeFundingPayment();
+
         TraderVaultLib.TraderVault storage traderVault = traderVaults[_vaultId];
 
         IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
@@ -227,6 +236,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         // Sends a half of reward to the liquidator
         sendLiquidity(msg.sender, reward / (2 * 1e2));
+
+        // Try to update variance after liquidation
+        perpetualMarketCore.updatePoolSnapshot();
 
         // Sends protocol fee
         if (totalProtocolFee > 0) {
@@ -302,11 +314,11 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      * @notice Executes hedging
      */
     function execHedge() external override returns (uint256 amountUsdc, uint256 amountUnderlying) {
-        /// Update variance before hedging
-        perpetualMarketCore.updatePoolSnapshot();
-
         // execute funding payment
         perpetualMarketCore.executeFundingPayment();
+
+        // Try to update variance after funding payment
+        perpetualMarketCore.updatePoolSnapshot();
 
         // rebalance
         perpetualMarketCore.rebalance();
