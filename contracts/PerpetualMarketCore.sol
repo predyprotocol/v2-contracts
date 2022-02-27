@@ -257,9 +257,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         (int256 spotPrice, ) = getUnderlyingPrice();
 
-        // Funding payment
-        _executeFundingPayment(_productId, spotPrice);
-
         // Updates pool position
         pools[_productId].positionPerpetuals -= _tradeAmount;
 
