@@ -317,9 +317,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         // execute funding payment
         perpetualMarketCore.executeFundingPayment();
 
-        // Try to update variance after funding payment
-        perpetualMarketCore.updatePoolSnapshot();
-
         // rebalance
         perpetualMarketCore.rebalance();
 
@@ -337,6 +334,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), amountUsdc);
             sendUndrlying(msg.sender, amountUnderlying);
         }
+
+        // Try to update variance after a hedge
+        perpetualMarketCore.updatePoolSnapshot();
 
         emit Hedged(msg.sender, completeParams.isLong, amountUsdc, amountUnderlying);
     }
