@@ -831,6 +831,9 @@ describe('PerpetualMarket', function () {
         expect((await testContractSet.perpetualMarketCore.pools(SQUEETH_PRODUCT_ID)).positionPerpetuals).to.be.eq(
           -1000000,
         )
+        expect((await perpetualMarket.getTraderVault(1)).subVaults[0].positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq(
+          scaledBN(1, 6),
+        )
       })
 
       it('open short', async () => {
@@ -993,6 +996,9 @@ describe('PerpetualMarket', function () {
           -1000000,
         )
         expect((await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 10)).fundingRate).to.be.gt(0)
+        expect((await perpetualMarket.getTraderVault(1)).subVaults[0].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(
+          scaledBN(1, 6),
+        )
       })
 
       it('open short', async () => {
@@ -1149,6 +1155,11 @@ describe('PerpetualMarket', function () {
           marginAmount: MIN_MARGIN,
           deadline: 0,
         })
+
+        const traderVault = await perpetualMarket.getTraderVault(1)
+        expect(traderVault.positionUsdc).to.be.eq('100000000000')
+        expect(traderVault.subVaults[0].positionPerpetuals[0]).to.be.eq(scaledBN(1, 6))
+        expect(traderVault.subVaults[0].positionPerpetuals[1]).to.be.eq(scaledBN(1, 6))
 
         const vaultStatus = await perpetualMarket.getVaultStatus(1)
 

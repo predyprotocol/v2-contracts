@@ -71,5 +71,7 @@ interface IPerpetualMarket {
         view
         returns (int256 minCollateral);
 
+    function getTraderVault(uint256 _vaultId) external view returns (TraderVaultLib.TraderVault memory);
+
     function getVaultStatus(uint256 _vaultId) external view returns (VaultStatus memory);
 }
