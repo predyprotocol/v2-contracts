@@ -43,7 +43,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     address private vaultNFT;
 
     // trader's vaults storage
-    mapping(uint256 => TraderVaultLib.TraderVault) private traderVaults;
+    mapping(uint256 => TraderVaultLib.TraderVault) public traderVaults;
 
     event Deposited(address indexed account, uint256 issued, uint256 amount);
 
@@ -424,6 +424,10 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         );
 
         minCollateral = minCollateral / 1e2;
+    }
+
+    function getTraderVault(uint256 _vaultId) external view override returns (TraderVaultLib.TraderVault memory) {
+        return traderVaults[_vaultId];
     }
 
     /**
