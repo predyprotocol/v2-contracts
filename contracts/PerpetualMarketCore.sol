@@ -867,8 +867,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
     /**
      * @notice Calculates perpetual's funding rate
-     * Squeeth: FundingRate = variance * (1 + squaredPerpFundingMultiplier * m / L)
-     * Future: FundingRate = BASE_FUNDING_RATE + perpFutureMaxFundingRate * (m / L)
+     * Squared:
+     *  if pool position is short
+     *   FundingRate = variance * (1 + squaredPerpFundingMultiplier * m / L)
+     *  if pool position is long
+     *   FundingRate = variance * (1 - squaredPerpFundingMultiplier * m / L)
+     * Future:
+     *  if pool position is short
+     *   FundingRate = BASE_FUNDING_RATE + perpFutureMaxFundingRate * (m / L)
+     *  if pool position is long
+     *   FundingRate = BASE_FUNDING_RATE - perpFutureMaxFundingRate * (m / L)
      * @param _productId product id
      * @param _deltaMargin difference of required margin
      * @param _deltaLiquidity difference of liquidity
@@ -899,15 +907,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             if (liquidityAmountInt256 == 0) {
                 return poolSnapshot.ethVariance;
             } else {
-                return ((
-                    poolSnapshot.ethVariance.mul(
-                        (
-                            squaredPerpFundingMultiplier.mul(
-                                calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity)
-                            )
-                        ).div(1e8).add(1e8)
-                    )
-                ) / 1e8);
+                int256 addition = squaredPerpFundingMultiplier
+                    .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
+                    .div(1e8);
+                if (pools[_productId].positionPerpetuals > 0) {
+                    return poolSnapshot.ethVariance.mul(int256(1e8).sub(addition)).div(1e8);
+                } else {
+                    return poolSnapshot.ethVariance.mul(int256(1e8).add(addition)).div(1e8);
+                }
             }
         }
         return 0;
