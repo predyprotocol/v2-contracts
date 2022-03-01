@@ -739,6 +739,42 @@ describe('PerpetualMarket', function () {
       expect(vaultStatus.rawVaultData.subVaults[0].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(2, 6))
     })
 
+    it('reverts if trade amount is too large', async () => {
+      await expect(
+        perpetualMarket.trade({
+          vaultId: 0,
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(100, 8),
+              limitPrice: 0,
+            },
+          ],
+          marginAmount: MIN_MARGIN,
+          deadline: 0,
+        }),
+      ).to.be.revertedWith('PMC1')
+    })
+
+    it('reverts if trade amount is too small', async () => {
+      await expect(
+        perpetualMarket.trade({
+          vaultId: 0,
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-100, 8),
+              limitPrice: 0,
+            },
+          ],
+          marginAmount: MIN_MARGIN,
+          deadline: 0,
+        }),
+      ).to.be.revertedWith('PMC1')
+    })
+
     describe('Squeeth', () => {
       it('open position and emit an event', async () => {
         await expect(

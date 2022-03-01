@@ -742,6 +742,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     {
         int256 deltaMargin = getRequiredMargin(_productId, _spotPrice, _tradeAmount.toInt128());
 
+        if (deltaMargin > 0) {
+            require(amountLiquidity.sub(pools[_productId].amountLockedLiquidity) >= uint256(deltaMargin), "PMC1");
+        }
+
         (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePrice(
             _productId,
             _spotPrice,
