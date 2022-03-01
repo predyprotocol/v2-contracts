@@ -220,10 +220,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         onlyPerpetualMarket
         returns (uint256 burnAmount)
     {
-        require(
-            amountLiquidity.sub(pools[0].amountLockedLiquidity).sub(pools[1].amountLockedLiquidity) >= _withdrawnAmount,
-            "PMC0"
-        );
+        require(getAvailableLiquidityAmount() >= _withdrawnAmount, "PMC0");
 
         uint256 lpTokenPrice = getLPTokenPrice(-_withdrawnAmount.toInt256());
 
@@ -605,7 +602,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         // Updates amountLiquidity and amountLockedLiquidity
         if (deltaMargin > 0) {
-            require(amountLiquidity.sub(pools[_productId].amountLockedLiquidity) >= uint128(deltaMargin), "PMC1");
+            require(getAvailableLiquidityAmount() >= uint256(deltaMargin), "PMC1");
         } else if (deltaMargin < 0) {
             // Calculate new amounts of liquidity and locked liquidity
             (deltaLiquidity, deltaMargin) = calculateUnlockedLiquidity(
@@ -743,7 +740,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 deltaMargin = getRequiredMargin(_productId, _spotPrice, _tradeAmount.toInt128());
 
         if (deltaMargin > 0) {
-            require(amountLiquidity.sub(pools[_productId].amountLockedLiquidity) >= uint256(deltaMargin), "PMC1");
+            require(getAvailableLiquidityAmount() >= uint256(deltaMargin), "PMC1");
         }
 
         (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePrice(
@@ -952,6 +949,20 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         if (slippageTolerance < minSlippageToleranceOfHedge) slippageTolerance = minSlippageToleranceOfHedge;
         if (slippageTolerance > maxSlippageToleranceOfHedge) slippageTolerance = maxSlippageToleranceOfHedge;
+    }
+
+    /**
+     * @notice Gets available amount of liquidity
+     * available amount = amountLiquidity - (ΣamountLocked_i)
+     */
+    function getAvailableLiquidityAmount() internal view returns (uint256) {
+        uint256 amountLocked;
+
+        for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
+            amountLocked = amountLocked.add(pools[i].amountLockedLiquidity);
+        }
+
+        return amountLiquidity.sub(amountLocked);
     }
 
     /**

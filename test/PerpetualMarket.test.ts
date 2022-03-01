@@ -775,6 +775,38 @@ describe('PerpetualMarket', function () {
       ).to.be.revertedWith('PMC1')
     })
 
+    it('reverts if there is no liquidity', async () => {
+      await perpetualMarket.trade({
+        vaultId: 0,
+        trades: [
+          {
+            productId: FUTURE_PRODUCT_ID,
+            subVaultIndex,
+            tradeAmount: scaledBN(1, 8),
+            limitPrice: 0,
+          },
+        ],
+        marginAmount: MIN_MARGIN,
+        deadline: 0,
+      })
+
+      await expect(
+        perpetualMarket.trade({
+          vaultId: 0,
+          trades: [
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(40, 8),
+              limitPrice: 0,
+            },
+          ],
+          marginAmount: MIN_MARGIN,
+          deadline: 0,
+        }),
+      ).to.be.revertedWith('PMC1')
+    })
+
     describe('Squeeth', () => {
       it('open position and emit an event', async () => {
         await expect(
