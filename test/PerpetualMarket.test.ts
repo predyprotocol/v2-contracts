@@ -834,6 +834,7 @@ describe('PerpetualMarket', function () {
       })
 
       it('open short', async () => {
+        const tradePriceBefore = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 100)
         await perpetualMarket.trade({
           vaultId: 0,
           trades: [
@@ -847,10 +848,12 @@ describe('PerpetualMarket', function () {
           marginAmount: MIN_MARGIN,
           deadline: 0,
         })
+        const tradePriceAfter = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 100)
 
         expect((await testContractSet.perpetualMarketCore.pools(SQUEETH_PRODUCT_ID)).positionPerpetuals).to.be.eq(
           1000000,
         )
+        expect(tradePriceAfter.fundingRate).to.be.lt(tradePriceBefore.fundingRate)
       })
 
       it('close position', async () => {
