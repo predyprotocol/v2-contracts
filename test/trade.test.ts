@@ -193,6 +193,11 @@ describe('trade', function () {
       expect(tradePrice.totalFee).to.be.eq(60)
     })
 
+    it('reverts if trade amount is too large', async () => {
+      await testContractHelper.updateSpot(scaledBN(3567, 8))
+      await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(100000, 8))).to.be.revertedWith('PMC1')
+    })
+
     describe('position increased', () => {
       const vaultId = 0
       const subVaultIndex = 0
@@ -245,6 +250,11 @@ describe('trade', function () {
         expect(tradePrice.fundingRate).to.be.eq(300000)
         expect(tradePrice.totalValue).to.be.eq(10020000000)
         expect(tradePrice.totalFee).to.be.eq(10000000)
+      })
+
+      it('reverts if trade amount is too small', async () => {
+        await testContractHelper.updateSpot(scaledBN(3567, 8))
+        await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(-100000, 8))).to.be.revertedWith('PMC1')
       })
 
       it("get squared perpetual's trade price of large position", async () => {
