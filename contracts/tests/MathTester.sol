@@ -20,7 +20,11 @@ contract MathTester {
         return Math.scale(_a, _from, _to);
     }
 
-    function testLogTaylor(int256 _x) external pure returns (int256) {
-        return Math.logTaylor(_x);
+    function testLog(uint256 _x) external pure returns (int256) {
+        return Math.log(_x);
+    }
+
+    function testExp(int256 _x) external pure returns (uint256) {
+        return Math.exp(_x);
     }
 }

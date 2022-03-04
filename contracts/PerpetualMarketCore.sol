@@ -13,6 +13,7 @@ import "./lib/NettingLib.sol";
 import "./lib/IndexPricer.sol";
 import "./lib/SpreadLib.sol";
 import "./lib/EntryPriceMath.sol";
+import "./lib/PoolMath.sol";
 
 /**
  * @title PerpetualMarketCore
@@ -281,6 +282,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
                 deltaLiquidity
             );
 
+            // Update pool liquidity and locked liquidity
             if (deltaLiquidity != 0) {
                 amountLiquidity = Math.addDelta(amountLiquidity, deltaLiquidity);
             }
@@ -824,10 +826,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             return -(_currentMarginAmount.mul(2).add(_deltaMargin));
         } else if (_marginChangeType == MarginChange.LongToLong) {
             return -_deltaMargin;
-        } else if (_marginChangeType == MarginChange.ShortToShort) {
-            return _deltaMargin;
         } else {
-            return 0;
+            // In case of ShortToShort
+            return _deltaMargin;
         }
     }
 
@@ -878,7 +879,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     ) internal returns (uint256, uint256) {
         int256 signedMarginAmount = getSignedMarginAmount(
             // Calculate pool position before trade
-            pools[_productId].positionPerpetuals + _tradeAmount,
+            pools[_productId].positionPerpetuals.add(_tradeAmount),
             _productId
         );
 
@@ -1085,7 +1086,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     ) internal view returns (int256) {
         if (_productId == 0) {
             int256 fundingRate = perpFutureMaxFundingRate
-                .mul(calculateMarginDivLiquidity(_margin, _deltaMargin, _totalLiquidityAmount, _deltaLiquidity))
+                .mul(
+                    PoolMath.calculateMarginDivLiquidity(_margin, _deltaMargin, _totalLiquidityAmount, _deltaLiquidity)
+                )
                 .div(1e8);
             return poolSnapshot.futureBaseFundingRate.add(fundingRate);
         } else if (_productId == 1) {
@@ -1093,34 +1096,19 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
                 return poolSnapshot.ethVariance;
             } else {
                 int256 addition = squaredPerpFundingMultiplier
-                    .mul(calculateMarginDivLiquidity(_margin, _deltaMargin, _totalLiquidityAmount, _deltaLiquidity))
+                    .mul(
+                        PoolMath.calculateMarginDivLiquidity(
+                            _margin,
+                            _deltaMargin,
+                            _totalLiquidityAmount,
+                            _deltaLiquidity
+                        )
+                    )
                     .div(1e8);
                 return poolSnapshot.ethVariance.mul(int256(1e8).add(addition)).div(1e8);
             }
         }
         return 0;
-    }
-
-    /**
-     * @notice calculate multiple integral of m/L
-     * the formula is ((_m + _deltaMargin / 2) / _deltaL) * (log(_l + _deltaL) - log(_l))
-     * @param _m required margin
-     * @param _deltaMargin difference of required margin
-     * @param _l total amount of liquidity
-     * @param _deltaL difference of liquidity
-     * @return returns result of above formula
-     */
-    function calculateMarginDivLiquidity(
-        int256 _m,
-        int256 _deltaMargin,
-        int256 _l,
-        int256 _deltaL
-    ) internal pure returns (int256) {
-        if (_deltaL == 0) {
-            return (_m.add(_deltaMargin / 2).mul(1e8)).div(_l);
-        } else {
-            return (_m.add(_deltaMargin / 2)).mul(Math.logTaylor(_l.add(_deltaL)).sub(Math.logTaylor(_l))).div(_deltaL);
-        }
     }
 
     /**

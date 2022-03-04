@@ -10,15 +10,18 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
  * M1: y is too large
  * M2: possible overflow
  * M3: input should be positive number
+ * M4: cannot handle exponents greater than 100
  */
 library Math {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
 
-    /// @dev Napier's constant
-    int256 internal constant E_E8 = 271828182;
-    /// @dev Inverse of Napier's constant (1/e)
-    int256 internal constant INV_E_E8 = 36787944;
+    /// @dev Min exp
+    int256 private constant MIN_EXP = -63 * 1e8;
+    /// @dev Max exp
+    uint256 private constant MAX_EXP = 100 * 1e8;
+    /// @dev ln(2) scaled by 1e8
+    uint256 private constant LN_2_E8 = 69314718;
 
     /**
      * @notice Return the addition of unsigned integer and sigined integer.
@@ -69,40 +72,69 @@ library Math {
     }
 
     /**
-     * @dev Returns log(x) for any positive x.
+     * @dev Calculates an approximate value of the logarithm of input value by Halley's method.
      */
-    function logTaylor(int256 inputE8) internal pure returns (int256 outputE4) {
-        require(inputE8 > 1, "M3");
+    function log(uint256 x) internal pure returns (int256) {
+        int256 res;
+        int256 next;
 
-        // input x for _logTaylor1 is adjusted to 1/e < x < 1.
-        while (inputE8 < INV_E_E8) {
-            inputE8 = inputE8.mul(E_E8).div(1e8);
-            outputE4 = outputE4.sub(1e8);
+        for (uint256 i = 0; i < 8; i++) {
+            int256 e = int256(exp(res));
+            next = res.add((int256(x).sub(e).mul(2)).mul(1e8).div(int256(x).add(e)));
+            if (next == res) {
+                break;
+            }
+            res = next;
         }
-        while (inputE8 > 1e8) {
-            inputE8 = inputE8.mul(INV_E_E8).div(1e8);
-            outputE4 = outputE4.add(1e8);
-        }
-        outputE4 = outputE4.add(logTaylor1(inputE8.sub(1e8)));
+
+        return res;
     }
 
     /**
-     * @notice Calculate an approximate value of the logarithm of input value by
-     * Taylor expansion around 1.
-     * @dev log(x + 1) = x - 1/2 x^2 + 1/3 x^3 - 1/4 x^4 + 1/5 x^5
-     *                     - 1/6 x^6 + 1/7 x^7 - 1/8 x^8 + ...
+     * @dev Returns the exponent of the value using Taylor expansion with support for negative numbers.
      */
-    function logTaylor1(int256 inputE8) internal pure returns (int256 outputE4) {
-        int256 inputPos = 1;
-        for (uint256 i = 0; i < 8; i++) {
-            inputPos = inputPos.mul(inputE8);
-            if (i % 2 == 0) {
-                // i + 1 is safe because it is less than 8
-                // ie8**i is safe because it is less than 1e8**8
-                outputE4 = outputE4.add(inputPos.div(int256((i + 1).mul(1e8**i))));
-            } else {
-                outputE4 = outputE4.sub(inputPos.div(int256((i + 1).mul(1e8**i))));
-            }
+    function exp(int256 x) internal pure returns (uint256) {
+        if (0 <= x) {
+            return exp(uint256(x));
+        } else if (x < MIN_EXP) {
+            // return 0 because `exp(-63) < 1e-27`
+            return 0;
+        } else {
+            return uint256(1e8).mul(1e8).div(exp(uint256(-x)));
         }
+    }
+
+    /**
+     * @dev Calculates the exponent of the value using Taylor expansion.
+     */
+    function exp(uint256 x) internal pure returns (uint256) {
+        if (x == 0) {
+            return 1e8;
+        }
+        require(x <= MAX_EXP, "M4");
+
+        uint256 k = floor(x.mul(1e8).div(LN_2_E8)) / 1e8;
+        uint256 p = 2**k;
+        uint256 r = x.sub(k.mul(LN_2_E8));
+
+        uint256 multiplier = 1e8;
+
+        uint256 lastMultiplier;
+        for (uint256 i = 16; i > 0; i--) {
+            multiplier = multiplier.mul(r / i).div(1e8).add(1e8);
+            if (multiplier == lastMultiplier) {
+                break;
+            }
+            lastMultiplier = multiplier;
+        }
+
+        return p.mul(multiplier);
+    }
+
+    /**
+     * @dev Returns the floor of a 1e8
+     */
+    function floor(uint256 x) internal pure returns (uint256) {
+        return x - (x % 1e8);
     }
 }

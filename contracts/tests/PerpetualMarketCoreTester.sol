@@ -89,13 +89,4 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
     ) external view returns (int256) {
         return calculateFundingRate(_productId, _margin, _totalLiquidityAmount, _deltaMargin, _deltaLiquidity);
     }
-
-    function testCalculateMarginDivLiquidity(
-        int256 _m,
-        int256 _deltaMargin,
-        int256 _l,
-        int256 _deltaL
-    ) external pure returns (int256) {
-        return calculateMarginDivLiquidity(_m, _deltaMargin, _l, _deltaL);
-    }
 }

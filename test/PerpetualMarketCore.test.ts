@@ -8,6 +8,7 @@ import {
   MarginChange,
   FUNDING_PERIOD,
   FUTURE_PRODUCT_ID,
+  MAX_PRODUCT_ID,
   SAFETY_PERIOD,
   SQUEETH_PRODUCT_ID,
   VARIANCE_UPDATE_INTERVAL,
@@ -230,11 +231,16 @@ describe('PerpetualMarketCore', function () {
   })
 
   describe('updatePoolPosition', () => {
-    async function updatePoolPosition(productId: number, tradeAmount: BigNumberish) {
+    async function updatePoolPositionAndClose(productId: number, tradeAmount: BigNumberish) {
       await tester.testUpdatePoolPosition(productId, tradeAmount)
       const result = await tester.result()
       await tester.testUpdatePoolPosition(productId, BigNumber.from(tradeAmount).mul(-1))
       return result
+    }
+
+    async function updatePoolPosition(productId: number, tradeAmount: BigNumberish) {
+      await tester.testUpdatePoolPosition(productId, tradeAmount)
+      return await tester.result()
     }
 
     it('reverts if caller is not PerpetualMarket', async () => {
@@ -289,80 +295,84 @@ describe('PerpetualMarketCore', function () {
       })
 
       it('trade price increased as squeeth position increased', async () => {
-        const tradePrice1 = await updatePoolPosition(SQUEETH_PRODUCT_ID, 100000)
-        const tradePrice2 = await updatePoolPosition(SQUEETH_PRODUCT_ID, 200000)
+        const tradePrice1 = await updatePoolPositionAndClose(SQUEETH_PRODUCT_ID, 100000)
+        const tradePrice2 = await updatePoolPositionAndClose(SQUEETH_PRODUCT_ID, 200000)
 
         expect(tradePrice2).to.be.gt(tradePrice1)
       })
 
       it('trade price decreased as squeeth position decreased', async () => {
-        const tradePrice1 = await updatePoolPosition(SQUEETH_PRODUCT_ID, -100000)
-        const tradePrice2 = await updatePoolPosition(SQUEETH_PRODUCT_ID, -200000)
+        const tradePrice1 = await updatePoolPositionAndClose(SQUEETH_PRODUCT_ID, -100000)
+        const tradePrice2 = await updatePoolPositionAndClose(SQUEETH_PRODUCT_ID, -200000)
 
         expect(tradePrice2).to.be.lt(tradePrice1)
       })
 
       it('trade price increased as future position increased', async () => {
-        const tradePrice1 = await updatePoolPosition(FUTURE_PRODUCT_ID, 100000)
-        const tradePrice2 = await updatePoolPosition(FUTURE_PRODUCT_ID, 200000)
+        const tradePrice1 = await updatePoolPositionAndClose(FUTURE_PRODUCT_ID, 100000)
+        const tradePrice2 = await updatePoolPositionAndClose(FUTURE_PRODUCT_ID, 200000)
 
         expect(tradePrice2).to.be.gt(tradePrice1)
       })
 
       it('trade price decreased as future position decreased', async () => {
-        const tradePrice1 = await updatePoolPosition(FUTURE_PRODUCT_ID, -100000)
-        const tradePrice2 = await updatePoolPosition(FUTURE_PRODUCT_ID, -200000)
+        const tradePrice1 = await updatePoolPositionAndClose(FUTURE_PRODUCT_ID, -100000)
+        const tradePrice2 = await updatePoolPositionAndClose(FUTURE_PRODUCT_ID, -200000)
 
         expect(tradePrice2).to.be.lt(tradePrice1)
       })
 
       describe('pool has short position', () => {
         beforeEach(async () => {
-          await updatePoolPosition(FUTURE_PRODUCT_ID, 100000)
-          await updatePoolPosition(SQUEETH_PRODUCT_ID, 100000)
+          await tester.updatePoolPosition(FUTURE_PRODUCT_ID, 100000)
+          await tester.updatePoolPosition(SQUEETH_PRODUCT_ID, 100000)
         })
 
-        it('trade price decreased as squeeth position decreased', async () => {
-          const tradePrice1 = await updatePoolPosition(SQUEETH_PRODUCT_ID, -50000)
-          const tradePrice2 = await updatePoolPosition(SQUEETH_PRODUCT_ID, -100000)
-          const tradePrice3 = await updatePoolPosition(SQUEETH_PRODUCT_ID, -150000)
+        it('trade price decreased as position decreased', async () => {
+          for (let i = 0; i < MAX_PRODUCT_ID; i++) {
+            const tradePrice1 = await updatePoolPosition(i, -300000)
+            const tradePrice2 = await updatePoolPosition(i, -50000)
 
-          expect(tradePrice2).to.be.lt(tradePrice1)
-          expect(tradePrice3).to.be.lt(tradePrice2)
+            expect(tradePrice2).to.be.lt(tradePrice1)
+          }
         })
 
-        it('trade price decreased as future position decreased', async () => {
-          const tradePrice1 = await updatePoolPosition(FUTURE_PRODUCT_ID, -50000)
-          const tradePrice2 = await updatePoolPosition(FUTURE_PRODUCT_ID, -100000)
-          const tradePrice3 = await updatePoolPosition(FUTURE_PRODUCT_ID, -150000)
+        it('trade price decreased as position size decreased', async () => {
+          for (let i = 0; i < MAX_PRODUCT_ID; i++) {
+            const tradePrice1 = await updatePoolPositionAndClose(i, -50000)
+            const tradePrice2 = await updatePoolPositionAndClose(i, -100000)
+            const tradePrice3 = await updatePoolPositionAndClose(i, -300000)
 
-          expect(tradePrice2).to.be.lt(tradePrice1)
-          expect(tradePrice3).to.be.lt(tradePrice2)
+            expect(tradePrice2).to.be.lt(tradePrice1)
+            expect(tradePrice3).to.be.lt(tradePrice2)
+          }
         })
       })
 
       describe('pool has long position', () => {
         beforeEach(async () => {
-          await updatePoolPosition(FUTURE_PRODUCT_ID, -100000)
-          await updatePoolPosition(SQUEETH_PRODUCT_ID, -100000)
+          await tester.updatePoolPosition(FUTURE_PRODUCT_ID, -100000)
+          await tester.updatePoolPosition(SQUEETH_PRODUCT_ID, -100000)
         })
 
-        it('trade price increased as squeeth position increased', async () => {
-          const tradePrice1 = await updatePoolPosition(SQUEETH_PRODUCT_ID, 50000)
-          const tradePrice2 = await updatePoolPosition(SQUEETH_PRODUCT_ID, 100000)
-          const tradePrice3 = await updatePoolPosition(SQUEETH_PRODUCT_ID, 150000)
+        it('trade price increased as position increased', async () => {
+          for (let i = 0; i < MAX_PRODUCT_ID; i++) {
+            const tradePrice1 = await updatePoolPosition(i, 300000)
+            const tradePrice2 = await updatePoolPosition(i, 50000)
 
-          expect(tradePrice2).to.be.gt(tradePrice1)
-          expect(tradePrice3).to.be.gt(tradePrice2)
+            expect(tradePrice2).to.be.gt(tradePrice1)
+          }
         })
 
-        it('trade price increased as future position increased', async () => {
-          const tradePrice1 = await updatePoolPosition(FUTURE_PRODUCT_ID, 50000)
-          const tradePrice2 = await updatePoolPosition(FUTURE_PRODUCT_ID, 100000)
-          const tradePrice3 = await updatePoolPosition(FUTURE_PRODUCT_ID, 150000)
+        it('trade price increased as position size increased', async () => {
+          for (let i = 0; i < MAX_PRODUCT_ID; i++) {
+            const tradePrice1 = await updatePoolPositionAndClose(i, 50000)
+            const tradePrice2 = await updatePoolPositionAndClose(i, 100000)
+            const tradePrice3 = await updatePoolPositionAndClose(i, 300000)
 
-          expect(tradePrice2).to.be.gt(tradePrice1)
-          expect(tradePrice3).to.be.gt(tradePrice2)
+            expect(tradePrice2).to.be.gt(tradePrice1)
+            expect(tradePrice3).to.be.gt(tradePrice2)
+          }
         })
       })
     })
@@ -816,11 +826,10 @@ describe('PerpetualMarketCore', function () {
   })
 
   describe('calculateFundingRate', () => {
-    const testL = 50
-    const testDL = 0
+    const testL = 500
     const decimals = 8
 
-    async function checkFundingRate(productId: number, testValues: number[][]) {
+    async function checkFundingRate(productId: number, testDL: number, testValues: number[][]) {
       let previousResult = constants.MaxInt256
       for (let testValue of testValues) {
         const result = await tester.testCalculateFundingRate(
@@ -841,75 +850,31 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('as the pool position becomes longer, the funding rate becomes smaller', async () => {
-      await checkFundingRate(FUTURE_PRODUCT_ID, [
-        [10, 10],
-        [10, -5],
-        [10, -10],
-        [10, -15],
-        [10, -25],
-      ])
-      await checkFundingRate(SQUEETH_PRODUCT_ID, [
-        [-10, 25],
-        [-10, 15],
-        [-10, 10],
-        [-10, 5],
-        [-10, -10],
-      ])
+      const testDeltaLSet = [-10, 0, 10]
+      for (let deltaL of testDeltaLSet) {
+        await checkFundingRate(FUTURE_PRODUCT_ID, deltaL, [
+          [10, 10],
+          [10, -5],
+          [10, -10],
+          [10, -15],
+          [10, -25],
+        ])
+        await checkFundingRate(SQUEETH_PRODUCT_ID, deltaL, [
+          [-10, 25],
+          [-10, 15],
+          [-10, 10],
+          [-10, 5],
+          [-10, -10],
+        ])
+      }
     })
-  })
 
-  describe('calculateMarginDivLiquidity', () => {
-    const decimals = 8
+    it('reverts if liquidity is 0', async () => {
+      await expect(tester.testCalculateFundingRate(FUTURE_PRODUCT_ID, 0, 0, 0, 0)).to.be.revertedWith('a')
+    })
 
-    function marginDivLiquidity(m: number, dm: number, l: number, dl: number) {
-      if (dl == 0) {
-        return (m + dm / 2) / l
-      } else {
-        return ((m + dm / 2) * (Math.log(l + dl) - Math.log(l))) / dl
-      }
-    }
-
-    it('return a correct value', async () => {
-      const testValuesOfLiquidity = [
-        [50, 0],
-        [50, 1],
-        [50, 2],
-        [50, -1],
-        [50, -2],
-      ]
-      const testValuesOfMargin = [
-        [10, 10],
-        [10, 0],
-        [10, -5],
-        [10, -10],
-        [10, -15],
-        [10, -25],
-        [-10, -10],
-        [-10, 0],
-        [-10, 5],
-        [-10, 10],
-        [-10, 15],
-        [-10, 25],
-      ]
-
-      for (let testValueOfLiquidity of testValuesOfLiquidity) {
-        for (let testValueOfMargin of testValuesOfMargin) {
-          const expected = marginDivLiquidity(
-            testValueOfMargin[0],
-            testValueOfMargin[1],
-            testValueOfLiquidity[0],
-            testValueOfLiquidity[1],
-          )
-          const result = await tester.testCalculateMarginDivLiquidity(
-            numToBn(testValueOfMargin[0], decimals),
-            numToBn(testValueOfMargin[1], decimals),
-            numToBn(testValueOfLiquidity[0], decimals),
-            numToBn(testValueOfLiquidity[1], decimals),
-          )
-
-          assertCloseToPercentage(result, numToBn(expected, decimals))
-        }
-      }
+    it('return 0 if product id is invalid', async () => {
+      expect(await tester.testCalculateFundingRate(2, 0, 0, 0, 0)).to.be.eq(0)
     })
   })
 })
