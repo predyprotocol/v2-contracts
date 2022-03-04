@@ -73,7 +73,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int128 positionPerpetuals;
         uint128 entryPrice;
         int128 amountFundingPaidPerPosition;
-        uint128 lastTradeTime;
+        uint128 lastFundingPaymentTime;
     }
 
     struct PoolSnapshot {
@@ -81,6 +81,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int128 ethVariance;
         int128 ethPrice;
         uint128 lastSnapshotTime;
+    }
+
+    enum MarginChange {
+        ShortToShort,
+        ShortToLong,
+        LongToLong,
+        LongToShort
     }
 
     // Total amount of liquidity provided by LPs
@@ -242,7 +249,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
      * @param _tradeAmount amount of position to trade. positive for pool short and negative for pool long.
      */
     function updatePoolPosition(uint256 _productId, int128 _tradeAmount)
-        external
+        public
         override
         onlyPerpetualMarket
         returns (
@@ -259,22 +266,30 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         pools[_productId].positionPerpetuals -= _tradeAmount;
 
         {
-            (int256 deltaMargin, int256 deltaLiquidity) = updateLiquidityAmount(_productId, spotPrice);
+            (int256 signedDeltaMargin, int256 deltaMargin, int256 deltaLiquidity) = updateLiquidityAmount(
+                _productId,
+                spotPrice,
+                getCrossingType(pools[_productId].positionPerpetuals, _tradeAmount)
+            );
 
             // Calculate trade price
             (tradePrice, protocolFee) = calculateSafeTradePrice(
                 _productId,
                 spotPrice,
-                _tradeAmount > 0,
-                deltaMargin,
+                _tradeAmount,
+                signedDeltaMargin,
                 deltaLiquidity
             );
+
+            if (deltaLiquidity != 0) {
+                amountLiquidity = Math.addDelta(amountLiquidity, deltaLiquidity);
+            }
+            pools[_productId].amountLockedLiquidity = Math
+                .addDelta(pools[_productId].amountLockedLiquidity, deltaMargin)
+                .toUint128();
         }
 
         protocolFee = protocolFee.mul(Math.abs(_tradeAmount)).div(1e8);
-
-        // Update trade time
-        pools[_productId].lastTradeTime = uint128(block.timestamp);
 
         {
             (int256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
@@ -300,7 +315,18 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
-            updateLiquidityAmount(i, spotPrice);
+            (, int256 deltaMargin, int256 deltaLiquidity) = updateLiquidityAmount(
+                i,
+                spotPrice,
+                MarginChange.LongToLong
+            );
+
+            if (deltaLiquidity != 0) {
+                amountLiquidity = Math.addDelta(amountLiquidity, deltaLiquidity);
+            }
+            if (deltaMargin != 0) {
+                pools[i].amountLockedLiquidity = Math.addDelta(pools[i].amountLockedLiquidity, deltaMargin).toUint128();
+            }
         }
     }
 
@@ -535,10 +561,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
                 0
             );
 
-            int256 fundingFeePerPosition = (indexPrice.mul(fundingRates[i])) / 1e8;
-
-            fundingFeePerPosition = (fundingFeePerPosition.mul(int256(block.timestamp.sub(pools[i].lastTradeTime))))
-                .div(FUNDING_PERIOD);
+            int256 fundingFeePerPosition = calculateFundingFeePerPosition(
+                i,
+                indexPrice,
+                fundingRates[i],
+                block.timestamp
+            );
 
             amountFundingPaidPerPositionGlobals[i] = pools[i]
                 .amountFundingPaidPerPosition
@@ -555,46 +583,108 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
     /**
      * @notice Executes funding payment
-     * FundingPaidPerPosition = Price * FundingRate * (T-t) / 1 days
-     * FundingPaidPerPosition is the cumulative funding fee paid by long per position.
      */
     function _executeFundingPayment(uint256 _productId, int256 _spotPrice) internal {
-        if (pools[_productId].lastTradeTime == 0) {
+        if (pools[_productId].lastFundingPaymentTime == 0) {
+            // Initialize timestamp
+            pools[_productId].lastFundingPaymentTime = uint128(block.timestamp);
             return;
         }
 
-        if (block.timestamp <= pools[_productId].lastTradeTime) {
+        if (block.timestamp <= pools[_productId].lastFundingPaymentTime) {
             return;
         }
 
-        int256 indexPrice = IndexPricer.calculateIndexPrice(_productId, _spotPrice);
-
-        int256 currentFundingRate = calculateFundingRate(_productId, 0, 0);
-
-        int256 fundingFeePerPosition = indexPrice.mul(currentFundingRate) / 1e8;
-
-        fundingFeePerPosition = (
-            fundingFeePerPosition.mul(int256(block.timestamp.sub(pools[_productId].lastTradeTime)))
-        ).div(FUNDING_PERIOD);
+        (
+            int256 currentFundingRate,
+            int256 fundingFeePerPosition,
+            int256 fundingReceived
+        ) = calculateResultOfFundingPayment(_productId, _spotPrice, block.timestamp);
 
         pools[_productId].amountFundingPaidPerPosition = pools[_productId]
             .amountFundingPaidPerPosition
             .add(fundingFeePerPosition)
             .toInt128();
 
-        int256 fundingReceived = (fundingFeePerPosition.mul(-pools[_productId].positionPerpetuals)) / 1e8;
+        if (fundingReceived != 0) {
+            amountLiquidity = Math.addDelta(amountLiquidity, fundingReceived);
+        }
 
-        amountLiquidity = Math.addDelta(amountLiquidity, fundingReceived);
+        // Update last timestamp of funding payment
+        pools[_productId].lastFundingPaymentTime = uint128(block.timestamp);
 
         emit FundingPayment(_productId, currentFundingRate, fundingFeePerPosition, fundingReceived);
     }
 
     /**
+     * @notice Calculates funding rate, funding fee per position and funding fee that the pool will receive.
+     */
+    function calculateResultOfFundingPayment(
+        uint256 _productId,
+        int256 _spotPrice,
+        uint256 _currentTimestamp
+    )
+        internal
+        view
+        returns (
+            int256 currentFundingRate,
+            int256 fundingFeePerPosition,
+            int256 fundingReceived
+        )
+    {
+        int256 indexPrice = IndexPricer.calculateIndexPrice(_productId, _spotPrice);
+
+        currentFundingRate = calculateFundingRate(
+            _productId,
+            getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId),
+            amountLiquidity.toInt256(),
+            0,
+            0
+        );
+
+        fundingFeePerPosition = calculateFundingFeePerPosition(
+            _productId,
+            indexPrice,
+            currentFundingRate,
+            _currentTimestamp
+        );
+
+        // Pool receives 'FundingPaidPerPosition * -(Pool Positions)' USDC as funding fee.
+        fundingReceived = (fundingFeePerPosition.mul(-pools[_productId].positionPerpetuals)) / 1e8;
+    }
+
+    /**
+     * @notice Calculates amount of funding fee which long position should pay per position.
+     * FundingPaidPerPosition = IndexPrice * FundingRate * (T-t) / 1 days
+     */
+    function calculateFundingFeePerPosition(
+        uint256 _productId,
+        int256 _indexPrice,
+        int256 _currentFundingRate,
+        uint256 _currentTimestamp
+    ) internal view returns (int256 fundingFeePerPosition) {
+        fundingFeePerPosition = _indexPrice.mul(_currentFundingRate) / 1e8;
+
+        // Normalization by FUNDING_PERIOD
+        fundingFeePerPosition = (
+            fundingFeePerPosition.mul(int256(_currentTimestamp.sub(pools[_productId].lastFundingPaymentTime)))
+        ).div(FUNDING_PERIOD);
+    }
+
+    /**
      * @notice Updates liquidity and locked liquidity
      */
-    function updateLiquidityAmount(uint256 _productId, int256 spotPrice)
+    function updateLiquidityAmount(
+        uint256 _productId,
+        int256 spotPrice,
+        MarginChange _marginChangeType
+    )
         internal
-        returns (int256 deltaMargin, int256 deltaLiquidity)
+        returns (
+            int256 signedDeltaMargin,
+            int256 deltaMargin,
+            int256 deltaLiquidity
+        )
     {
         // Add collateral to Netting contract
         int256 hedgePositionValue;
@@ -612,26 +702,27 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             );
         }
 
-        if (deltaLiquidity != 0) {
-            amountLiquidity = Math.addDelta(amountLiquidity, deltaLiquidity);
-        }
-        pools[_productId].amountLockedLiquidity = Math
-            .addDelta(pools[_productId].amountLockedLiquidity, deltaMargin)
-            .toUint128();
+        signedDeltaMargin = calculateSignedDeltaMargin(
+            _marginChangeType,
+            deltaMargin,
+            pools[_productId].amountLockedLiquidity
+        );
     }
 
     /**
      * @notice Adds margin to Netting contract
      */
-    function addMargin(uint256 _productId, int256 _spot) internal returns (int256, int256) {
+    function addMargin(uint256 _productId, int256 _spot)
+        internal
+        returns (int256 deltaMargin, int256 hedgePositionValue)
+    {
         (int256 delta0, int256 delta1) = getDeltas(_spot, pools[0].positionPerpetuals, pools[1].positionPerpetuals);
         int256 gamma = (IndexPricer.calculateGamma(1).mul(pools[1].positionPerpetuals)) / 1e8;
 
-        return
-            nettingInfo.addMargin(
-                _productId,
-                NettingLib.AddMarginParams(delta0, delta1, gamma, _spot, poolMarginRiskParam)
-            );
+        (deltaMargin, hedgePositionValue) = nettingInfo.addMargin(
+            _productId,
+            NettingLib.AddMarginParams(delta0, delta1, gamma, _spot, poolMarginRiskParam)
+        );
     }
 
     /**
@@ -642,10 +733,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         uint256 _productId,
         int256 _spot,
         int128 _tradeAmount
-    ) internal view returns (int256) {
+    ) internal view returns (int256 signedDeltaMargin, int256 deltaMargin) {
         int256 delta0;
         int256 delta1;
         int256 gamma;
+        MarginChange isCrossing;
 
         {
             int128 tradeAmount0 = pools[0].positionPerpetuals;
@@ -653,10 +745,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
             if (_productId == 0) {
                 tradeAmount0 -= _tradeAmount;
+                isCrossing = getCrossingType(tradeAmount0, _tradeAmount);
             }
 
             if (_productId == 1) {
                 tradeAmount1 -= _tradeAmount;
+                isCrossing = getCrossingType(tradeAmount1, _tradeAmount);
             }
 
             (delta0, delta1) = getDeltas(_spot, tradeAmount0, tradeAmount1);
@@ -671,11 +765,89 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             poolMarginRiskParam
         );
 
-        int256 totalRequiredMargin = NettingLib.getRequiredMargin(_productId, params);
+        {
+            int256 totalRequiredMargin = NettingLib.getRequiredMargin(_productId, params);
 
-        int256 hedgePositionValue = nettingInfo.getHedgePositionValue(params.spotPrice, _productId);
+            int256 hedgePositionValue = nettingInfo.getHedgePositionValue(params.spotPrice, _productId);
 
-        return totalRequiredMargin - hedgePositionValue;
+            deltaMargin = totalRequiredMargin - hedgePositionValue;
+        }
+
+        signedDeltaMargin = calculateSignedDeltaMargin(
+            isCrossing,
+            deltaMargin,
+            pools[_productId].amountLockedLiquidity
+        );
+    }
+
+    /**
+     * @notice Gets signed amount of margin.
+     * @param _position current pool position
+     * @param _productId product id
+     * If poolPosition is 0 then SignedMargin is 0.
+     * If poolPosition is long then SignedMargin is negative.
+     * If poolPosition is short then SignedMargin is positive.
+     */
+    function getSignedMarginAmount(int256 _position, uint256 _productId) internal view returns (int256) {
+        if (_position == 0) {
+            return 0;
+        } else if (_position > 0) {
+            return -pools[_productId].amountLockedLiquidity.toInt256();
+        } else {
+            return pools[_productId].amountLockedLiquidity.toInt256();
+        }
+    }
+
+    /**
+     * @notice Get signed delta margin
+     * @param _deltaMargin amount of change in margin resulting from the trade
+     * @param _currentMarginAmount amount of locked margin before trade
+     * Crossing case:
+     *   If position moves long to short then
+     *     Δm = currentMarginAmount * 2 + Δm
+     *   If position moves short to long then Δm is 0.
+     *     Δm = -(currentMarginAmount * 2 + Δm)
+     * Non Crossing Case:
+     *   If position moves long to long then
+     *     Δm = -Δm
+     *   If position moves short to short then Δm is 0.
+     *     Δm = Δm
+     */
+    function calculateSignedDeltaMargin(
+        MarginChange _marginChangeType,
+        int256 _deltaMargin,
+        int256 _currentMarginAmount
+    ) internal pure returns (int256) {
+        if (_marginChangeType == MarginChange.LongToShort) {
+            return _currentMarginAmount.mul(2).add(_deltaMargin);
+        } else if (_marginChangeType == MarginChange.ShortToLong) {
+            return -(_currentMarginAmount.mul(2).add(_deltaMargin));
+        } else if (_marginChangeType == MarginChange.LongToLong) {
+            return -_deltaMargin;
+        } else if (_marginChangeType == MarginChange.ShortToShort) {
+            return _deltaMargin;
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * @notice Get crossing type
+     * @param _newPosition positions resulting from trades
+     * @param _positionTrade delta positions to trade
+     */
+    function getCrossingType(int256 _newPosition, int256 _positionTrade) internal pure returns (MarginChange) {
+        int256 position = _newPosition.add(_positionTrade);
+
+        if (position > 0 && _newPosition < 0) {
+            return MarginChange.LongToShort;
+        } else if (position < 0 && _newPosition > 0) {
+            return MarginChange.ShortToLong;
+        } else if (position >= 0 && _newPosition >= 0) {
+            return MarginChange.LongToLong;
+        } else {
+            return MarginChange.ShortToShort;
+        }
     }
 
     /**
@@ -700,19 +872,27 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     function calculateSafeTradePrice(
         uint256 _productId,
         int256 _spotPrice,
-        bool _isLong,
+        int256 _tradeAmount,
         int256 _deltaMargin,
         int256 _deltaLiquidity
     ) internal returns (uint256, uint256) {
+        int256 signedMarginAmount = getSignedMarginAmount(
+            // Calculate pool position before trade
+            pools[_productId].positionPerpetuals + _tradeAmount,
+            _productId
+        );
+
         (int256 tradePrice, , , , int256 protocolFee) = calculateTradePrice(
             _productId,
             _spotPrice,
-            _isLong,
+            _tradeAmount > 0,
+            signedMarginAmount,
+            amountLiquidity.toInt256(),
             _deltaMargin,
             _deltaLiquidity
         );
 
-        tradePrice = spreadInfos[_productId].checkPrice(_isLong, tradePrice);
+        tradePrice = spreadInfos[_productId].checkPrice(_tradeAmount > 0, tradePrice);
 
         return (tradePrice.toUint256(), protocolFee.toUint256());
     }
@@ -737,19 +917,29 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             int256 protocolFee
         )
     {
-        int256 deltaMargin = getRequiredMargin(_productId, _spotPrice, _tradeAmount.toInt128());
+        {
+            (int256 signedDeltaMargin, int256 deltaMargin) = getRequiredMargin(
+                _productId,
+                _spotPrice,
+                _tradeAmount.toInt128()
+            );
 
-        if (deltaMargin > 0) {
-            require(getAvailableLiquidityAmount() >= uint256(deltaMargin), "PMC1");
+            if (deltaMargin > 0) {
+                require(getAvailableLiquidityAmount() >= uint256(deltaMargin), "PMC1");
+            }
+
+            int256 signedMarginAmount = getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId);
+
+            (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePrice(
+                _productId,
+                _spotPrice,
+                _tradeAmount > 0,
+                signedMarginAmount,
+                amountLiquidity.toInt256(),
+                signedDeltaMargin,
+                _deltaLiquidity
+            );
         }
-
-        (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePrice(
-            _productId,
-            _spotPrice,
-            _tradeAmount > 0,
-            deltaMargin,
-            _deltaLiquidity
-        );
 
         tradePrice = spreadInfos[_productId].getUpdatedPrice(_tradeAmount > 0, tradePrice, block.timestamp);
 
@@ -765,6 +955,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         uint256 _productId,
         int256 _spotPrice,
         bool _isLong,
+        int256 _margin,
+        int256 _totalLiquidityAmount,
         int256 _deltaMargin,
         int256 _deltaLiquidity
     )
@@ -778,7 +970,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             int256 protocolFee
         )
     {
-        int256 fundingRate = calculateFundingRate(_productId, _deltaMargin, _deltaLiquidity);
+        int256 fundingRate = calculateFundingRate(
+            _productId,
+            _margin,
+            _totalLiquidityAmount,
+            _deltaMargin,
+            _deltaLiquidity
+        );
 
         indexPrice = IndexPricer.calculateIndexPrice(_productId, _spotPrice);
 
@@ -868,53 +1066,36 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     /**
      * @notice Calculates perpetual's funding rate
      * Squared:
-     *  if pool position is short
      *   FundingRate = variance * (1 + squaredPerpFundingMultiplier * m / L)
-     *  if pool position is long
-     *   FundingRate = variance * (1 - squaredPerpFundingMultiplier * m / L)
      * Future:
-     *  if pool position is short
      *   FundingRate = BASE_FUNDING_RATE + perpFutureMaxFundingRate * (m / L)
-     *  if pool position is long
-     *   FundingRate = BASE_FUNDING_RATE - perpFutureMaxFundingRate * (m / L)
      * @param _productId product id
-     * @param _deltaMargin difference of required margin
+     * @param _margin amount of locked margin before trade
+     * @param _totalLiquidityAmount amount of total liquidity before trade
+     * @param _deltaMargin amount of change in margin resulting from the trade
      * @param _deltaLiquidity difference of liquidity
      * @return FundingRate scaled by 1e8 (1e8 = 100%)
      */
     function calculateFundingRate(
         uint256 _productId,
+        int256 _margin,
+        int256 _totalLiquidityAmount,
         int256 _deltaMargin,
         int256 _deltaLiquidity
     ) internal view returns (int256) {
-        int256 m = pools[_productId].amountLockedLiquidity.toInt256();
-
-        int256 liquidityAmountInt256 = amountLiquidity.toInt256();
-
         if (_productId == 0) {
-            int256 fundingRate;
-            if (pools[_productId].positionPerpetuals > 0) {
-                fundingRate = -perpFutureMaxFundingRate
-                    .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
-                    .div(1e8);
-            } else {
-                fundingRate = perpFutureMaxFundingRate
-                    .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
-                    .div(1e8);
-            }
+            int256 fundingRate = perpFutureMaxFundingRate
+                .mul(calculateMarginDivLiquidity(_margin, _deltaMargin, _totalLiquidityAmount, _deltaLiquidity))
+                .div(1e8);
             return poolSnapshot.futureBaseFundingRate.add(fundingRate);
         } else if (_productId == 1) {
-            if (liquidityAmountInt256 == 0) {
+            if (_totalLiquidityAmount == 0) {
                 return poolSnapshot.ethVariance;
             } else {
                 int256 addition = squaredPerpFundingMultiplier
-                    .mul(calculateMarginDivLiquidity(m, _deltaMargin, liquidityAmountInt256, _deltaLiquidity))
+                    .mul(calculateMarginDivLiquidity(_margin, _deltaMargin, _totalLiquidityAmount, _deltaLiquidity))
                     .div(1e8);
-                if (pools[_productId].positionPerpetuals > 0) {
-                    return poolSnapshot.ethVariance.mul(int256(1e8).sub(addition)).div(1e8);
-                } else {
-                    return poolSnapshot.ethVariance.mul(int256(1e8).add(addition)).div(1e8);
-                }
+                return poolSnapshot.ethVariance.mul(int256(1e8).add(addition)).div(1e8);
             }
         }
         return 0;

@@ -9,7 +9,18 @@ import "../PerpetualMarketCore.sol";
  * @notice Tester contract for Perpetual Market Core
  */
 contract PerpetualMarketCoreTester is PerpetualMarketCore {
+    uint256 public result;
+
     constructor(address _priceFeedAddress) PerpetualMarketCore(_priceFeedAddress, "TestLPToken", "TestLPToken") {}
+
+    function setPoolStatus(
+        uint256 _productId,
+        int128 _positionPerpetuals,
+        uint128 _lastFundingPaymentTime
+    ) external {
+        pools[_productId].positionPerpetuals = _positionPerpetuals;
+        pools[_productId].lastFundingPaymentTime = _lastFundingPaymentTime;
+    }
 
     function setPoolSnapshot(
         int128 _ethPrice,
@@ -29,7 +40,62 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
         return calculateUnlockedLiquidity(_amountLockedLiquidity, _deltaM, _hedgePositionValue);
     }
 
+    function testUpdatePoolPosition(uint256 _productId, int128 _tradeAmount) external {
+        (result, , ) = updatePoolPosition(_productId, _tradeAmount);
+    }
+
     function testUpdateVariance(uint256 _timestamp) external {
         updateVariance(_timestamp);
+    }
+
+    function testExecuteFundingPayment(uint256 _productId, int256 _spotPrice) external {
+        _executeFundingPayment(_productId, _spotPrice);
+    }
+
+    function testCalculateResultOfFundingPayment(
+        uint256 _productId,
+        int256 _spotPrice,
+        uint256 _currentTimestamp
+    )
+        external
+        view
+        returns (
+            int256 currentFundingRate,
+            int256 fundingFeePerPosition,
+            int256 fundingReceived
+        )
+    {
+        return calculateResultOfFundingPayment(_productId, _spotPrice, _currentTimestamp);
+    }
+
+    function testGetSignedMarginAmount(uint256 _productId) external view returns (int256) {
+        return getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId);
+    }
+
+    function testCalculateSignedDeltaMargin(
+        MarginChange _marginChangeType,
+        int256 _deltaMargin,
+        int256 _currentMarginAmount
+    ) external pure returns (int256) {
+        return calculateSignedDeltaMargin(_marginChangeType, _deltaMargin, _currentMarginAmount);
+    }
+
+    function testCalculateFundingRate(
+        uint256 _productId,
+        int256 _margin,
+        int256 _totalLiquidityAmount,
+        int256 _deltaMargin,
+        int256 _deltaLiquidity
+    ) external view returns (int256) {
+        return calculateFundingRate(_productId, _margin, _totalLiquidityAmount, _deltaMargin, _deltaLiquidity);
+    }
+
+    function testCalculateMarginDivLiquidity(
+        int256 _m,
+        int256 _deltaMargin,
+        int256 _l,
+        int256 _deltaL
+    ) external pure returns (int256) {
+        return calculateMarginDivLiquidity(_m, _deltaMargin, _l, _deltaL);
     }
 }

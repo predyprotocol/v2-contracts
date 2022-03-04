@@ -163,34 +163,34 @@ describe('trade', function () {
 
   describe('getTradePrice', () => {
     beforeEach(async () => {
-      await testContractHelper.updateSpot(scaledBN(1200, 8))
-      await perpetualMarket.initialize(scaledBN(50000000, 6), scaledBN(3, 5))
+      await testContractHelper.updateSpot(scaledBN(1000, 8))
+      await perpetualMarket.initialize(scaledBN(20000, 6), scaledBN(3, 5))
     })
 
     it('get trade price of squared perpetual', async () => {
       const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 100)
 
-      expect(tradePrice.tradePrice).to.be.eq(14457600000)
-      expect(tradePrice.indexPrice).to.be.eq(14400000000)
-      expect(tradePrice.fundingFee).to.be.eq(43200000)
-      expect(tradePrice.tradeFee).to.be.eq(14400000)
-      expect(tradePrice.protocolFee).to.be.eq(5760000)
+      expect(tradePrice.tradePrice).to.be.eq(10040000000)
+      expect(tradePrice.indexPrice).to.be.eq(10000000000)
+      expect(tradePrice.fundingFee).to.be.eq(30000000)
+      expect(tradePrice.tradeFee).to.be.eq(10000000)
+      expect(tradePrice.protocolFee).to.be.eq(4000000)
       expect(tradePrice.fundingRate).to.be.eq(300000)
-      expect(tradePrice.totalValue).to.be.eq(14457)
-      expect(tradePrice.totalFee).to.be.eq(14)
+      expect(tradePrice.totalValue).to.be.eq(10040)
+      expect(tradePrice.totalFee).to.be.eq(10)
     })
 
     it('get trade price of perpetual future', async () => {
       const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 100)
 
-      expect(tradePrice.tradePrice).to.be.eq(120060000000)
-      expect(tradePrice.indexPrice).to.be.eq(120000000000)
+      expect(tradePrice.tradePrice).to.be.eq(100050000000)
+      expect(tradePrice.indexPrice).to.be.eq(100000000000)
       expect(tradePrice.fundingFee).to.be.eq(0)
-      expect(tradePrice.tradeFee).to.be.eq(60000000)
-      expect(tradePrice.protocolFee).to.be.eq(24000000)
+      expect(tradePrice.tradeFee).to.be.eq(50000000)
+      expect(tradePrice.protocolFee).to.be.eq(20000000)
       expect(tradePrice.fundingRate).to.be.eq(0)
-      expect(tradePrice.totalValue).to.be.eq(120060)
-      expect(tradePrice.totalFee).to.be.eq(60)
+      expect(tradePrice.totalValue).to.be.eq(100050)
+      expect(tradePrice.totalFee).to.be.eq(50)
     })
 
     it('reverts if trade amount is too large', async () => {
@@ -198,13 +198,11 @@ describe('trade', function () {
       await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(100000, 8))).to.be.revertedWith('PMC1')
     })
 
-    describe('position increased', () => {
+    describe('pool has short position', () => {
       const vaultId = 0
       const subVaultIndex = 0
 
       beforeEach(async () => {
-        await testContractHelper.updateSpot(scaledBN(1000, 8))
-
         await perpetualMarket.trade({
           vaultId,
           trades: [
@@ -226,61 +224,127 @@ describe('trade', function () {
         })
       })
 
-      it('get trade price of small position', async () => {
-        const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 100)
-
-        expect(tradePrice.tradePrice).to.be.eq(10040000100)
-        expect(tradePrice.indexPrice).to.be.eq(10000000000)
-        expect(tradePrice.fundingFee).to.be.eq(30000100)
-        expect(tradePrice.tradeFee).to.be.eq(10000000)
-        expect(tradePrice.protocolFee).to.be.eq(4000000)
-        expect(tradePrice.fundingRate).to.be.eq(300001)
-        expect(tradePrice.totalValue).to.be.eq(10040)
-        expect(tradePrice.totalFee).to.be.eq(10)
-      })
-
-      it('get trade price of short', async () => {
-        const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(-1, 8))
-
-        expect(tradePrice.tradePrice).to.be.eq(10020000000)
-        expect(tradePrice.indexPrice).to.be.eq(10000000000)
-        expect(tradePrice.fundingFee).to.be.eq(30000000)
-        expect(tradePrice.tradeFee).to.be.eq(10000000)
-        expect(tradePrice.protocolFee).to.be.eq(4000000)
-        expect(tradePrice.fundingRate).to.be.eq(300000)
-        expect(tradePrice.totalValue).to.be.eq(10020000000)
-        expect(tradePrice.totalFee).to.be.eq(10000000)
-      })
-
       it('reverts if trade amount is too small', async () => {
         await testContractHelper.updateSpot(scaledBN(3567, 8))
         await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(-100000, 8))).to.be.revertedWith('PMC1')
       })
 
-      it("get squared perpetual's trade price of large position", async () => {
-        const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 12))
+      it('check trade price', async () => {
+        const tradePrice1 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-1, 8))
+        const tradePrice2 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-2, 8))
+        const tradePrice3 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-3, 8))
+        const tradePrice5 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-5, 8))
 
-        expect(tradePrice.tradePrice).to.be.eq(10040588100)
-        expect(tradePrice.indexPrice).to.be.eq(10000000000)
-        expect(tradePrice.fundingFee).to.be.eq(30588100)
-        expect(tradePrice.tradeFee).to.be.eq(10000000)
-        expect(tradePrice.protocolFee).to.be.eq(4000000)
-        expect(tradePrice.fundingRate).to.be.eq(305881)
-        expect(tradePrice.totalValue).to.be.eq(100405881000000)
-        expect(tradePrice.totalFee).to.be.eq(100000000000)
+        expect(tradePrice1.fundingRate).to.be.gt(tradePrice2.fundingRate)
+        expect(tradePrice2.fundingRate).to.be.gt(tradePrice3.fundingRate)
+        expect(tradePrice3.fundingRate).to.be.gt(tradePrice5.fundingRate)
+        expect(tradePrice5.fundingRate).to.be.lt(0)
+      })
+    })
+
+    describe('pool has long position', () => {
+      const vaultId = 0
+      const subVaultIndex = 0
+
+      beforeEach(async () => {
+        await testContractHelper.updateSpot(scaledBN(1000, 8))
+        await perpetualMarket.trade({
+          vaultId,
+          trades: [
+            {
+              productId: FUTURE_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-2, 8),
+              limitPrice: 0,
+            },
+            {
+              productId: SQUEETH_PRODUCT_ID,
+              subVaultIndex,
+              tradeAmount: scaledBN(-1, 8),
+              limitPrice: 0,
+            },
+          ],
+          marginAmount: scaledBN(2000, 6),
+          deadline: 0,
+        })
       })
 
-      it("get perpetual future's trade price of large position", async () => {
-        const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(1, 12))
+      it('reverts if trade amount is too large', async () => {
+        await testContractHelper.updateSpot(scaledBN(3567, 8))
+        await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(100000, 8))).to.be.revertedWith('PMC1')
+      })
 
-        expect(tradePrice.tradePrice).to.be.eq(100052801000)
-        expect(tradePrice.indexPrice).to.be.eq(100000000000)
-        expect(tradePrice.fundingFee).to.be.eq(2801000)
-        expect(tradePrice.tradeFee).to.be.eq(50000000)
-        expect(tradePrice.protocolFee).to.be.eq(20000000)
-        expect(tradePrice.fundingRate).to.be.eq(2801)
-        expect(tradePrice.totalValue).to.be.eq(1000528010000000)
-        expect(tradePrice.totalFee).to.be.eq(500000000000)
+      it('check trade price', async () => {
+        const tradePrice1 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(1, 8))
+        const tradePrice2 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(2, 8))
+        const tradePrice3 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(3, 8))
+        const tradePrice5 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(5, 8))
+
+        expect(tradePrice1.fundingRate).to.be.lt(tradePrice2.fundingRate)
+        expect(tradePrice2.fundingRate).to.be.lt(tradePrice3.fundingRate)
+        expect(tradePrice3.fundingRate).to.be.lt(tradePrice5.fundingRate)
+        expect(tradePrice5.fundingRate).to.be.gt(0)
+      })
+    })
+
+    describe('large amount of liquidity', () => {
+      beforeEach(async () => {
+        await perpetualMarket.deposit(scaledBN(50000000 - 20000, 6))
+      })
+
+      describe('position increased', () => {
+        const vaultId = 0
+        const subVaultIndex = 0
+
+        beforeEach(async () => {
+          await testContractHelper.updateSpot(scaledBN(1000, 8))
+
+          await perpetualMarket.trade({
+            vaultId,
+            trades: [
+              {
+                productId: FUTURE_PRODUCT_ID,
+                subVaultIndex,
+                tradeAmount: scaledBN(2, 8),
+                limitPrice: 0,
+              },
+              {
+                productId: SQUEETH_PRODUCT_ID,
+                subVaultIndex,
+                tradeAmount: scaledBN(1, 8),
+                limitPrice: 0,
+              },
+            ],
+            marginAmount: scaledBN(2000, 6),
+            deadline: 0,
+          })
+        })
+
+        it("get squared perpetual's trade price of large position", async () => {
+          const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(1, 12))
+
+          expect(tradePrice.tradePrice).to.be.eq(10040588100)
+          expect(tradePrice.indexPrice).to.be.eq(10000000000)
+          expect(tradePrice.fundingFee).to.be.eq(30588100)
+          expect(tradePrice.tradeFee).to.be.eq(10000000)
+          expect(tradePrice.protocolFee).to.be.eq(4000000)
+          expect(tradePrice.fundingRate).to.be.eq(305881)
+          expect(tradePrice.totalValue).to.be.eq(100405881000000)
+          expect(tradePrice.totalFee).to.be.eq(100000000000)
+        })
+
+        it("get perpetual future's trade price of large position", async () => {
+          const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(1, 12))
+
+          expect(tradePrice.tradePrice).to.be.eq(100052801000)
+          expect(tradePrice.indexPrice).to.be.eq(100000000000)
+          expect(tradePrice.fundingFee).to.be.eq(2801000)
+          expect(tradePrice.tradeFee).to.be.eq(50000000)
+          expect(tradePrice.protocolFee).to.be.eq(20000000)
+          expect(tradePrice.fundingRate).to.be.eq(2801)
+          expect(tradePrice.totalValue).to.be.eq(1000528010000000)
+          expect(tradePrice.totalFee).to.be.eq(500000000000)
+        })
       })
     })
   })
