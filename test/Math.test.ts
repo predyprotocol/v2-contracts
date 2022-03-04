@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { BigNumber, constants } from 'ethers'
 import { ethers } from 'hardhat'
 import { MathTester } from '../typechain'
-import { assertCloseToPercentage } from './utils/helpers'
+import { assertCloseToPercentage, numToBn } from './utils/helpers'
 
 describe('Math', function () {
   let tester: MathTester
@@ -55,10 +55,6 @@ describe('Math', function () {
 
   describe('logTaylor', async () => {
     const logTests = [1, 2, 100, 100000, 250000, 500000, 1000000, 1000000000]
-
-    const numToBn = (n: number, decimals: number) => {
-      return BigNumber.from(Math.floor(n * 10 ** decimals).toString())
-    }
 
     it('returns a correct value for a number of cases', async () => {
       const decimalsOfLogTaylor = 8
