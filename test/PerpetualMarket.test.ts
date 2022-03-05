@@ -1583,6 +1583,13 @@ describe('PerpetualMarket', function () {
   describe('execHedge', () => {
     const subVaultIndex = 0
 
+    async function checkDeltaIs0() {
+      const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
+      expect(tokenAmounts[0]).to.be.false
+      expect(tokenAmounts[1]).to.be.eq(0)
+      expect(tokenAmounts[2]).to.be.eq(0)
+    }
+
     beforeEach(async () => {
       const amount = scaledBN(200, 6)
 
@@ -1617,10 +1624,7 @@ describe('PerpetualMarket', function () {
 
       expect(after.sub(before)).to.be.gt(0)
 
-      const afterTokenAmounts = await perpetualMarket.getTokenAmountForHedging()
-      expect(afterTokenAmounts[0]).to.be.false
-      expect(afterTokenAmounts[1]).to.be.eq(0)
-      expect(afterTokenAmounts[2]).to.be.eq(0)
+      await checkDeltaIs0()
     })
 
     it('nothing happens if net delta is positive', async () => {
@@ -1649,6 +1653,7 @@ describe('PerpetualMarket', function () {
       const after = await usdc.balanceOf(wallet.address)
 
       expect(after.sub(before)).to.be.eq(0)
+      await checkDeltaIs0()
     })
 
     describe('net delta is negative', () => {
@@ -1687,15 +1692,12 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
 
-        const beforeTradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 1000)
-
         const before = await weth.balanceOf(wallet.address)
         await perpetualMarket.execHedge()
         const after = await weth.balanceOf(wallet.address)
 
         expect(after.sub(before)).to.be.gt(0)
-
-        expect((await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 1000))[0]).to.be.gt(beforeTradePrice[0])
+        await checkDeltaIs0()
       })
 
       it('net delta becomes 0', async () => {
@@ -1713,15 +1715,12 @@ describe('PerpetualMarket', function () {
           deadline: 0,
         })
 
-        const beforeTradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 1000)
-
         const before = await weth.balanceOf(wallet.address)
         await perpetualMarket.execHedge()
         const after = await weth.balanceOf(wallet.address)
 
         expect(after.sub(before)).to.be.gt(0)
-
-        expect((await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 1000))[0]).to.be.gt(beforeTradePrice[0])
+        await checkDeltaIs0()
       })
     })
   })
