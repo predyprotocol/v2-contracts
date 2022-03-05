@@ -232,15 +232,24 @@ describe('PerpetualMarketCore', function () {
 
   describe('updatePoolPosition', () => {
     async function updatePoolPositionAndClose(productId: number, tradeAmount: BigNumberish) {
-      await tester.testUpdatePoolPosition(productId, tradeAmount)
-      const result = await tester.result()
+      const result = await updatePoolPosition(productId, tradeAmount)
       await tester.testUpdatePoolPosition(productId, BigNumber.from(tradeAmount).mul(-1))
       return result
     }
 
+    /**
+     * Calls updatePoolPosition function and check trade price.
+     * @param productId
+     * @param tradeAmount
+     * @returns
+     */
     async function updatePoolPosition(productId: number, tradeAmount: BigNumberish) {
+      const tradePrice = await tester.getTradePrice(productId, tradeAmount)
       await tester.testUpdatePoolPosition(productId, tradeAmount)
-      return await tester.result()
+      const result = await tester.result()
+      // Check trade price
+      expect(tradePrice[0]).to.be.eq(result)
+      return result
     }
 
     it('reverts if caller is not PerpetualMarket', async () => {
