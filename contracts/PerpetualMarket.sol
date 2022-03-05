@@ -43,7 +43,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     address private vaultNFT;
 
     // trader's vaults storage
-    mapping(uint256 => TraderVaultLib.TraderVault) public traderVaults;
+    mapping(uint256 => TraderVaultLib.TraderVault) private traderVaults;
 
     event Deposited(address indexed account, uint256 issued, uint256 amount);
 

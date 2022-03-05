@@ -149,7 +149,7 @@ library NettingLib {
 
     /**
      * @notice Gets required margin for future
-     * RequiredMargin_{future} = (1+α)*S*WeightedDelta
+     * RequiredMargin_{future} = (1+α)*S*|WeightedDelta|
      * @return RequiredMargin scaled by 1e8
      */
     function getRequiredMarginOfFuture(AddMarginParams memory _params, int256 _weightedDelta)
