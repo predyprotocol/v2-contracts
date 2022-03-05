@@ -267,10 +267,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         pools[_productId].positionPerpetuals -= _tradeAmount;
 
         {
-            (int256 signedDeltaMargin, int256 deltaMargin, int256 deltaLiquidity) = updateLiquidityAmount(
+            (int256 signedDeltaMargin, int256 deltaMargin, int256 deltaLiquidity) = lockOrUnlockPoolMargin(
                 _productId,
                 spotPrice,
-                getCrossingType(pools[_productId].positionPerpetuals, _tradeAmount)
+                getMarginChange(pools[_productId].positionPerpetuals, _tradeAmount)
             );
 
             // Calculate trade price
@@ -317,7 +317,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
-            (, int256 deltaMargin, int256 deltaLiquidity) = updateLiquidityAmount(
+            (, int256 deltaMargin, int256 deltaLiquidity) = lockOrUnlockPoolMargin(
                 i,
                 spotPrice,
                 MarginChange.LongToLong
@@ -620,6 +620,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
     /**
      * @notice Calculates funding rate, funding fee per position and funding fee that the pool will receive.
+     * @param _productId product id
+     * @param _spotPrice current spot price for index calculation
+     * @param _currentTimestamp the timestamp to execute funding payment
      */
     function calculateResultOfFundingPayment(
         uint256 _productId,
@@ -658,6 +661,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     /**
      * @notice Calculates amount of funding fee which long position should pay per position.
      * FundingPaidPerPosition = IndexPrice * FundingRate * (T-t) / 1 days
+     * @param _productId product id
+     * @param _indexPrice index price of the perpetual
+     * @param _currentFundingRate current funding rate used to calculate funding fee
+     * @param _currentTimestamp the timestamp to execute funding payment
      */
     function calculateFundingFeePerPosition(
         uint256 _productId,
@@ -674,9 +681,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     }
 
     /**
-     * @notice Updates liquidity and locked liquidity
+     * @notice Locks or unlocks required margin
+     * and calculates changes of lockedLiquidity and totalLiquidity.
+     * @return signedDeltaMargin is Δmargin: the change of the signed margin.
+     * @return deltaMargin is the change of the absolute amount of margin.
+     * if return value is negative it represents unrequired.
+     * @return deltaLiquidity Δliquidity: the change of the total liquidity amount.
      */
-    function updateLiquidityAmount(
+    function lockOrUnlockPoolMargin(
         uint256 _productId,
         int256 spotPrice,
         MarginChange _marginChangeType
@@ -692,11 +704,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 hedgePositionValue;
         (deltaMargin, hedgePositionValue) = addMargin(_productId, spotPrice);
 
-        // Updates amountLiquidity and amountLockedLiquidity
         if (deltaMargin > 0) {
+            // In case of lock additional margin
             require(getAvailableLiquidityAmount() >= uint256(deltaMargin), "PMC1");
         } else if (deltaMargin < 0) {
-            // Calculate new amounts of liquidity and locked liquidity
+            // In case of unlock unrequired margin
             (deltaLiquidity, deltaMargin) = calculateUnlockedLiquidity(
                 pools[_productId].amountLockedLiquidity,
                 deltaMargin,
@@ -704,6 +716,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             );
         }
 
+        // Calculate signedDeltaMargin
         signedDeltaMargin = calculateSignedDeltaMargin(
             _marginChangeType,
             deltaMargin,
@@ -728,7 +741,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     }
 
     /**
-     * @notice Gets additional required margin.
+     * @notice Calculated required or unrequired margin for read-only price calculation.
+     * @return signedDeltaMargin is Δmargin: the change of the signed margin.
+     * @return deltaMargin is the change of the absolute amount of margin.
      * if return value is negative it represents unrequired.
      */
     function getRequiredMargin(
@@ -739,7 +754,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 delta0;
         int256 delta1;
         int256 gamma;
-        MarginChange isCrossing;
+        MarginChange marginChangeType;
 
         {
             int128 tradeAmount0 = pools[0].positionPerpetuals;
@@ -747,12 +762,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
             if (_productId == 0) {
                 tradeAmount0 -= _tradeAmount;
-                isCrossing = getCrossingType(tradeAmount0, _tradeAmount);
+                marginChangeType = getMarginChange(tradeAmount0, _tradeAmount);
             }
 
             if (_productId == 1) {
                 tradeAmount1 -= _tradeAmount;
-                isCrossing = getCrossingType(tradeAmount1, _tradeAmount);
+                marginChangeType = getMarginChange(tradeAmount1, _tradeAmount);
             }
 
             (delta0, delta1) = getDeltas(_spot, tradeAmount0, tradeAmount1);
@@ -776,16 +791,17 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         }
 
         signedDeltaMargin = calculateSignedDeltaMargin(
-            isCrossing,
+            marginChangeType,
             deltaMargin,
             pools[_productId].amountLockedLiquidity
         );
     }
 
     /**
-     * @notice Gets signed amount of margin.
+     * @notice Gets signed amount of margin used for trade price calculation.
      * @param _position current pool position
      * @param _productId product id
+     * @return signedMargin is calculated by following rule.
      * If poolPosition is 0 then SignedMargin is 0.
      * If poolPosition is long then SignedMargin is negative.
      * If poolPosition is short then SignedMargin is positive.
@@ -801,19 +817,23 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     }
 
     /**
-     * @notice Get signed delta margin
+     * @notice Get signed delta margin. Signed delta margin is the change of the signed margin.
+     * It is used for trade price calculation.
+     * For example, if pool position becomes to short 10 from long 10 and deltaMargin hasn't changed.
+     * Then deltaMargin should be 0 but signedDeltaMargin should be +20.
      * @param _deltaMargin amount of change in margin resulting from the trade
      * @param _currentMarginAmount amount of locked margin before trade
+     * @return signedDeltaMargin is calculated by follows.
      * Crossing case:
      *   If position moves long to short then
-     *     Δm = currentMarginAmount * 2 + Δm
-     *   If position moves short to long then Δm is 0.
-     *     Δm = -(currentMarginAmount * 2 + Δm)
+     *     Δm = currentMarginAmount * 2 + deltaMargin
+     *   If position moves short to long then
+     *     Δm = -(currentMarginAmount * 2 + deltaMargin)
      * Non Crossing Case:
      *   If position moves long to long then
-     *     Δm = -Δm
-     *   If position moves short to short then Δm is 0.
-     *     Δm = Δm
+     *     Δm = -deltaMargin
+     *   If position moves short to short then
+     *     Δm = deltaMargin
      */
     function calculateSignedDeltaMargin(
         MarginChange _marginChangeType,
@@ -833,11 +853,12 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     }
 
     /**
-     * @notice Get crossing type
+     * @notice Gets the type of margin change.
      * @param _newPosition positions resulting from trades
      * @param _positionTrade delta positions to trade
+     * @return marginChange the type of margin change
      */
-    function getCrossingType(int256 _newPosition, int256 _positionTrade) internal pure returns (MarginChange) {
+    function getMarginChange(int256 _newPosition, int256 _positionTrade) internal pure returns (MarginChange) {
         int256 position = _newPosition.add(_positionTrade);
 
         if (position > 0 && _newPosition < 0) {
