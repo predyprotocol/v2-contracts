@@ -13,6 +13,10 @@ contract TraderVaultLibTester {
     TraderVaultLib.TraderVault public traderVault;
     int256 public r;
 
+    function clear() external {
+        delete traderVault;
+    }
+
     function getNumOfSubVault() external view returns (uint256) {
         return traderVault.subVaults.length;
     }
@@ -26,7 +30,7 @@ contract TraderVaultLibTester {
         uint256 _productId,
         int128 _amountAsset,
         uint256 _tradePrice,
-        int128 _valueFundingFeeEntry
+        int128 _fundingFeePerPosition
     ) external {
         TraderVaultLib.updateVault(
             traderVault,
@@ -34,7 +38,7 @@ contract TraderVaultLibTester {
             _productId,
             _amountAsset,
             _tradePrice,
-            _valueFundingFeeEntry
+            _fundingFeePerPosition
         );
     }
 

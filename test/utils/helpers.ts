@@ -50,3 +50,22 @@ export function assertCloseToPercentage(a: BigNumber, b: BigNumber, percentage: 
 
   expect(b.sub(a).mul('100000000').div(b).abs().lte(percentage)).is.true
 }
+
+export function calculateMinCollateral(a0: number, a1: number, n0: number, n1: number, underlyingPrice: number) {
+  const minMargin = 500
+  const alpha = 0.05
+  const minCollateral =
+    alpha *
+    underlyingPrice *
+    (Math.abs((2 * underlyingPrice * (1 + n1) * a1) / 10000 + (1 + n0) * a0) +
+      (2 * alpha * underlyingPrice * (1 + n1) * Math.abs(a1)) / 10000)
+
+  if (a0 === 0 && a1 === 0) {
+    return 0
+  }
+
+  if (minCollateral < minMargin) {
+    return minMargin
+  }
+  return minCollateral
+}
