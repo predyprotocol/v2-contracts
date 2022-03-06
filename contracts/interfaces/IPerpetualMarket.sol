@@ -17,6 +17,7 @@ interface IPerpetualMarket {
         uint256 subVaultIndex;
         int128 tradeAmount;
         uint256 limitPrice;
+        bytes metadata;
     }
 
     struct VaultStatus {

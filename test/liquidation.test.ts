@@ -65,22 +65,8 @@ describe('liquidation', function () {
   })
 
   describe('single sub-vaults', () => {
-    const subVaultIndex = 0
-
     beforeEach(async () => {
-      await perpetualMarket.trade({
-        vaultId: 0,
-        trades: [
-          {
-            productId: SQUEETH_PRODUCT_ID,
-            subVaultIndex,
-            tradeAmount: scaledBN(20, 8),
-            limitPrice: 0,
-          },
-        ],
-        marginAmount: scaledBN(870, 6),
-        deadline: 0,
-      })
+      await testContractHelper.trade(wallet, 0, [0, scaledBN(20, 8)], scaledBN(870, 6))
 
       const vault = await perpetualMarket.getVaultStatus(1)
       expect(vault.rawVaultData.positionUsdc).to.be.eq(87000000000)
@@ -100,19 +86,7 @@ describe('liquidation', function () {
 
     it('reverts if the vault holds no positions', async () => {
       // Close position
-      await perpetualMarket.trade({
-        vaultId: 1,
-        trades: [
-          {
-            productId: SQUEETH_PRODUCT_ID,
-            subVaultIndex,
-            tradeAmount: scaledBN(-20, 8),
-            limitPrice: 0,
-          },
-        ],
-        marginAmount: MAX_WITHDRAW_AMOUNT,
-        deadline: 0,
-      })
+      await testContractHelper.trade(wallet, 1, [0, scaledBN(-20, 8)], MAX_WITHDRAW_AMOUNT)
 
       await expect(perpetualMarket.liquidateByPool(1)).revertedWith('vault is not danger')
     })
@@ -240,6 +214,7 @@ describe('liquidation', function () {
             subVaultIndex: 0,
             tradeAmount: scaledBN(10, 8),
             limitPrice: 0,
+            metadata: '0x',
           },
         ],
         marginAmount: scaledBN(870, 6),
@@ -253,6 +228,7 @@ describe('liquidation', function () {
             subVaultIndex: 1,
             tradeAmount: scaledBN(10, 8),
             limitPrice: 0,
+            metadata: '0x',
           },
         ],
         marginAmount: 0,
