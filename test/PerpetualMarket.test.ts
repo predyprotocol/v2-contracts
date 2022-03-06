@@ -205,8 +205,6 @@ describe('PerpetualMarket', function () {
   })
 
   describe('withdraw', () => {
-    const poolId = 0
-
     beforeEach(async () => {
       await testContractHelper.updateSpot(scaledBN(100, 8))
       await perpetualMarket.initialize(scaledBN(100, 6), scaledBN(2, 5))

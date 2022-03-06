@@ -8,17 +8,15 @@ import {
   deployUniswapV3,
   restoreSnapshot,
   takeSnapshot,
-  TestContractHelper,
   TestContractSet,
 } from './utils/deploy'
 
 describe('FlashHedge', function () {
-  let wallet: Wallet, other: Wallet
+  let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
 
   let testContractSet: TestContractSet
-  let testContractHelper: TestContractHelper
   let snapshotId: number
 
   let perpetualMarket: PerpetualMarket
@@ -30,10 +28,9 @@ describe('FlashHedge', function () {
   const ethPriceInUSDC = 100
 
   before(async () => {
-    ;[wallet, other] = await (ethers as any).getSigners()
+    ;[wallet] = await (ethers as any).getSigners()
 
     testContractSet = await deployTestContractSet(wallet)
-    testContractHelper = new TestContractHelper(testContractSet)
 
     weth = testContractSet.weth
     usdc = testContractSet.usdc

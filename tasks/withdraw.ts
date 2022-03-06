@@ -1,6 +1,6 @@
 import { task, types } from 'hardhat/config'
 import '@nomiclabs/hardhat-waffle'
-import { getPerpetualMarketCore, getPerpetualMarket, getUSDC } from './utils'
+import { getPerpetualMarketCore, getPerpetualMarket } from './utils'
 import { BigNumber, BigNumberish } from 'ethers'
 
 // Example execution
@@ -14,7 +14,6 @@ task('withdraw', 'withdraw liquidity')
 
     const { deployer } = await getNamedAccounts()
 
-    const usdc = await getUSDC(ethers, deployer, network.name)
     const perpetualMarket = await getPerpetualMarket(ethers, deployer, network.name)
     const lpToken = await getPerpetualMarketCore(ethers, deployer, network.name)
 

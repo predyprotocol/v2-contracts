@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { BigNumber, constants } from 'ethers'
+import { constants } from 'ethers'
 import { ethers } from 'hardhat'
 import { MathTester } from '../typechain'
 import { assertCloseToPercentage, numToBn } from './utils/helpers'

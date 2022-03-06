@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { FeePool, MockChainlinkAggregator, PerpetualMarketCore, PerpetualMarketCoreTester } from '../typechain'
+import { MockChainlinkAggregator, PerpetualMarketCore, PerpetualMarketCoreTester } from '../typechain'
 import { BigNumber, BigNumberish, constants, Wallet } from 'ethers'
 import { restoreSnapshot, takeSnapshot } from './utils/deploy'
-import { assertCloseToPercentage, getBlocktime, increaseTime, numToBn, scaledBN } from './utils/helpers'
+import { getBlocktime, increaseTime, numToBn, scaledBN } from './utils/helpers'
 import {
   MarginChange,
   FUNDING_PERIOD,
