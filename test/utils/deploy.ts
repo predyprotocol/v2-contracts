@@ -25,7 +25,7 @@ import {
 } from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 import { convertToken0PriceToSqrtX96Price, convertToken1PriceToSqrtX96Price } from './calculator'
 import { INonfungiblePositionManager } from '../../typechain/INonfungiblePositionManager'
-import { SQUEETH_PRODUCT_ID } from './constants'
+import { FUTURE_PRODUCT_ID, SQUEETH_PRODUCT_ID } from './constants'
 
 export type TestContractSet = {
   priceFeed: MockChainlinkAggregator
@@ -54,33 +54,36 @@ export class TestContractHelper {
     await this.updateRoundData(0, spot)
   }
 
-  async openLong(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, marginAmount?: BigNumberish) {
-    await this.testContractSet.perpetualMarket.connect(wallet).trade({
-      vaultId,
-      trades: [
-        {
-          productId: SQUEETH_PRODUCT_ID,
-          subVaultIndex: 0,
-          tradeAmount: tradeAmount,
-          limitPrice: 0,
-        },
-      ],
-      marginAmount: marginAmount || 0,
-      deadline: 0,
-    })
-  }
+  async trade(
+    wallet: Wallet,
+    vaultId: BigNumberish,
+    tradeAmounts: BigNumberish[],
+    marginAmount?: BigNumberish,
+    subVaultIndex?: number,
+  ) {
+    let trades = []
+    if (!BigNumber.from(tradeAmounts[0]).eq(0)) {
+      trades.push({
+        productId: FUTURE_PRODUCT_ID,
+        subVaultIndex: subVaultIndex || 0,
+        tradeAmount: tradeAmounts[0],
+        limitPrice: 0,
+        metadata: '0x',
+      })
+    }
+    if (!BigNumber.from(tradeAmounts[1]).eq(0)) {
+      trades.push({
+        productId: SQUEETH_PRODUCT_ID,
+        subVaultIndex: subVaultIndex || 0,
+        tradeAmount: tradeAmounts[1],
+        limitPrice: 0,
+        metadata: '0x',
+      })
+    }
 
-  async openShort(wallet: Wallet, vaultId: BigNumberish, tradeAmount: BigNumberish, marginAmount?: BigNumberish) {
-    await this.testContractSet.perpetualMarket.connect(wallet).trade({
+    return await this.testContractSet.perpetualMarket.connect(wallet).trade({
       vaultId,
-      trades: [
-        {
-          productId: SQUEETH_PRODUCT_ID,
-          subVaultIndex: 0,
-          tradeAmount: BigNumber.from(tradeAmount).mul(-1),
-          limitPrice: 0,
-        },
-      ],
+      trades,
       marginAmount: marginAmount || 0,
       deadline: 0,
     })

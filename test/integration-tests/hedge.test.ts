@@ -15,7 +15,7 @@ import {
 } from '../utils/deploy'
 import { increaseTime, scaledBN } from '../utils/helpers'
 import { FlashHedge } from '../../typechain/FlashHedge'
-import { FUTURE_PRODUCT_ID, MIN_MARGIN, SQUEETH_PRODUCT_ID } from '../utils/constants'
+import { MIN_MARGIN } from '../utils/constants'
 
 describe('FlashHedge', function () {
   let wallet: Wallet
@@ -72,9 +72,6 @@ describe('FlashHedge', function () {
   })
 
   describe('hedgeOnUniswap', () => {
-    const vaultId = 0
-    const subVaultIndex = 0
-
     beforeEach(async () => {
       const amount = scaledBN(200, 6)
 
@@ -82,19 +79,7 @@ describe('FlashHedge', function () {
     })
 
     it('buy ETH to hedge', async () => {
-      await perpetualMarket.trade({
-        vaultId,
-        trades: [
-          {
-            productId: SQUEETH_PRODUCT_ID,
-            subVaultIndex,
-            tradeAmount: scaledBN(1, 6),
-            limitPrice: 0,
-          },
-        ],
-        marginAmount: MIN_MARGIN,
-        deadline: 0,
-      })
+      await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 6)], MIN_MARGIN)
 
       const before = await usdc.balanceOf(wallet.address)
       await flashHedge.hedgeOnUniswap(0)
@@ -109,43 +94,13 @@ describe('FlashHedge', function () {
     })
 
     it('reverts if net delta is positive', async () => {
-      await perpetualMarket.trade({
-        vaultId,
-        trades: [
-          {
-            productId: FUTURE_PRODUCT_ID,
-            subVaultIndex,
-            tradeAmount: scaledBN(-1, 7),
-            limitPrice: 0,
-          },
-          {
-            productId: SQUEETH_PRODUCT_ID,
-            subVaultIndex,
-            tradeAmount: scaledBN(1, 6),
-            limitPrice: 0,
-          },
-        ],
-        marginAmount: MIN_MARGIN,
-        deadline: 0,
-      })
+      await testContractHelper.trade(wallet, 0, [scaledBN(-1, 7), scaledBN(1, 6)], MIN_MARGIN)
 
       await expect(flashHedge.hedgeOnUniswap(0)).to.be.revertedWith('FH3')
     })
 
     it('reverts if ETH price in Uniswap is too high', async () => {
-      await perpetualMarket.trade({
-        vaultId,
-        trades: [
-          {
-            productId: SQUEETH_PRODUCT_ID,
-            subVaultIndex,
-            tradeAmount: scaledBN(1, 6),
-            limitPrice: 0,
-          },
-        ],
-        marginAmount: MIN_MARGIN,
-        deadline: 0,
-      })
+      await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 6)], MIN_MARGIN)
 
       await testContractHelper.updateSpot(scaledBN(99, 8))
 
@@ -154,19 +109,7 @@ describe('FlashHedge', function () {
 
     describe('net delta is negative', () => {
       beforeEach(async () => {
-        await perpetualMarket.trade({
-          vaultId: 0,
-          trades: [
-            {
-              productId: SQUEETH_PRODUCT_ID,
-              subVaultIndex,
-              tradeAmount: scaledBN(1, 7),
-              limitPrice: 0,
-            },
-          ],
-          marginAmount: MIN_MARGIN,
-          deadline: 0,
-        })
+        await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 7)], MIN_MARGIN)
 
         await perpetualMarket.execHedge()
 
@@ -174,19 +117,7 @@ describe('FlashHedge', function () {
       })
 
       it('sell ETH to hedge', async () => {
-        await perpetualMarket.trade({
-          vaultId: 1,
-          trades: [
-            {
-              productId: SQUEETH_PRODUCT_ID,
-              subVaultIndex,
-              tradeAmount: scaledBN(-2, 6),
-              limitPrice: 0,
-            },
-          ],
-          marginAmount: scaledBN(1, 8),
-          deadline: 0,
-        })
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(-2, 6)], scaledBN(1, 8))
 
         const before = await usdc.balanceOf(wallet.address)
         await flashHedge.hedgeOnUniswap(0)
@@ -196,19 +127,7 @@ describe('FlashHedge', function () {
       })
 
       it('reverts if ETH price in Uniswap is too low', async () => {
-        await perpetualMarket.trade({
-          vaultId: 1,
-          trades: [
-            {
-              productId: SQUEETH_PRODUCT_ID,
-              subVaultIndex,
-              tradeAmount: scaledBN(-2, 6),
-              limitPrice: 0,
-            },
-          ],
-          marginAmount: scaledBN(1, 8),
-          deadline: 0,
-        })
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(-2, 6)], scaledBN(1, 8))
 
         await testContractHelper.updateSpot(scaledBN(101, 8))
 
@@ -218,19 +137,7 @@ describe('FlashHedge', function () {
 
     describe('net delta is negative because the pool has short perpetual future positions', () => {
       beforeEach(async () => {
-        await perpetualMarket.trade({
-          vaultId: 0,
-          trades: [
-            {
-              productId: FUTURE_PRODUCT_ID,
-              subVaultIndex,
-              tradeAmount: scaledBN(1, 6),
-              limitPrice: 0,
-            },
-          ],
-          marginAmount: MIN_MARGIN,
-          deadline: 0,
-        })
+        await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), 0], MIN_MARGIN)
 
         await perpetualMarket.execHedge()
 
@@ -238,19 +145,7 @@ describe('FlashHedge', function () {
       })
 
       it('net delta is positive and sell all ETH to hedge', async () => {
-        await perpetualMarket.trade({
-          vaultId: 1,
-          trades: [
-            {
-              productId: FUTURE_PRODUCT_ID,
-              subVaultIndex,
-              tradeAmount: scaledBN(-2, 6),
-              limitPrice: 0,
-            },
-          ],
-          marginAmount: MIN_MARGIN,
-          deadline: 0,
-        })
+        await testContractHelper.trade(wallet, 1, [scaledBN(-2, 6), 0], MIN_MARGIN)
 
         const before = await usdc.balanceOf(wallet.address)
         await flashHedge.hedgeOnUniswap(0)

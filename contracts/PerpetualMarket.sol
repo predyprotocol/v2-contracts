@@ -57,7 +57,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         int256 tradeAmount,
         uint256 tradePrice,
         int256 fundingFeePerPosition,
-        int256 deltaUsdcPosition
+        int256 deltaUsdcPosition,
+        bytes metadata
     );
     event DepositedToVault(address indexed trader, uint256 vaultId, uint256 amount);
     event WithdrawnFromVault(address indexed trader, uint256 vaultId, uint256 amount);
@@ -162,7 +163,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
                     _tradeParams.vaultId,
                     _tradeParams.trades[i].subVaultIndex,
                     _tradeParams.trades[i].tradeAmount,
-                    _tradeParams.trades[i].limitPrice
+                    _tradeParams.trades[i].limitPrice,
+                    _tradeParams.trades[i].metadata
                 )
             );
         }
@@ -222,7 +224,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
                 int128 amountAssetInVault = traderVault.subVaults[subVaultIndex].positionPerpetuals[productId];
 
                 totalProtocolFee = totalProtocolFee.add(
-                    updatePosition(traderVault, productId, _vaultId, subVaultIndex, -amountAssetInVault, 0)
+                    updatePosition(traderVault, productId, _vaultId, subVaultIndex, -amountAssetInVault, 0, "")
                 );
             }
         }
@@ -255,7 +257,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         uint256 _vaultId,
         uint256 _subVaultIndex,
         int128 _tradeAmount,
-        uint256 _limitPrice
+        uint256 _limitPrice,
+        bytes memory _metadata
     ) internal returns (uint256) {
         if (_tradeAmount != 0) {
             (uint256 tradePrice, int256 fundingFeePerPosition, uint256 protocolFee) = perpetualMarketCore
@@ -279,7 +282,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
                 _tradeAmount,
                 tradePrice,
                 fundingFeePerPosition,
-                deltaUsdcPosition
+                deltaUsdcPosition,
+                _metadata
             );
 
             return protocolFee / 1e2;

@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { scaledBN } from './utils/helpers'
-import { FUTURE_PRODUCT_ID, MIN_MARGIN, SQUEETH_PRODUCT_ID } from './utils/constants'
+import { MIN_MARGIN } from './utils/constants'
 
 describe('hedge', function () {
   let wallet: Wallet
@@ -56,50 +56,12 @@ describe('hedge', function () {
   })
 
   describe('rebalance required', () => {
-    const subVaultIndex = 0
-
     beforeEach(async () => {
       await testContractHelper.updateSpot(scaledBN(300067, 6))
 
-      await perpetualMarket.trade({
-        vaultId: 0,
-        trades: [
-          {
-            productId: FUTURE_PRODUCT_ID,
-            subVaultIndex,
-            tradeAmount: scaledBN(-1, 8),
-            limitPrice: 0,
-          },
-          {
-            productId: SQUEETH_PRODUCT_ID,
-            subVaultIndex,
-            tradeAmount: scaledBN(1, 8),
-            limitPrice: 0,
-          },
-        ],
-        marginAmount: MIN_MARGIN,
-        deadline: 0,
-      })
+      await testContractHelper.trade(wallet, 0, [scaledBN(-1, 8), scaledBN(1, 8)], MIN_MARGIN)
 
-      await perpetualMarket.trade({
-        vaultId: 1,
-        trades: [
-          {
-            productId: FUTURE_PRODUCT_ID,
-            subVaultIndex,
-            tradeAmount: scaledBN(5, 7),
-            limitPrice: 0,
-          },
-          {
-            productId: SQUEETH_PRODUCT_ID,
-            subVaultIndex,
-            tradeAmount: scaledBN(1, 8),
-            limitPrice: 0,
-          },
-        ],
-        marginAmount: MIN_MARGIN,
-        deadline: 0,
-      })
+      await testContractHelper.trade(wallet, 1, [scaledBN(5, 7), scaledBN(1, 8)], MIN_MARGIN)
     })
 
     it('enough USDC locked for a hedge', async () => {
