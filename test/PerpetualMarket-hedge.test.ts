@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { scaledBN } from './utils/helpers'
-import { FUTURE_PRODUCT_ID, MAX_WITHDRAW_AMOUNT, MIN_MARGIN, SQUEETH_PRODUCT_ID } from './utils/constants'
+import { FUTURE_PRODUCT_ID, MIN_MARGIN, SQUEETH_PRODUCT_ID } from './utils/constants'
 
 describe('hedge', function () {
   let wallet: Wallet

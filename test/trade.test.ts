@@ -60,7 +60,6 @@ describe('trade', function () {
     })
 
     describe('tokenPrice becomes high', () => {
-      const vaultId = 0
       const subVaultIndex = 0
 
       beforeEach(async () => {

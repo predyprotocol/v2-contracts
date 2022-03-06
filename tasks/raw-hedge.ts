@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config'
 import '@nomiclabs/hardhat-waffle'
-import { getPerpetualMarket, getPerpetualMarketCore, getUSDC, getWETH } from './utils'
+import { getPerpetualMarket, getUSDC, getWETH } from './utils'
 
 // Example execution
 /**

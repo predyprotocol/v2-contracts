@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { MockERC20, PerpetualMarket } from '../typechain'
-import { BigNumber, Wallet } from 'ethers'
+import { Wallet } from 'ethers'
 import {
   deployTestContractSet,
   restoreSnapshot,
@@ -24,7 +24,6 @@ describe('liquidation', function () {
   let perpetualMarket: PerpetualMarket
 
   const MaxUint256 = ethers.constants.MaxUint256
-  const vaultId = 0
 
   async function updateSpotPrice(spotPrice: number) {
     await increaseTime(SAFETY_PERIOD)

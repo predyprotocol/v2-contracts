@@ -1,4 +1,4 @@
-import { BigNumber, Contract } from "ethers";
+import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 import { addWethUsdcLiquidity, createUniPool } from "../test/utils/deploy";
 import { MockERC20 } from "../typechain";
