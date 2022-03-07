@@ -124,7 +124,7 @@ describe('TraderVaultLib', function () {
           testData: [[null, { positionPerpetual: 1, tradePrice: 150, entryFundingFee: 16 }]],
           expectedData: {
             positionUsdc: 28,
-            subVaults: [{ positionPerpetuals: [0, 0], entryPrices: [0, 150], entryFundingFee: [0, 16] }],
+            subVaults: [{ positionPerpetuals: [0, 0], entryPrices: [0, 0], entryFundingFee: [0, 0] }],
           },
         },
       ]
@@ -183,7 +183,7 @@ describe('TraderVaultLib', function () {
           ],
           expectedData: {
             positionUsdc: 27,
-            subVaults: [{ positionPerpetuals: [0, 0], entryPrices: [1000, 150], entryFundingFee: [11, 16] }],
+            subVaults: [{ positionPerpetuals: [0, 0], entryPrices: [0, 0], entryFundingFee: [0, 0] }],
           },
         },
       ]
@@ -214,8 +214,8 @@ describe('TraderVaultLib', function () {
           expectedData: {
             positionUsdc: 0,
             subVaults: [
-              { positionPerpetuals: [0, 0], entryPrices: [1100, 0], entryFundingFee: [20, 0] },
-              { positionPerpetuals: [0, 0], entryPrices: [1100, 0], entryFundingFee: [20, 0] },
+              { positionPerpetuals: [0, 0], entryPrices: [0, 0], entryFundingFee: [0, 0] },
+              { positionPerpetuals: [0, 0], entryPrices: [0, 0], entryFundingFee: [0, 0] },
             ],
           },
         },
