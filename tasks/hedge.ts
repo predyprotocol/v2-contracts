@@ -16,5 +16,5 @@ task('hedge', 'execute a hedge').setAction(async ({}, hre) => {
   console.log('Start a hedge')
   const tx = await flashHedge.hedgeOnUniswap(0)
   await tx.wait()
-  console.log('Suceed to hedge')
+  console.log('Succeed to hedge')
 })

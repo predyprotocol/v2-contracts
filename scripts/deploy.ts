@@ -80,6 +80,9 @@ async function main() {
     wethAddress = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
     usdcAddress = '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'
     uniswapFactoryAddress = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+    ethUsdcPoolAddress = '0xc31e54c7a869b9fcbecc14363cf510d1c41fa443'
+
+    operatorAddress = '0xb8d843c8E6e0E90eD2eDe80550856b64da92ee30'
   } else if (network.name === 'arbitrum-rinkeby') {
     priceFeedAddress = '0x5f0423B1a6935dc5596e7A24d98532b67A0AeFd8'
     // wethAddress = '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681' // Official
@@ -87,7 +90,7 @@ async function main() {
     // usdcAddress = '0xF49C3973edF5A39d619A0Aa2b7F1614d08df1ce3' // Official
     usdcAddress = '0xb8588b977F48c28f8eBfb12f48bC74cE7eAFA281'
     feePoolAddress = '0x300Df3cD7DaCf191F6f7CECF3BCde535e2dd7e88'
-    flashHedgeAddress = '0xd8EaC40f5DCbd68fb7D6B9275C0b39c5ED8ae8bf'
+    // flashHedgeAddress = '0xd8EaC40f5DCbd68fb7D6B9275C0b39c5ED8ae8bf'
     ethUsdcPoolAddress = '0x32335D0e3d094Ae8BaF28A35EF615F761Aff0959'
     ethPrice = 3144
 
@@ -197,6 +200,8 @@ async function main() {
 
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
   await vaultNFT.init(perpetualMarket.address)
+
+  await perpetualMarketCore.setPoolMarginRiskParam(2000)
 
   await perpetualMarket.transferOwnership(operatorAddress)
   await perpetualMarketCore.transferOwnership(operatorAddress)
