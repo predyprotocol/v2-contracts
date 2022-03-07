@@ -65,7 +65,9 @@ library EntryPriceMath {
             newEntryPrice = _entryPrice;
             profitValue = (-_positionTrade).mul(_tradePrice.sub(_entryPrice)) / 1e8;
         } else {
-            newEntryPrice = _tradePrice;
+            if (newPosition != 0) {
+                newEntryPrice = _tradePrice;
+            }
 
             profitValue = _position.mul(_tradePrice.sub(_entryPrice)) / 1e8;
         }

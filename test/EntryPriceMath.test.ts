@@ -44,7 +44,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-500000000')
-          expect(result[0]).to.be.eq('100')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('0')
         })
 
@@ -70,7 +70,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '500000000')
-          expect(result[0]).to.be.eq('100')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('0')
         })
 
@@ -100,7 +100,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-500000000')
-          expect(result[0]).to.be.eq('110')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('50')
         })
 
@@ -126,7 +126,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '500000000')
-          expect(result[0]).to.be.eq('110')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('-50')
         })
 
@@ -157,7 +157,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-500000000')
-          expect(result[0]).to.be.eq('90')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('-50')
         })
 
@@ -187,7 +187,7 @@ describe('EntryPriceMath', function () {
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '500000000')
 
-          expect(result[0]).to.be.eq('90')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('50')
         })
 
@@ -218,7 +218,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(-100, '500000000', tradePrice, '-500000000')
-          expect(result[0]).to.be.eq('-100')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('0')
         })
 
@@ -244,7 +244,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(-100, '-500000000', tradePrice, '500000000')
-          expect(result[0]).to.be.eq('-100')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('0')
         })
 
@@ -274,7 +274,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(-100, '500000000', tradePrice, '-500000000')
-          expect(result[0]).to.be.eq('100')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('1000')
         })
 
@@ -300,7 +300,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(-100, '-500000000', tradePrice, '500000000')
-          expect(result[0]).to.be.eq('100')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('-1000')
         })
 
@@ -331,7 +331,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(entryPrice, '500000000', tradePrice, '-500000000')
-          expect(result[0]).to.be.eq('-100')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('-1000')
         })
 
@@ -357,7 +357,7 @@ describe('EntryPriceMath', function () {
 
         it('close all positions', async function () {
           const result = await tester.testUpdateEntryPrice(entryPrice, '-500000000', tradePrice, '500000000')
-          expect(result[0]).to.be.eq('-100')
+          expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('1000')
         })
 
