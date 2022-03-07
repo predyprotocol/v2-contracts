@@ -1,9 +1,25 @@
 import { expect } from 'chai'
-import { BigNumber, BigNumberish } from 'ethers'
+import { BigNumber } from 'ethers'
 import { ethers } from 'hardhat'
 import { TraderVaultLibTester } from '../typechain'
 import { FUTURE_PRODUCT_ID, SQUEETH_PRODUCT_ID } from './utils/constants'
-import { scaledBN } from './utils/helpers'
+import { scaledBN, numToBn, calculateMinCollateral, assertCloseToPercentage } from './utils/helpers'
+
+type TestData = ({ positionPerpetual: number; tradePrice: number; entryFundingFee: number } | null)[][]
+
+type ExpectedData = {
+  positionUsdc: number
+  subVaults: {
+    positionPerpetuals: number[]
+    entryPrices: number[]
+    entryFundingFee: number[]
+  }[]
+}
+
+type TestCase = {
+  testData: TestData
+  expectedData: ExpectedData
+}
 
 describe('TraderVaultLib', function () {
   let tester: TraderVaultLibTester
@@ -21,114 +37,191 @@ describe('TraderVaultLib', function () {
   })
 
   describe('updateVault', () => {
-    describe('single sub-vault', () => {
-      beforeEach(async () => {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '100000000', '10000000000', '0')
-      })
+    const checkUpdateVaults = async (testCases: TestCase[]) => {
+      for (let testCase of testCases) {
+        await checkUpdateVault(testCase.testData, testCase.expectedData)
+      }
+    }
 
-      it('there is a sub-vault', async function () {
-        const subVault = await tester.getSubVault(0)
+    const checkUpdateVault = async (
+      testData: ({ positionPerpetual: number; tradePrice: number; entryFundingFee: number } | null)[][],
+      expectedData: {
+        positionUsdc: number
+        subVaults: {
+          positionPerpetuals: number[]
+          entryPrices: number[]
+          entryFundingFee: number[]
+        }[]
+      },
+    ) => {
+      for (let i = 0; i < testData.length; i++) {
+        for (let j = 0; j < 2; j++) {
+          const testTradeData = testData[i][j]
+          if (testTradeData !== null) {
+            await tester.testUpdateVault(
+              i,
+              j,
+              numToBn(testTradeData.positionPerpetual, 8),
+              numToBn(testTradeData.tradePrice, 8),
+              numToBn(testTradeData.entryFundingFee, 8),
+            )
+          }
+        }
+      }
 
-        expect(subVault.positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq('100000000')
-      })
+      const vault = await tester.traderVault()
+      expect(vault.positionUsdc).to.be.eq(numToBn(expectedData.positionUsdc, 8))
 
-      it('close positions', async function () {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-100000000', '10000000000', '0')
+      for (let i = 0; i < expectedData.subVaults.length; i++) {
+        const expectedSubVault = expectedData.subVaults[i]
+        const subVault = await tester.getSubVault(i)
+        for (let j = 0; j < 2; j++) {
+          expect(subVault.positionPerpetuals[j]).to.be.eq(numToBn(expectedSubVault.positionPerpetuals[j], 8))
+          expect(subVault.entryPrices[j]).to.be.eq(numToBn(expectedSubVault.entryPrices[j], 8))
+          expect(subVault.entryFundingFee[j]).to.be.eq(numToBn(expectedSubVault.entryFundingFee[j], 8))
+        }
+      }
+    }
 
-        const subVault = await tester.getSubVault(0)
-        const vault = await tester.traderVault()
+    it('single sub-vault', async function () {
+      const testCases = [
+        {
+          testData: [[null, { positionPerpetual: 1, tradePrice: 100, entryFundingFee: 10 }]],
+          expectedData: {
+            positionUsdc: 0,
+            subVaults: [{ positionPerpetuals: [0, 1], entryPrices: [0, 100], entryFundingFee: [0, 10] }],
+          },
+        },
+        {
+          testData: [[null, { positionPerpetual: 1, tradePrice: 100, entryFundingFee: 10 }]],
+          expectedData: {
+            positionUsdc: 0,
+            subVaults: [{ positionPerpetuals: [0, 2], entryPrices: [0, 100], entryFundingFee: [0, 10] }],
+          },
+        },
+        {
+          testData: [[null, { positionPerpetual: 1, tradePrice: 130, entryFundingFee: 16 }]],
+          expectedData: {
+            positionUsdc: 0,
+            subVaults: [{ positionPerpetuals: [0, 3], entryPrices: [0, 110], entryFundingFee: [0, 12] }],
+          },
+        },
+        {
+          testData: [[null, { positionPerpetual: -1, tradePrice: 130, entryFundingFee: 16 }]],
+          expectedData: {
+            positionUsdc: 16,
+            subVaults: [{ positionPerpetuals: [0, 2], entryPrices: [0, 110], entryFundingFee: [0, 12] }],
+          },
+        },
+        {
+          testData: [[null, { positionPerpetual: -3, tradePrice: 130, entryFundingFee: 16 }]],
+          expectedData: {
+            positionUsdc: 48,
+            subVaults: [{ positionPerpetuals: [0, -1], entryPrices: [0, 130], entryFundingFee: [0, 16] }],
+          },
+        },
+        {
+          testData: [[null, { positionPerpetual: 1, tradePrice: 150, entryFundingFee: 16 }]],
+          expectedData: {
+            positionUsdc: 28,
+            subVaults: [{ positionPerpetuals: [0, 0], entryPrices: [0, 150], entryFundingFee: [0, 16] }],
+          },
+        },
+      ]
 
-        expect(subVault.positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq('0')
-        expect(vault.positionUsdc).to.be.eq(0)
-      })
-
-      it('close positions with funding payment', async function () {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-100000000', '10000000000', '10000')
-
-        const subVault = await tester.getSubVault(0)
-        const vault = await tester.traderVault()
-
-        expect(subVault.positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq('0')
-        expect(vault.positionUsdc).to.be.eq(-10000)
-      })
-
-      it('close positions with funding received', async function () {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-100000000', '10000000000', '-10000')
-
-        const subVault = await tester.getSubVault(0)
-        const vault = await tester.traderVault()
-
-        expect(subVault.positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq('0')
-        expect(vault.positionUsdc).to.be.eq(10000)
-      })
-
-      it('close and open opposit-side positions', async function () {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-200000000', '10000000000', '0')
-
-        const subVault = await tester.getSubVault(0)
-        const vault = await tester.traderVault()
-
-        expect(subVault.positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq('-100000000')
-        expect(vault.positionUsdc).to.be.eq(0)
-      })
-
-      it('close and open opposit-side positions with funding payment', async function () {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-200000000', '10000000000', '10000')
-
-        const subVault = await tester.getSubVault(0)
-        const vault = await tester.traderVault()
-
-        expect(subVault.positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq('-100000000')
-        expect(vault.positionUsdc).to.be.eq(-10000)
-      })
+      await checkUpdateVaults(testCases)
     })
 
-    describe('multiple sub-vaults', () => {
-      beforeEach(async () => {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '100000000', '10000000000', '0')
-        await tester.testUpdateVault(1, SQUEETH_PRODUCT_ID, '100000000', '10000000000', '0')
-      })
+    it('multiple products', async function () {
+      const testCases = [
+        {
+          testData: [
+            [
+              { positionPerpetual: 1, tradePrice: 1000, entryFundingFee: 10 },
+              { positionPerpetual: 1, tradePrice: 100, entryFundingFee: 10 },
+            ],
+          ],
+          expectedData: {
+            positionUsdc: 0,
+            subVaults: [{ positionPerpetuals: [1, 1], entryPrices: [1000, 100], entryFundingFee: [10, 10] }],
+          },
+        },
+        {
+          testData: [[null, { positionPerpetual: 1, tradePrice: 100, entryFundingFee: 10 }]],
+          expectedData: {
+            positionUsdc: 0,
+            subVaults: [{ positionPerpetuals: [1, 2], entryPrices: [1000, 100], entryFundingFee: [10, 10] }],
+          },
+        },
+        {
+          testData: [[null, { positionPerpetual: 1, tradePrice: 130, entryFundingFee: 16 }]],
+          expectedData: {
+            positionUsdc: 0,
+            subVaults: [{ positionPerpetuals: [1, 3], entryPrices: [1000, 110], entryFundingFee: [10, 12] }],
+          },
+        },
+        {
+          testData: [[null, { positionPerpetual: -1, tradePrice: 130, entryFundingFee: 16 }]],
+          expectedData: {
+            positionUsdc: 16,
+            subVaults: [{ positionPerpetuals: [1, 2], entryPrices: [1000, 110], entryFundingFee: [10, 12] }],
+          },
+        },
+        {
+          testData: [[null, { positionPerpetual: -3, tradePrice: 130, entryFundingFee: 16 }]],
+          expectedData: {
+            positionUsdc: 48,
+            subVaults: [{ positionPerpetuals: [1, -1], entryPrices: [1000, 130], entryFundingFee: [10, 16] }],
+          },
+        },
+        {
+          testData: [
+            [
+              { positionPerpetual: -1, tradePrice: 1000, entryFundingFee: 11 },
+              { positionPerpetual: 1, tradePrice: 150, entryFundingFee: 16 },
+            ],
+          ],
+          expectedData: {
+            positionUsdc: 27,
+            subVaults: [{ positionPerpetuals: [0, 0], entryPrices: [1000, 150], entryFundingFee: [11, 16] }],
+          },
+        },
+      ]
 
-      it('there are two sub-vaults', async function () {
-        const subVault = await tester.getSubVault(1)
+      await checkUpdateVaults(testCases)
+    })
 
-        expect(subVault.positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq('100000000')
-      })
+    it('multiple sub-vaults', async function () {
+      const testCases = [
+        {
+          testData: [
+            [{ positionPerpetual: 1, tradePrice: 1000, entryFundingFee: 10 }, null],
+            [{ positionPerpetual: -1, tradePrice: 1000, entryFundingFee: 10 }, null],
+          ],
+          expectedData: {
+            positionUsdc: 0,
+            subVaults: [
+              { positionPerpetuals: [1, 0], entryPrices: [1000, 0], entryFundingFee: [10, 0] },
+              { positionPerpetuals: [-1, 0], entryPrices: [1000, 0], entryFundingFee: [10, 0] },
+            ],
+          },
+        },
+        {
+          testData: [
+            [{ positionPerpetual: -1, tradePrice: 1100, entryFundingFee: 20 }, null],
+            [{ positionPerpetual: 1, tradePrice: 1100, entryFundingFee: 20 }, null],
+          ],
+          expectedData: {
+            positionUsdc: 0,
+            subVaults: [
+              { positionPerpetuals: [0, 0], entryPrices: [1100, 0], entryFundingFee: [20, 0] },
+              { positionPerpetuals: [0, 0], entryPrices: [1100, 0], entryFundingFee: [20, 0] },
+            ],
+          },
+        },
+      ]
 
-      it('close positions', async function () {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-100000000', '10000000000', '0')
-        await tester.testUpdateVault(1, SQUEETH_PRODUCT_ID, '-100000000', '10000000000', '0')
-
-        const subVault = await tester.getSubVault(1)
-        const vault = await tester.traderVault()
-
-        expect(subVault.positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq('0')
-        expect(vault.positionUsdc).to.be.eq(0)
-      })
-
-      describe('multiple products in multiple sub-vaults', () => {
-        beforeEach(async () => {
-          await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '100000000', '10000000000', '0')
-          await tester.testUpdateVault(1, FUTURE_PRODUCT_ID, '100000000', '10000000000', '0')
-        })
-
-        it('there are two sub-vaults', async function () {
-          const subVault = await tester.getSubVault(1)
-
-          expect(subVault.positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq('100000000')
-        })
-
-        it('close positions', async function () {
-          await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-100000000', '10000000000', '0')
-          await tester.testUpdateVault(1, FUTURE_PRODUCT_ID, '-100000000', '10000000000', '0')
-
-          const subVault = await tester.getSubVault(1)
-          const vault = await tester.traderVault()
-
-          expect(subVault.positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq('0')
-          expect(vault.positionUsdc).to.be.eq(0)
-        })
-      })
+      await checkUpdateVaults(testCases)
     })
 
     it('reverts if sub-vault index is too large', async function () {
@@ -139,105 +232,156 @@ describe('TraderVaultLib', function () {
   })
 
   describe('getMinCollateral', () => {
-    async function checkMinCollateral(
-      positionPerpetuals: BigNumberish[],
-      fundingRates: BigNumberish[],
-      spotPrice: BigNumberish,
-      expectedMinCollateral: BigNumberish,
-    ) {
-      const spot = BigNumber.from(spotPrice)
-      const futurePrice = spot.mul(BigNumber.from(fundingRates[0]).add('100000000')).div('100000000')
-      const squeethPrice = spot
-        .mul(spot)
-        .div('10000')
-        .mul(BigNumber.from(fundingRates[1]).add('100000000'))
-        .div('100000000')
-      if (!BigNumber.from(positionPerpetuals[0]).eq(0)) {
-        await tester.testUpdateVault(0, FUTURE_PRODUCT_ID, positionPerpetuals[0], futurePrice, '0')
+    const spots = [1000, 2000, 3000, 4000, 5000]
+
+    async function checkMinCollaterals(subVaults: number[][], fundingRates: number[]) {
+      for (let spot of spots) {
+        await checkMinCollateral(subVaults, fundingRates, spot)
       }
-      if (!BigNumber.from(positionPerpetuals[1]).eq(0)) {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, positionPerpetuals[1], squeethPrice, '0')
-      }
-      const minCollateral = await tester.getMinCollateral({
-        spotPrice: spotPrice,
-        tradePrices: [futurePrice, squeethPrice],
-        fundingRates: [fundingRates[0], fundingRates[1]],
-        amountsFundingPaidPerPosition: [0, 0],
-      })
-      expect(minCollateral).to.be.eq(expectedMinCollateral)
     }
 
-    it('long squeeth', async function () {
-      await checkMinCollateral([0, '1000000000'], [0, 0], '500000000000', '262500000000')
-    })
+    async function checkMinCollateral(subVaults: number[][], fundingRates: number[], spotPrice: number) {
+      const futurePrice = spotPrice * (1 + fundingRates[0])
+      const squeethPrice = (spotPrice * spotPrice * (1 + fundingRates[1])) / 10000
 
-    it('short squeeth', async function () {
-      await checkMinCollateral([0, '-1000000000'], [0, 0], '500000000000', '262500000000')
-    })
+      let positionFuture = 0
+      let positionSqueeth = 0
 
-    it('long future', async function () {
-      await checkMinCollateral(['2000000000', 0], [0, 0], '100000000000', '100000000000')
-    })
-
-    it('short future', async function () {
-      await checkMinCollateral(['-2000000000', 0], [0, 0], '100000000000', '100000000000')
-    })
-
-    describe('short future and long squeeth', () => {
-      it('long future and short squeeth with positive delta', async function () {
-        await checkMinCollateral(['-5000000000', '5000000000'], [0, 0], '400000000000', '240000000000')
-      })
-
-      it('long future and short squeeth with zero delta', async function () {
-        await checkMinCollateral(['-5000000000', '5000000000'], [0, 0], '500000000000', '62500000000')
-      })
-
-      it('long future and short squeeth with negative delta', async function () {
-        await checkMinCollateral(['-5000000000', '5000000000'], [0, 0], '600000000000', '390000000000')
-      })
-
-      it('long future and short squeeth with funding rate', async function () {
-        await checkMinCollateral(['-5000000000', '5000000000'], ['100000', '1000000'], '500000000000', '74375000000')
-      })
-    })
-
-    describe('long future and short squeeth', () => {
-      it('long future and short squeeth with positive delta', async function () {
-        await checkMinCollateral(['5000000000', '-5000000000'], [0, 0], '400000000000', '240000000000')
-      })
-
-      it('long future and short squeeth with zero delta', async function () {
-        await checkMinCollateral(['5000000000', '-5000000000'], [0, 0], '500000000000', '62500000000')
-      })
-
-      it('long future and short squeeth with negative delta', async function () {
-        await checkMinCollateral(['5000000000', '-5000000000'], [0, 0], '600000000000', '390000000000')
-      })
-
-      it('long future and short squeeth with funding rate', async function () {
-        await checkMinCollateral(['5000000000', '-5000000000'], ['100000', '1000000'], '500000000000', '74375000000')
-      })
-    })
-
-    it('short squeeth and short future', async function () {
-      await checkMinCollateral(['-1000000000', '-1000000000'], [0, 0], '100000000000', '60500000000')
-    })
-
-    it('positions in different sub-vaults', async function () {
-      await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-1000000000', '10000000000', '0')
-      await tester.testUpdateVault(0, FUTURE_PRODUCT_ID, '-500000000', '50000000000', '0')
-      await tester.testUpdateVault(1, FUTURE_PRODUCT_ID, '-500000000', '50000000000', '0')
+      for (let i = 0; i < subVaults.length; i++) {
+        if (subVaults[i][0] !== 0) {
+          await tester.testUpdateVault(i, FUTURE_PRODUCT_ID, numToBn(subVaults[i][0], 8), numToBn(futurePrice, 8), '0')
+          positionFuture += subVaults[i][0]
+        }
+        if (subVaults[i][1] !== 0) {
+          await tester.testUpdateVault(
+            i,
+            SQUEETH_PRODUCT_ID,
+            numToBn(subVaults[i][1], 8),
+            numToBn(squeethPrice, 8),
+            '0',
+          )
+          positionSqueeth += subVaults[i][1]
+        }
+      }
       const minCollateral = await tester.getMinCollateral({
-        spotPrice: '100000000000',
-        tradePrices: ['100000000000', '10000000000'],
-        fundingRates: [0, 0],
+        spotPrice: numToBn(spotPrice, 8),
+        tradePrices: [numToBn(futurePrice, 8), numToBn(squeethPrice, 8)],
+        fundingRates: [numToBn(fundingRates[0], 8), numToBn(fundingRates[1], 8)],
         amountsFundingPaidPerPosition: [0, 0],
       })
-      expect(minCollateral).to.be.eq('60500000000')
+      const expectedMinCollateral = calculateMinCollateral(
+        positionFuture,
+        positionSqueeth,
+        fundingRates[0],
+        fundingRates[1],
+        spotPrice,
+      )
+
+      assertCloseToPercentage(minCollateral, numToBn(expectedMinCollateral, 8), BigNumber.from('100'))
+
+      await tester.clear()
+    }
+
+    describe('single sub-vault', () => {
+      it('future', async function () {
+        await checkMinCollaterals([[1, 0]], [0, 0])
+        await checkMinCollaterals([[-1, 0]], [0, 0])
+        await checkMinCollaterals([[1, 0]], [0.001, 0])
+      })
+
+      it('squeeth', async function () {
+        await checkMinCollaterals([[0, 2]], [0, 0])
+        await checkMinCollaterals([[0, -2]], [0, 0])
+        await checkMinCollaterals([[0, 2]], [0, 0.01])
+      })
+
+      it('future and squeeth', async function () {
+        await checkMinCollaterals([[1, 2]], [0, 0])
+        await checkMinCollaterals([[1, -2]], [0, 0])
+        await checkMinCollaterals([[-1, 2]], [0, 0])
+        await checkMinCollaterals([[-1, -2]], [0, 0])
+        await checkMinCollaterals([[1, 2]], [0.001, 0.01])
+      })
     })
 
-    it('min limit is 500 * 1e8', async function () {
-      await checkMinCollateral([0, '1'], [0, 0], '10000000000', '50000000000')
+    describe('multiple sub-vaults', () => {
+      it('future', async function () {
+        await checkMinCollaterals(
+          [
+            [1, 0],
+            [1, 0],
+          ],
+          [0, 0],
+        )
+        await checkMinCollaterals(
+          [
+            [-1, 0],
+            [-1, 0],
+          ],
+          [0, 0],
+        )
+        await checkMinCollaterals(
+          [
+            [1, 0],
+            [-1, 0],
+          ],
+          [0, 0],
+        )
+      })
+      it('squeeth', async function () {
+        await checkMinCollaterals(
+          [
+            [0, 1],
+            [0, 1],
+          ],
+          [0, 0],
+        )
+        await checkMinCollaterals(
+          [
+            [0, -1],
+            [0, -1],
+          ],
+          [0, 0],
+        )
+        await checkMinCollaterals(
+          [
+            [0, 1],
+            [0, -1],
+          ],
+          [0, 0],
+        )
+      })
+
+      it('future and squeeth', async function () {
+        await checkMinCollaterals(
+          [
+            [1, 0],
+            [0, 2],
+          ],
+          [0, 0],
+        )
+        await checkMinCollaterals(
+          [
+            [-1, 0],
+            [0, 2],
+          ],
+          [0, 0],
+        )
+        await checkMinCollaterals(
+          [
+            [1, 0],
+            [0, -2],
+          ],
+          [0, 0],
+        )
+        await checkMinCollaterals(
+          [
+            [-1, 0],
+            [0, -2],
+          ],
+          [0, 0],
+        )
+      })
     })
   })
 
