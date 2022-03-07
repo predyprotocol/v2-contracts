@@ -10,6 +10,9 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 library IndexPricer {
     using SignedSafeMath for int256;
 
+    /// @dev Scaling factor for squared index price.
+    int256 public constant SCALING_FACTOR = 1e4;
+
     /**
      * @notice Calculates index price of perpetuals
      * Future: ETH
@@ -20,7 +23,7 @@ library IndexPricer {
         if (_productId == 0) {
             return _spot;
         } else if (_productId == 1) {
-            return (_spot.mul(_spot)) / (1e12);
+            return (_spot.mul(_spot)) / (1e8 * SCALING_FACTOR);
         } else {
             revert("NP");
         }
@@ -36,7 +39,7 @@ library IndexPricer {
         if (_productId == 0) {
             return 1e8;
         } else if (_productId == 1) {
-            return _spot.mul(2) / 1e4;
+            return _spot.mul(2) / SCALING_FACTOR;
         } else {
             revert("NP");
         }
@@ -52,7 +55,7 @@ library IndexPricer {
         if (_productId == 0) {
             return 0;
         } else if (_productId == 1) {
-            return 2 * 1e4;
+            return 2 * SCALING_FACTOR;
         } else {
             revert("NP");
         }
