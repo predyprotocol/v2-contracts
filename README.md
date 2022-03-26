@@ -35,16 +35,14 @@ As a result, Predy's margin requirements for perpetual positions are significant
 
 ## Reference
 
-TODO
-
 ### Docs
 
 * [AMM](./docs/amm.md)
 * [TraderVault](./docs/trader-vault.md)
 
-## Audit
+### Audit
 
-TODO
+- [Audit1: Zokyo Audit Report](./docs/audit-zokyo-predy.pdf)
 
 ## Development
 
