@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
-import { MAX_WITHDRAW_AMOUNT, SAFETY_PERIOD, SQUEETH_PRODUCT_ID } from './utils/constants'
+import { MAX_WITHDRAW_AMOUNT, MIN_MARGIN, SAFETY_PERIOD, SQUEETH_PRODUCT_ID } from './utils/constants'
 
 describe('liquidation', function () {
   let wallet: Wallet, other: Wallet
@@ -200,6 +200,26 @@ describe('liquidation', function () {
 
           expect(after.sub(before)).to.be.gt(0)
         })
+      })
+    })
+
+    describe('after liquidated', () => {
+      beforeEach(async () => {
+        await updateSpotPrice(1960)
+
+        await perpetualMarket.liquidateByPool(1)
+      })
+
+      it('reverts if the vault has been liquidated', async () => {
+        await expect(perpetualMarket.liquidateByPool(1)).revertedWith('vault is not danger')
+      })
+
+      it('trade after liquidated', async () => {
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(10, 8)], MIN_MARGIN)
+
+        const vaultStatus = await perpetualMarket.getVaultStatus(1)
+        expect(vaultStatus.minCollateral).to.be.gt(0)
+        expect(vaultStatus.positionValue).to.be.gt(vaultStatus.minCollateral)
       })
     })
   })

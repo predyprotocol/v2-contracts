@@ -73,7 +73,7 @@ describe('FlashHedge', function () {
 
   describe('hedgeOnUniswap', () => {
     beforeEach(async () => {
-      const amount = scaledBN(200, 6)
+      const amount = scaledBN(1000, 6)
 
       await perpetualMarket.initialize(amount, scaledBN(2, 5))
     })
@@ -135,7 +135,7 @@ describe('FlashHedge', function () {
       })
     })
 
-    describe('net delta is negative because the pool has short perpetual future positions', () => {
+    describe('net delta is negative(short future)', () => {
       beforeEach(async () => {
         await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), 0], MIN_MARGIN)
 
@@ -157,6 +157,43 @@ describe('FlashHedge', function () {
         const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
         expect(tokenAmounts[1]).to.be.eq(0)
         expect(tokenAmounts[2]).to.be.eq(0)
+      })
+    })
+
+    describe('net delta is negative(short future and short squared)', () => {
+      beforeEach(async () => {
+        await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), scaledBN(1, 6)], MIN_MARGIN)
+
+        await perpetualMarket.execHedge()
+
+        await increaseTime(60 * 60 * 12)
+      })
+
+      afterEach(async () => {
+        // net delta must be neutral
+        const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
+        expect(tokenAmounts[1]).to.be.eq(0)
+        expect(tokenAmounts[2]).to.be.eq(0)
+      })
+
+      it('net delta becomes positive and sell all ETH to hedge', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(-3, 6), 0], MIN_MARGIN)
+
+        const before = await usdc.balanceOf(wallet.address)
+        await flashHedge.hedgeOnUniswap(0)
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.gt(0)
+      })
+
+      it('net delta becomes positive by short squared and sell all ETH to hedge', async () => {
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(-20, 6)], MIN_MARGIN)
+
+        const before = await usdc.balanceOf(wallet.address)
+        await flashHedge.hedgeOnUniswap(0)
+        const after = await usdc.balanceOf(wallet.address)
+
+        expect(after.sub(before)).to.be.gt(0)
       })
     })
   })
