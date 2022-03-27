@@ -141,8 +141,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         string memory _tokenName,
         string memory _tokenSymbol
     ) ERC20(_tokenName, _tokenSymbol) {
-        // The decimals of LP token is 6
-        _setupDecimals(6);
+        // The decimals of LP token is 8
+        _setupDecimals(8);
 
         priceFeed = AggregatorV3Interface(_priceFeedAddress);
 
