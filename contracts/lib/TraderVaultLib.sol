@@ -31,6 +31,7 @@ import "./EntryPriceMath.sol";
  *  T2: Vault is insolvent
  *  T3: subVaultIndex is too large
  *  T4: position must not be 0
+ *  T5: usdc to add must be positive
  */
 library TraderVaultLib {
     using SafeCast for int256;
@@ -109,6 +110,18 @@ library TraderVaultLib {
         _traderVault.positionUsdc = _traderVault.positionUsdc.add(finalUsdcPosition).toInt128();
 
         require(!checkVaultIsLiquidatable(_traderVault, _tradePriceInfo), "T0");
+    }
+
+    /**
+     * @notice Add USDC position
+     * @param _traderVault trader vault object
+     * @param _usdcPositionToAdd amount to add. value is always positive.
+     */
+    function addUsdcPosition(TraderVault storage _traderVault, int256 _usdcPositionToAdd) external {
+        require(!_traderVault.isInsolvent, "T2");
+        require(_usdcPositionToAdd > 0, "T5");
+
+        _traderVault.positionUsdc = _traderVault.positionUsdc.add(_usdcPositionToAdd).toInt128();
     }
 
     /**

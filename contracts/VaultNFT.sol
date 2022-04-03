@@ -9,7 +9,7 @@ import "./interfaces/IVaultNFT.sol";
  * @notice ERC721 representing ownership of a vault
  */
 contract VaultNFT is ERC721, IVaultNFT, Initializable {
-    uint256 public nextId = 1;
+    uint256 public override nextId = 1;
 
     address public perpetualMarket;
     address private immutable deployer;
