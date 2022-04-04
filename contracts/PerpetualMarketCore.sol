@@ -73,7 +73,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         uint128 amountLockedLiquidity;
         int128 positionPerpetuals;
         uint128 entryPrice;
-        int128 amountFundingPaidPerPosition;
+        int256 amountFundingPaidPerPosition;
         uint128 lastFundingPaymentTime;
     }
 
@@ -118,7 +118,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     // The address of Perpetual Market Contract
     address private perpetualMarket;
 
-    event FundingPayment(uint256 productId, int256 fundingRate, int256 fundingPaidPerPosition, int256 poolReceived);
+    event FundingPayment(
+        uint256 productId,
+        int256 fundingRate,
+        int256 amountFundingPaidPerPosition,
+        int256 fundingPaidPerPosition,
+        int256 poolReceived
+    );
     event VarianceUpdated(int256 variance, int256 underlyingPrice, uint256 timestamp);
 
     event SetSquaredPerpFundingMultiplier(int256 squaredPerpFundingMultiplier);
@@ -537,7 +543,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         int256[2] memory tradePrices;
         int256[2] memory fundingRates;
-        int128[2] memory amountFundingPaidPerPositionGlobals;
+        int256[2] memory amountFundingPaidPerPositionGlobals;
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
             int256 indexPrice;
@@ -555,10 +561,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
                 block.timestamp
             );
 
-            amountFundingPaidPerPositionGlobals[i] = pools[i]
-                .amountFundingPaidPerPosition
-                .add(fundingFeePerPosition)
-                .toInt128();
+            amountFundingPaidPerPositionGlobals[i] = pools[i].amountFundingPaidPerPosition.add(fundingFeePerPosition);
         }
 
         return TradePriceInfo(uint128(spotPrice), tradePrices, fundingRates, amountFundingPaidPerPositionGlobals);
@@ -588,10 +591,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             int256 fundingReceived
         ) = calculateResultOfFundingPayment(_productId, _spotPrice, block.timestamp);
 
-        pools[_productId].amountFundingPaidPerPosition = pools[_productId]
-            .amountFundingPaidPerPosition
-            .add(fundingFeePerPosition)
-            .toInt128();
+        pools[_productId].amountFundingPaidPerPosition = pools[_productId].amountFundingPaidPerPosition.add(
+            fundingFeePerPosition
+        );
 
         if (fundingReceived != 0) {
             amountLiquidity = Math.addDelta(amountLiquidity, fundingReceived);
@@ -600,7 +602,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         // Update last timestamp of funding payment
         pools[_productId].lastFundingPaymentTime = uint128(block.timestamp);
 
-        emit FundingPayment(_productId, currentFundingRate, fundingFeePerPosition, fundingReceived);
+        emit FundingPayment(
+            _productId,
+            currentFundingRate,
+            pools[_productId].amountFundingPaidPerPosition,
+            fundingFeePerPosition,
+            fundingReceived
+        );
     }
 
     /**
@@ -640,7 +648,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         );
 
         // Pool receives 'FundingPaidPerPosition * -(Pool Positions)' USDC as funding fee.
-        fundingReceived = (fundingFeePerPosition.mul(-pools[_productId].positionPerpetuals)) / 1e8;
+        fundingReceived = (fundingFeePerPosition.mul(-pools[_productId].positionPerpetuals)).div(1e16);
     }
 
     /**
@@ -657,7 +665,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 _currentFundingRate,
         uint256 _currentTimestamp
     ) internal view returns (int256 fundingFeePerPosition) {
-        fundingFeePerPosition = _indexPrice.mul(_currentFundingRate).div(1e16);
+        fundingFeePerPosition = _indexPrice.mul(_currentFundingRate).div(1e8);
 
         // Normalization by FUNDING_PERIOD
         fundingFeePerPosition = (
