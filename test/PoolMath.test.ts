@@ -14,14 +14,12 @@ describe('PoolMath', function () {
   })
 
   describe('calculateMarginDivLiquidity', () => {
-    const decimals = 8
+    const decimals = 16
 
     function marginDivLiquidity(m: number, dm: number, l: number, dl: number) {
-      if (dl == 0) {
-        return (m + dm / 2) / l
-      } else {
-        return ((m + dm / 2) * (Math.log(l + dl) - Math.log(l))) / dl
-      }
+      let result = m * m * m + (3 * m * m * dm) / 2 + m * dm * dm + (dm * dm * dm) / 4
+
+      return (result * (l + dl / 2)) / (l * l * (l + dl) * (l + dl))
     }
 
     it('reverts if liquidity is 0', async () => {
@@ -37,20 +35,22 @@ describe('PoolMath', function () {
         [500, -20],
       ]
       const testValuesOfMargin = [
-        [10, 10],
-        [10, 10],
-        [10, 0],
-        [10, -5],
-        [10, -10],
-        [10, -15],
-        [10, -50],
-        [-10, -20],
-        [-10, -10],
-        [-10, 0],
-        [-10, 5],
-        [-10, 10],
-        [-10, 15],
-        [-10, 50],
+        [20, 380],
+        [20, 40],
+        [20, 20],
+        [20, 0],
+        [20, -10],
+        [20, -20],
+        [20, -30],
+        [20, -100],
+        [-20, -380],
+        [-20, -40],
+        [-20, -20],
+        [-20, 0],
+        [-20, 10],
+        [-20, 20],
+        [-20, 30],
+        [-20, 100],
       ]
 
       for (let testValueOfLiquidity of testValuesOfLiquidity) {

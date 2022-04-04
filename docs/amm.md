@@ -49,7 +49,7 @@ Funding rate of Perpetual future is defined as:
 
 The formula of MarginDivLiquidity is
 
-`MarginDivLiquidity_i = ((M_i + ΔM_i / 2) / ΔL) * (log(L + ΔL) - log(_L))`.
+`MarginDivLiquidity_i = (M_i^3 + M_i^2 * ΔM_i * 3 / 2 + M_i * ΔM_i^2 + ΔM_i^3 / 4) * (L + ΔL/2) / (L * L * (L + ΔL)^2)`.
 
 The implementation function is:
 

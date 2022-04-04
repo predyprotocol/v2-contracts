@@ -422,7 +422,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
                 fundingRate,
                 tradeFee,
                 protocolFee,
-                indexPrice.mul(fundingRate).div(1e8),
+                indexPrice.mul(fundingRate).div(1e16),
                 tradePrice.toUint256().mul(Math.abs(_tradeAmount)).div(1e8),
                 tradeFee.toUint256().mul(Math.abs(_tradeAmount)).div(1e8)
             );

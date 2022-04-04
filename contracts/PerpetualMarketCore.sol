@@ -150,10 +150,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         spreadInfos[0].init();
         spreadInfos[1].init();
 
-        // 50%
-        squaredPerpFundingMultiplier = 50 * 1e6;
-        // 0.02%
-        perpFutureMaxFundingRate = 2 * 1e4;
+        // 550%
+        squaredPerpFundingMultiplier = 550 * 1e6;
+        // 0.22%
+        perpFutureMaxFundingRate = 22 * 1e4;
         // min slippage tolerance of a hedge is 0.4%
         minSlippageToleranceOfHedge = 40;
         // max slippage tolerance of a hedge is 0.8%
@@ -424,7 +424,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     /////////////////////////
 
     function setSquaredPerpFundingMultiplier(int256 _squaredPerpFundingMultiplier) external onlyOwner {
-        require(_squaredPerpFundingMultiplier >= 0 && _squaredPerpFundingMultiplier <= 200 * 1e6);
+        require(_squaredPerpFundingMultiplier >= 0 && _squaredPerpFundingMultiplier <= 2000 * 1e6);
         squaredPerpFundingMultiplier = _squaredPerpFundingMultiplier;
         emit SetSquaredPerpFundingMultiplier(_squaredPerpFundingMultiplier);
     }
@@ -657,7 +657,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 _currentFundingRate,
         uint256 _currentTimestamp
     ) internal view returns (int256 fundingFeePerPosition) {
-        fundingFeePerPosition = _indexPrice.mul(_currentFundingRate) / 1e8;
+        fundingFeePerPosition = _indexPrice.mul(_currentFundingRate).div(1e16);
 
         // Normalization by FUNDING_PERIOD
         fundingFeePerPosition = (
@@ -1011,7 +1011,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         indexPrice = IndexPricer.calculateIndexPrice(_productId, _spotPrice);
 
-        int256 tradePrice = ((indexPrice.mul(int256(1e8).add(fundingRate))) / 1e8).toInt128();
+        int256 tradePrice = (indexPrice.mul(int256(1e16).add(fundingRate))).div(1e16);
 
         tradeFee = getTradeFee(_productId, _isLong, indexPrice);
 
@@ -1105,7 +1105,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
      * @param _totalLiquidityAmount amount of total liquidity before trade
      * @param _deltaMargin amount of change in margin resulting from the trade
      * @param _deltaLiquidity difference of liquidity
-     * @return FundingRate scaled by 1e8 (1e8 = 100%)
+     * @return FundingRate scaled by 1e16 (1e16 = 100%)
      */
     function calculateFundingRate(
         uint256 _productId,
@@ -1123,7 +1123,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             return poolSnapshot.futureBaseFundingRate.add(fundingRate);
         } else if (_productId == 1) {
             if (_totalLiquidityAmount == 0) {
-                return poolSnapshot.ethVariance;
+                return poolSnapshot.ethVariance.mul(1e8);
             } else {
                 int256 addition = squaredPerpFundingMultiplier
                     .mul(
@@ -1135,7 +1135,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
                         )
                     )
                     .div(1e8);
-                return poolSnapshot.ethVariance.mul(int256(1e8).add(addition)).div(1e8);
+                return poolSnapshot.ethVariance.mul(int256(1e16).add(addition)).div(1e8);
             }
         }
         return 0;

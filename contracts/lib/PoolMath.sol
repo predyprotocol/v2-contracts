@@ -13,8 +13,8 @@ library PoolMath {
     using SafeCast for int256;
 
     /**
-     * @notice Calculate multiple integral of m/L.
-     * The formula is `((_m + _deltaMargin / 2) / _deltaL) * (log(_l + _deltaL) - log(_l))`.
+     * @notice Calculate multiple integral of (m/L)^3.
+     * The formula is `(_m^3 + (3/2)*_m^2 * _deltaMargin + _m * _deltaMargin^2 + _deltaMargin^3 / 4) * (_l + _deltaL / 2) / (_l^2 * (_l + _deltaL)^2)`.
      * @param _m required margin
      * @param _deltaMargin difference of required margin
      * @param _l total amount of liquidity
@@ -28,10 +28,19 @@ library PoolMath {
         int256 _deltaL
     ) internal pure returns (int256) {
         require(_l > 0, "l must be positive");
-        if (_deltaL == 0) {
-            return (_m.add(_deltaMargin / 2).mul(1e8)).div(_l);
-        } else {
-            return (_m.add(_deltaMargin / 2)).mul(Math.log(_l.add(_deltaL).mul(1e8).div(_l).toUint256())).div(_deltaL);
-        }
+
+        int256 result = 0;
+
+        result = (_m.mul(_m).mul(_m));
+
+        result = result.add(_m.mul(_m).mul(_deltaMargin).mul(3).div(2));
+
+        result = result.add(_m.mul(_deltaMargin).mul(_deltaMargin));
+
+        result = result.add(_deltaMargin.mul(_deltaMargin).mul(_deltaMargin).div(4));
+
+        result = result.mul(1e8).div(_l).div(_l);
+
+        return result.mul(_l.add(_deltaL.div(2))).mul(1e8).div(_l.add(_deltaL)).div(_l.add(_deltaL));
     }
 }
