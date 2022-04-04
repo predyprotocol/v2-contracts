@@ -17,7 +17,7 @@ jobs:
       - name: lint
         run: |
           npm install -g npm@latest
-          npm install --frozen-lockfile
+          npm install --force --frozen-lockfile
           npm run lint:check --parallel
   test:
     name: Testing
@@ -34,7 +34,7 @@ jobs:
       - name: test
         run: |
           npm install -g npm@latest
-          npm install --frozen-lockfile
+          npm install --force --frozen-lockfile
           npm run compile
           npm test
           npm run coverage
