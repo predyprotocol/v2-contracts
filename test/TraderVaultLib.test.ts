@@ -266,7 +266,7 @@ describe('TraderVaultLib', function () {
       const minCollateral = await tester.getMinCollateral({
         spotPrice: numToBn(spotPrice, 8),
         tradePrices: [numToBn(futurePrice, 8), numToBn(squeethPrice, 8)],
-        fundingRates: [numToBn(fundingRates[0], 8), numToBn(fundingRates[1], 8)],
+        fundingRates: [numToBn(fundingRates[0], 16), numToBn(fundingRates[1], 16)],
         amountsFundingPaidPerPosition: [0, 0],
       })
       const expectedMinCollateral = calculateMinCollateral(

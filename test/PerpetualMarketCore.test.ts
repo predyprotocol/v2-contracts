@@ -94,7 +94,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1999830)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1999831)
     })
 
     it('deposits after pool gets profit', async () => {
@@ -105,7 +105,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1998829)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1998831)
     })
 
     it('deposits after pool gets loss', async () => {
@@ -117,7 +117,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(2000836)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(2000837)
     })
   })
 
@@ -158,7 +158,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(500574)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(500565)
     })
 
     it('withdraws after the pool gets loss', async () => {
@@ -170,7 +170,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(499570)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(499562)
     })
 
     it('spread becomes high', async () => {
@@ -226,7 +226,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1501632)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1501506)
     })
   })
 
@@ -539,8 +539,8 @@ describe('PerpetualMarketCore', function () {
       await expect(perpetualMarketCore.setSquaredPerpFundingMultiplier(-1)).to.be.reverted
     })
 
-    it('reverts if value is greater than 200 * 1e6', async () => {
-      await expect(perpetualMarketCore.setSquaredPerpFundingMultiplier(scaledBN(200, 6).add(1))).to.be.reverted
+    it('reverts if value is greater than 2000 * 1e6', async () => {
+      await expect(perpetualMarketCore.setSquaredPerpFundingMultiplier(scaledBN(2000, 6).add(1))).to.be.reverted
     })
   })
 
@@ -859,21 +859,21 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('as the pool position becomes longer, the funding rate becomes smaller', async () => {
-      const testDeltaLSet = [-10, 0, 10]
+      const testDeltaLSet = [0]
       for (let deltaL of testDeltaLSet) {
         await checkFundingRate(FUTURE_PRODUCT_ID, deltaL, [
-          [10, 10],
-          [10, -5],
-          [10, -10],
-          [10, -15],
-          [10, -25],
+          [20, 20],
+          [20, -10],
+          [20, -20],
+          [20, -30],
+          [20, -50],
         ])
         await checkFundingRate(SQUEETH_PRODUCT_ID, deltaL, [
-          [-10, 25],
-          [-10, 15],
-          [-10, 10],
-          [-10, 5],
-          [-10, -10],
+          [-20, 50],
+          [-20, 30],
+          [-20, 20],
+          [-20, 10],
+          [-20, -20],
         ])
       }
     })

@@ -309,25 +309,19 @@ library TraderVaultLib {
         int128[2] memory positionPerpetuals,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal pure returns (int256) {
+        // priceWithFunding = S*(1+fundingSqueeth)
+        int256 priceWithFunding = int256(_tradePriceInfo.spotPrice).mul(_tradePriceInfo.fundingRates[1].add(1e16)).div(
+            1e8
+        );
+
         uint256 maxDelta = Math.abs(
-            (
-                int256(_tradePriceInfo.spotPrice)
-                    .mul(_tradePriceInfo.fundingRates[1].add(1e8))
-                    .mul(positionPerpetuals[1])
-                    .mul(2)
-                    .div(1e20)
-            ).add(positionPerpetuals[0].mul(_tradePriceInfo.fundingRates[0].add(1e8)).div(1e8))
+            (priceWithFunding.mul(positionPerpetuals[1]).mul(2).div(1e20)).add(
+                positionPerpetuals[0].mul(_tradePriceInfo.fundingRates[0].add(1e16)).div(1e16)
+            )
         );
 
         maxDelta = maxDelta.add(
-            Math.abs(
-                int256(RISK_PARAM_FOR_VAULT)
-                    .mul(int256(_tradePriceInfo.spotPrice))
-                    .mul(_tradePriceInfo.fundingRates[1].add(1e8))
-                    .mul(2)
-                    .mul(positionPerpetuals[1])
-                    .div(1e24)
-            )
+            Math.abs(int256(RISK_PARAM_FOR_VAULT).mul(priceWithFunding).mul(2).mul(positionPerpetuals[1]).div(1e24))
         );
 
         uint256 minCollateral = (RISK_PARAM_FOR_VAULT.mul(_tradePriceInfo.spotPrice).mul(maxDelta)) / 1e12;
