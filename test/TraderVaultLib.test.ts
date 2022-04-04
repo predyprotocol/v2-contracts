@@ -63,7 +63,7 @@ describe('TraderVaultLib', function () {
               j,
               numToBn(testTradeData.positionPerpetual, 8),
               numToBn(testTradeData.tradePrice, 8),
-              numToBn(testTradeData.entryFundingFee, 8),
+              numToBn(testTradeData.entryFundingFee, 16),
             )
           }
         }
@@ -78,7 +78,7 @@ describe('TraderVaultLib', function () {
         for (let j = 0; j < 2; j++) {
           expect(subVault.positionPerpetuals[j]).to.be.eq(numToBn(expectedSubVault.positionPerpetuals[j], 8))
           expect(subVault.entryPrices[j]).to.be.eq(numToBn(expectedSubVault.entryPrices[j], 8))
-          expect(subVault.entryFundingFee[j]).to.be.eq(numToBn(expectedSubVault.entryFundingFee[j], 8))
+          expect(subVault.entryFundingFee[j]).to.be.eq(numToBn(expectedSubVault.entryFundingFee[j], 16))
         }
       }
     }
@@ -520,7 +520,7 @@ describe('TraderVaultLib', function () {
           spotPrice: '100000000000',
           tradePrices: ['100000000000', '10000000000'],
           fundingRates: [0, 0],
-          amountsFundingPaidPerPosition: [0, 1000000],
+          amountsFundingPaidPerPosition: [0, scaledBN(1000000, 8)],
         })
         expect(positionValue).to.be.eq(-1000000)
       })
@@ -532,7 +532,7 @@ describe('TraderVaultLib', function () {
           spotPrice: '100000000000',
           tradePrices: ['100000000000', '10000000000'],
           fundingRates: [0, 0],
-          amountsFundingPaidPerPosition: [0, 1000000],
+          amountsFundingPaidPerPosition: [0, scaledBN(1000000, 8)],
         })
         expect(positionValue).to.be.eq(1000000)
       })
@@ -544,7 +544,7 @@ describe('TraderVaultLib', function () {
           spotPrice: '100000000000',
           tradePrices: ['100000000000', '10000000000'],
           fundingRates: [0, 0],
-          amountsFundingPaidPerPosition: [1000000, 0],
+          amountsFundingPaidPerPosition: [scaledBN(1000000, 8), 0],
         })
         expect(positionValue).to.be.eq(-1000000)
       })
@@ -556,7 +556,7 @@ describe('TraderVaultLib', function () {
           spotPrice: '100000000000',
           tradePrices: ['100000000000', '10000000000'],
           fundingRates: [0, 0],
-          amountsFundingPaidPerPosition: [1000000, 0],
+          amountsFundingPaidPerPosition: [scaledBN(1000000, 8), 0],
         })
         expect(positionValue).to.be.eq(1000000)
       })
@@ -568,7 +568,7 @@ describe('TraderVaultLib', function () {
           spotPrice: '100000000000',
           tradePrices: ['100000000000', '10000000000'],
           fundingRates: [0, 0],
-          amountsFundingPaidPerPosition: [-1000000, 0],
+          amountsFundingPaidPerPosition: [scaledBN(-1000000, 8), 0],
         })
         expect(positionValue).to.be.eq(1000000)
       })
@@ -580,7 +580,7 @@ describe('TraderVaultLib', function () {
           spotPrice: '100000000000',
           tradePrices: ['100000000000', '10000000000'],
           fundingRates: [0, 0],
-          amountsFundingPaidPerPosition: [-1000000, 0],
+          amountsFundingPaidPerPosition: [scaledBN(-1000000, 8), 0],
         })
         expect(positionValue).to.be.eq(-1000000)
       })
@@ -721,7 +721,7 @@ describe('TraderVaultLib', function () {
             spotPrice: '100000000000',
             tradePrices: ['100000000000', '10000000000'],
             fundingRates: [0, 0],
-            amountsFundingPaidPerPosition: [500000000, 500000000],
+            amountsFundingPaidPerPosition: [scaledBN(500000000, 8), scaledBN(500000000, 8)],
           }),
         ).to.be.true
       })

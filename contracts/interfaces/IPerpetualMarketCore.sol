@@ -9,7 +9,7 @@ interface IPerpetualMarketCore {
         uint128 spotPrice;
         int256[2] tradePrices;
         int256[2] fundingRates;
-        int128[2] amountsFundingPaidPerPosition;
+        int256[2] amountsFundingPaidPerPosition;
     }
 
     function initialize(

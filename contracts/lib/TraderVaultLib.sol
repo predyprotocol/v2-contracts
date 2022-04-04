@@ -52,7 +52,7 @@ library TraderVaultLib {
     struct SubVault {
         int128[2] positionPerpetuals;
         uint128[2] entryPrices;
-        int128[2] entryFundingFee;
+        int256[2] entryFundingFee;
     }
 
     struct TraderVault {
@@ -180,7 +180,7 @@ library TraderVaultLib {
         if (_traderVault.subVaults.length == _subVaultIndex) {
             int128[2] memory positionPerpetuals;
             uint128[2] memory entryPrices;
-            int128[2] memory entryFundingFee;
+            int256[2] memory entryFundingFee;
 
             _traderVault.subVaults.push(SubVault(positionPerpetuals, entryPrices, entryFundingFee));
         } else {
@@ -209,8 +209,8 @@ library TraderVaultLib {
                 _positionPerpetual
             );
 
-            subVault.entryFundingFee[_productId] = newEntryFundingFee.toInt128();
-            deltaUsdcPosition = deltaUsdcPosition.sub(profitValue);
+            subVault.entryFundingFee[_productId] = newEntryFundingFee;
+            deltaUsdcPosition = deltaUsdcPosition.sub(profitValue.div(1e8));
         }
 
         _traderVault.positionUsdc = _traderVault.positionUsdc.add(deltaUsdcPosition).toInt128();
@@ -419,7 +419,7 @@ library TraderVaultLib {
      */
     function getTotalFundingFeePaidOfSubVault(
         SubVault memory _subVault,
-        int128[2] memory _amountsFundingPaidPerPosition
+        int256[2] memory _amountsFundingPaidPerPosition
     ) internal pure returns (int256) {
         int256 fundingFee;
 
@@ -441,12 +441,12 @@ library TraderVaultLib {
     function getFundingFeePaidOfSubVault(
         SubVault memory _subVault,
         uint256 _productId,
-        int128[2] memory _amountsFundingPaidPerPosition
+        int256[2] memory _amountsFundingPaidPerPosition
     ) internal pure returns (int256) {
         int256 fundingFee = _subVault.entryFundingFee[_productId].sub(_amountsFundingPaidPerPosition[_productId]).mul(
             _subVault.positionPerpetuals[_productId]
         );
 
-        return fundingFee / 1e8;
+        return fundingFee.div(1e16);
     }
 }
