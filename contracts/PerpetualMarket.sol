@@ -21,6 +21,7 @@ import "./interfaces/IVaultNFT.sol";
  * PM0: tx exceed deadline
  * PM1: limit price
  * PM2: caller is not vault owner
+ * PM3: vault not found
  */
 contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     using SafeERC20 for IERC20;
@@ -194,6 +195,25 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             sendLiquidity(msg.sender, withdrawAmount);
             emit WithdrawnFromVault(msg.sender, _tradeParams.vaultId, withdrawAmount);
         }
+    }
+
+    /**
+     * @notice Add margin to the vault
+     * @param _vaultId id of the vault
+     * @param _marginToAdd amount of margin to add
+     */
+    function addMargin(uint256 _vaultId, int256 _marginToAdd) external override {
+        require(_vaultId > 0 && _vaultId < IVaultNFT(vaultNFT).nextId(), "PM3");
+
+        // increase USDC position
+        traderVaults[_vaultId].addUsdcPosition(_marginToAdd.mul(1e2));
+
+        // receive USDC from caller
+        uint256 depositAmount = _marginToAdd.toUint256();
+        IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), depositAmount);
+
+        // emit event
+        emit DepositedToVault(msg.sender, _vaultId, depositAmount);
     }
 
     /**

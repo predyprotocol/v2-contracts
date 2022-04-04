@@ -47,6 +47,8 @@ interface IPerpetualMarket {
 
     function trade(MultiTradeParams memory _tradeParams) external;
 
+    function addMargin(uint256 _vaultId, int256 _marginToAdd) external;
+
     function liquidateByPool(uint256 _vaultId) external;
 
     function getTokenAmountForHedging()

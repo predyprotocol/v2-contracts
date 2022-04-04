@@ -1072,4 +1072,42 @@ describe('PerpetualMarket', function () {
       await expect(perpetualMarket.setFeeRecepient(ethers.constants.AddressZero)).to.be.reverted
     })
   })
+
+  describe('addMargin', () => {
+    beforeEach(async () => {
+      await perpetualMarket.initialize(scaledBN(600, 6), scaledBN(2, 5))
+
+      await testContractSet.perpetualMarketCore.setPoolMarginRiskParam(4000)
+
+      await testContractHelper.updateSpot(scaledBN(100, 8))
+    })
+
+    it('succeed to add margin to the vault', async () => {
+      await testContractHelper.trade(wallet, 0, [scaledBN(-2, 8), 0], MIN_MARGIN)
+
+      await testContractHelper.trade(wallet, 0, [scaledBN(6, 8), 0], MIN_MARGIN)
+
+      await expect(testContractHelper.trade(wallet, 1, [0, 0], MIN_MARGIN)).to.be.revertedWith('PMC1')
+
+      const beforeBalance = await usdc.balanceOf(perpetualMarket.address)
+      const beforeVault = await perpetualMarket.getTraderVault(1)
+      await perpetualMarket.addMargin(1, scaledBN(100, 6))
+      const afterBalance = await usdc.balanceOf(perpetualMarket.address)
+      const afterVault = await perpetualMarket.getTraderVault(1)
+
+      // check that USDC amount is increased
+      expect(afterBalance.sub(beforeBalance)).to.be.eq(scaledBN(100, 6))
+      expect(afterVault.positionUsdc.sub(beforeVault.positionUsdc)).to.be.eq(scaledBN(100, 8))
+    })
+
+    it('reverts if amount is negative', async () => {
+      await testContractHelper.trade(wallet, 0, [scaledBN(4, 8), 0], MIN_MARGIN)
+
+      await expect(perpetualMarket.addMargin(1, scaledBN(-100, 6))).to.be.revertedWith('T5')
+    })
+
+    it('reverts if vault does not exist', async () => {
+      await expect(perpetualMarket.addMargin(1, scaledBN(100, 6))).to.be.revertedWith('PM3')
+    })
+  })
 })
