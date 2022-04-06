@@ -43,8 +43,8 @@ library TraderVaultLib {
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
-    /// @dev minimum margin is 500 USDC
-    uint256 private constant MIN_MARGIN = 500 * 1e8;
+    /// @dev minimum margin is 200 USDC
+    uint256 private constant MIN_MARGIN = 200 * 1e8;
 
     /// @dev risk parameter for MinCollateral calculation is 5.0%
     uint256 private constant RISK_PARAM_FOR_VAULT = 500;

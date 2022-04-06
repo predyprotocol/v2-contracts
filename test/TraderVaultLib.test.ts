@@ -595,7 +595,7 @@ describe('TraderVaultLib', function () {
         fundingRates: [0, 0],
         amountsFundingPaidPerPosition: [0, 0],
       })
-      expect(minCollateral).to.be.eq('50000000000')
+      expect(minCollateral).to.be.eq('20000000000')
     })
 
     describe('USDCs are deposited', () => {
@@ -616,7 +616,7 @@ describe('TraderVaultLib', function () {
           fundingRates: [0, 0],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        expect(minCollateral).to.be.eq('50000000000')
+        expect(minCollateral).to.be.eq('21000000000')
       })
     })
   })
@@ -651,8 +651,8 @@ describe('TraderVaultLib', function () {
           fundingRates: [0, 0],
           amountsFundingPaidPerPosition: [0, 0],
         })
-        expect(await tester.r()).to.be.eq('-71000000000')
-        expect((await tester.traderVault()).positionUsdc).to.be.eq('29000000000')
+        expect(await tester.r()).to.be.eq('-101000000000')
+        expect((await tester.traderVault()).positionUsdc).to.be.eq('-1000000000')
       })
     })
 

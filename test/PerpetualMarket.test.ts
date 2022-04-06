@@ -778,7 +778,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-500001020')
+        expect(after.sub(before)).to.be.eq('-200001020')
       })
 
       it('close Future', async () => {
@@ -790,7 +790,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-500001020')
+        expect(after.sub(before)).to.be.eq('-200001020')
       })
 
       it('close positions with price move', async () => {
@@ -1039,7 +1039,7 @@ describe('PerpetualMarket', function () {
 
     it('get min collateral of the vault that has no positions', async () => {
       const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(vaultId, [0, scaledBN(10, 8)])
-      expect(minCollateral).to.be.eq(500000000)
+      expect(minCollateral).to.be.eq(200000000)
     })
 
     it('get min collateral of squared perpetual and perpetual future', async () => {
@@ -1053,7 +1053,7 @@ describe('PerpetualMarket', function () {
     it('get min collateral of the vault that has positions', async () => {
       await testContractHelper.trade(wallet, 0, [0, scaledBN(10, 8)], scaledBN(5000, 6))
       const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(vaultId, [0, scaledBN(1, 8)])
-      expect(minCollateral).to.be.eq(500000000)
+      expect(minCollateral).to.be.eq(200000000)
     })
   })
 
