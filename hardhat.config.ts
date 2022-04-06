@@ -19,6 +19,8 @@ import './tasks/raw-hedge'
 import './tasks/vault'
 import './tasks/price'
 import './tasks/pool'
+import './tasks/check'
+import './tasks/config'
 
 dotenv.config();
 
@@ -36,6 +38,9 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 const config: HardhatUserConfig = {
   networks: {
+    localhost: {
+      url: "http://localhost:8545",
+    },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${InfuraKey}`,
       accounts:
@@ -68,6 +73,14 @@ const config: HardhatUserConfig = {
       gasPrice: 1000000000,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    arbitrum: {
+      url: 'https://arb1.arbitrum.io/rpc',
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      companionNetworks: {
+        l1: "mainnet",
+      },
     },
     rinkebyArbitrum: {
       url: "https://rinkeby.arbitrum.io/rpc",

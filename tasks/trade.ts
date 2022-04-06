@@ -35,6 +35,7 @@ task('trade', 'trade perpetuals')
         subVaultIndex,
         tradeAmount: tradeAmount0,
         limitPrice: 0,
+        metadata: '0x',
       })
     }
     if (!BigNumber.from(tradeAmount1).eq(0)) {
@@ -43,6 +44,7 @@ task('trade', 'trade perpetuals')
         subVaultIndex,
         tradeAmount: tradeAmount1,
         limitPrice: 0,
+        metadata: '0x',
       })
     }
     const tx = await perpetualMarket.trade({
@@ -52,5 +54,5 @@ task('trade', 'trade perpetuals')
       deadline: 0,
     })
     await tx.wait()
-    console.log('Suceed to trade')
+    console.log('Succeed to trade')
   })

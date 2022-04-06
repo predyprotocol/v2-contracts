@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [16.x]
     steps:
       - uses: actions/checkout@v1
       - name: Use Node.js ${{ matrix.node-version }}
@@ -17,14 +17,14 @@ jobs:
       - name: lint
         run: |
           npm install -g npm@latest
-          npm install --frozen-lockfile
+          npm install --legacy-peer-deps --frozen-lockfile
           npm run lint:check --parallel
   test:
     name: Testing
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [16.x]
     steps:
       - uses: actions/checkout@v1
       - name: Use Node.js ${{ matrix.node-version }}
@@ -34,7 +34,7 @@ jobs:
       - name: test
         run: |
           npm install -g npm@latest
-          npm install --frozen-lockfile
+          npm install --legacy-peer-deps --frozen-lockfile
           npm run compile
           npm test
           npm run coverage

@@ -5,10 +5,11 @@
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",
+    "deploy": "hardhat deploy",
     "test": "hardhat test --network hardhat",
     "coverage": "hardhat coverage",
-    "lint:check": "prettier --check \"contracts/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\"",
-    "lint:write": "prettier --write \"contracts/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\""
+    "lint:check": "prettier --check \"contracts/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\"",
+    "lint:write": "prettier --write \"contracts/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\""
   },
   "author": "predy",
   "license": "ISC",
@@ -23,7 +24,7 @@
     "hardhat-deploy": "^0.8.6"
   },
   "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.3",
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13",
     "@nomiclabs/hardhat-etherscan": "^2.1.8",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@typechain/ethers-v5": "^7.2.0",
