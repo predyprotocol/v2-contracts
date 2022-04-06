@@ -52,7 +52,7 @@ export function assertCloseToPercentage(a: BigNumber, b: BigNumber, percentage: 
 }
 
 export function calculateMinCollateral(a0: number, a1: number, n0: number, n1: number, underlyingPrice: number) {
-  const minMargin = 500
+  const minMargin = 200
   const alpha = 0.05
   const minCollateral =
     alpha *
