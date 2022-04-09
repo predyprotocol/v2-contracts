@@ -921,6 +921,50 @@ describe('PerpetualMarket', function () {
       await checkDeltaIs0()
     })
 
+    describe('suceed to hedge in test cases', () => {
+      async function checkHedge(beforePositions: BigNumberish[], price: number, isWethReceived: boolean) {
+        await testContractHelper.trade(wallet, 0, beforePositions, MIN_MARGIN)
+
+        await perpetualMarket.execHedge()
+
+        await increaseTime(60 * 60 * 12)
+
+        await testContractHelper.updateSpot(scaledBN(price, 8))
+
+        const before = await weth.balanceOf(wallet.address)
+        await perpetualMarket.execHedge()
+        const after = await weth.balanceOf(wallet.address)
+
+        if (isWethReceived) {
+          expect(after.sub(before)).to.be.gt(0)
+        } else {
+          expect(after.sub(before)).to.be.lt(0)
+        }
+        await checkDeltaIs0()
+      }
+
+      it('succeed to hedge', async () => {
+        await testContractHelper.updateSpot(scaledBN(100, 8))
+
+        const testCases = [
+          [0, scaledBN(1, 8)],
+          [scaledBN(1, 6), scaledBN(1, 8)],
+          [scaledBN(1, 6), 0],
+          [scaledBN(-1, 6), scaledBN(2, 8)],
+          [scaledBN(2, 6), scaledBN(-1, 8)],
+          [scaledBN(1, 6), scaledBN(2, 8)],
+          [scaledBN(2, 6), scaledBN(1, 8)],
+        ]
+
+        for (let testData of testCases) {
+          await checkHedge(testData, 110, false)
+          await checkHedge(testData, 130, false)
+          await checkHedge(testData, 90, true)
+          await checkHedge(testData, 70, true)
+        }
+      })
+    })
+
     describe('net delta is negative', () => {
       beforeEach(async () => {
         await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 7)], MIN_MARGIN)
