@@ -19,6 +19,7 @@ library NettingLib {
     using SafeCast for uint256;
     using SafeMath for uint256;
     using SafeMath for uint128;
+    using SafeMath for int256;
     using SignedSafeMath for int256;
     using SignedSafeMath for int128;
 
@@ -33,14 +34,13 @@ library NettingLib {
     struct CompleteParams {
         uint256 amountUsdc;
         uint256 amountUnderlying;
-        int256[2] amountsRequiredUnderlying;
+        uint256 futureWeight;
         bool isLong;
     }
 
     struct Info {
-        uint128 amountAaveCollateral;
-        uint128[2] amountsUsdc;
-        int128[2] amountsUnderlying;
+        uint256[2] amountsUsdc;
+        uint256 amountUnderlying;
     }
 
     /**
@@ -53,7 +53,7 @@ library NettingLib {
     ) internal returns (int256 requiredMargin, int256 hedgePositionValue) {
         int256 totalRequiredMargin = getRequiredMargin(_productId, _params);
 
-        hedgePositionValue = getHedgePositionValue(_info, _params.spotPrice, _productId);
+        hedgePositionValue = getHedgePositionValue(_info, _params, _productId);
 
         requiredMargin = totalRequiredMargin.sub(hedgePositionValue);
 
@@ -65,14 +65,11 @@ library NettingLib {
     }
 
     function getRequiredTokenAmountsForHedge(
-        int128[2] memory _amountsUnderlying,
+        uint256 _amountUnderlying,
         int256[2] memory _deltas,
         int256 _spotPrice
     ) internal pure returns (CompleteParams memory completeParams) {
-        completeParams.amountsRequiredUnderlying[0] = -_amountsUnderlying[0] - _deltas[0];
-        completeParams.amountsRequiredUnderlying[1] = -_amountsUnderlying[1] - _deltas[1];
-
-        int256 totalUnderlyingPosition = getTotalUnderlyingPosition(_amountsUnderlying);
+        int256 totalUnderlyingPosition = _amountUnderlying.toInt256();
 
         // 1. Calculate required amount of underlying token
         int256 requiredUnderlyingAmount;
@@ -83,8 +80,6 @@ library NettingLib {
             if (_deltas[0].add(_deltas[1]) > 0) {
                 // if pool delta is positive
                 requiredUnderlyingAmount = -totalUnderlyingPosition;
-
-                completeParams.amountsRequiredUnderlying[0] = -_amountsUnderlying[0] + _deltas[1];
             }
 
             completeParams.isLong = requiredUnderlyingAmount > 0;
@@ -94,6 +89,8 @@ library NettingLib {
         completeParams.amountUnderlying = Math.abs(requiredUnderlyingAmount);
         completeParams.amountUsdc = (Math.abs(requiredUnderlyingAmount).mul(uint256(_spotPrice))) / 1e8;
 
+        completeParams.futureWeight = calculateWeight(0, _deltas[0], _deltas[1]);
+
         return completeParams;
     }
 
@@ -102,30 +99,21 @@ library NettingLib {
      * Calculate holding amount of Underlying and USDC after a hedge.
      */
     function complete(Info storage _info, CompleteParams memory _params) internal {
-        uint256 totalUnderlying = Math.abs(_params.amountsRequiredUnderlying[0]).add(
-            Math.abs(_params.amountsRequiredUnderlying[1])
-        );
+        uint256 amountRequired0 = _params.amountUsdc.mul(_params.futureWeight).div(1e16);
+        uint256 amountRequired1 = _params.amountUsdc.sub(amountRequired0);
 
-        require(totalUnderlying > 0, "N1");
+        require(_params.amountUnderlying > 0, "N1");
 
-        for (uint256 i = 0; i < 2; i++) {
-            _info.amountsUnderlying[i] = _info
-                .amountsUnderlying[i]
-                .add(_params.amountsRequiredUnderlying[i])
-                .toInt128();
+        if (_params.isLong) {
+            _info.amountUnderlying = _info.amountUnderlying.add(_params.amountUnderlying);
 
-            {
-                uint256 deltaUsdcAmount = (_params.amountUsdc.mul(Math.abs(_params.amountsRequiredUnderlying[i]))).div(
-                    totalUnderlying
-                );
+            _info.amountsUsdc[0] = _info.amountsUsdc[0].sub(amountRequired0).toUint128();
+            _info.amountsUsdc[1] = _info.amountsUsdc[1].sub(amountRequired1).toUint128();
+        } else {
+            _info.amountUnderlying = _info.amountUnderlying.sub(_params.amountUnderlying);
 
-                if (_params.isLong) {
-                    require(_info.amountsUsdc[i] >= deltaUsdcAmount, "N2");
-                    _info.amountsUsdc[i] = _info.amountsUsdc[i].sub(deltaUsdcAmount).toUint128();
-                } else {
-                    _info.amountsUsdc[i] = _info.amountsUsdc[i].add(deltaUsdcAmount).toUint128();
-                }
-            }
+            _info.amountsUsdc[0] = _info.amountsUsdc[0].add(amountRequired0).toUint128();
+            _info.amountsUsdc[1] = _info.amountsUsdc[1].add(amountRequired1).toUint128();
         }
     }
 
@@ -137,92 +125,58 @@ library NettingLib {
      */
     function getRequiredMargin(uint256 _productId, AddMarginParams memory _params) internal pure returns (int256) {
         int256 weightedDelta = calculateWeightedDelta(_productId, _params.delta0, _params.delta1);
+        int256 deltaFromGamma = 0;
 
-        if (_productId == 0) {
-            return getRequiredMarginOfFuture(_params, weightedDelta);
-        } else if (_productId == 1) {
-            return getRequiredMarginOfSqueeth(_params, weightedDelta);
-        } else {
-            revert("N0");
+        if (_productId == 1) {
+            deltaFromGamma = _params.poolMarginRiskParam.mul(_params.spotPrice).mul(_params.gamma1).div(1e12);
         }
-    }
 
-    /**
-     * @notice Gets required margin for future
-     * RequiredMargin_{future} = (1+α)*S*|WeightedDelta|
-     * @return RequiredMargin scaled by 1e8
-     */
-    function getRequiredMarginOfFuture(AddMarginParams memory _params, int256 _weightedDelta)
-        internal
-        pure
-        returns (int256)
-    {
-        int256 requiredMargin = (_params.spotPrice.mul(Math.abs(_weightedDelta).toInt256())) / 1e8;
-        return ((1e4 + _params.poolMarginRiskParam).mul(requiredMargin)) / 1e4;
-    }
+        int256 requiredMargin = (
+            _params.spotPrice.mul(Math.abs(weightedDelta).add(Math.abs(deltaFromGamma)).toInt256())
+        ).div(1e8);
 
-    /**
-     * @notice Gets required margin for squeeth
-     * RequiredMargin_{squeeth}
-     * = max((1-α) * S * |WeightDelta_{sqeeth}-α * S * gamma|, (1+α) * S * |WeightDelta_{sqeeth}+α * S * gamma|)
-     * @return RequiredMargin scaled by 1e8
-     */
-    function getRequiredMarginOfSqueeth(AddMarginParams memory _params, int256 _weightedDelta)
-        internal
-        pure
-        returns (int256)
-    {
-        int256 deltaFromGamma = (_params.poolMarginRiskParam.mul(_params.spotPrice).mul(_params.gamma1)) / 1e12;
-
-        return
-            Math.max(
-                (
-                    (1e4 - _params.poolMarginRiskParam).mul(_params.spotPrice).mul(
-                        Math.abs(_weightedDelta.sub(deltaFromGamma)).toInt256()
-                    )
-                ) / 1e12,
-                (
-                    (1e4 + _params.poolMarginRiskParam).mul(_params.spotPrice).mul(
-                        Math.abs(_weightedDelta.add(deltaFromGamma)).toInt256()
-                    )
-                ) / 1e12
-            );
+        return ((1e4 + _params.poolMarginRiskParam).mul(requiredMargin)).div(1e4);
     }
 
     /**
      * @notice Gets notional value of hedge positions
-     * HedgePositionValue_i = AmountsUsdc_i+AmountsUnderlying_i*S
+     * HedgePositionValue_i = AmountsUsdc_i+(|delta_i| / (Σ|delta_i|))*AmountUnderlying*S
      * @return HedgePositionValue scaled by 1e8
      */
     function getHedgePositionValue(
         Info memory _info,
-        int256 _spot,
+        AddMarginParams memory _params,
         uint256 _productId
     ) internal pure returns (int256) {
-        int256 hedgeNotional = _spot.mul(_info.amountsUnderlying[_productId]) / 1e8;
+        int256 totalHedgeNotional = _params.spotPrice.mul(_info.amountUnderlying.toInt256()).div(1e8);
 
-        return _info.amountsUsdc[_productId].toInt256().add(hedgeNotional);
+        int256 productHedgeNotional = totalHedgeNotional
+            .mul(calculateWeight(0, _params.delta0, _params.delta1).toInt256())
+            .div(1e16);
+
+        if (_productId == 1) {
+            productHedgeNotional = totalHedgeNotional.sub(productHedgeNotional);
+        }
+
+        int256 hedgePositionValue = _info.amountsUsdc[_productId].toInt256().add(productHedgeNotional);
+
+        return hedgePositionValue;
     }
 
     /**
-     * @notice Gets total underlying position
-     * TotalUnderlyingPosition = ΣAmountsUnderlying_i
+     * @notice Gets notional value of hedge positions
+     * HedgePositionValue_i = AmountsUsdc_0+AmountsUsdc_1+AmountUnderlying*S
+     * @return HedgePositionValue scaled by 1e8
      */
-    function getTotalUnderlyingPosition(int128[2] memory _amountsUnderlying)
-        internal
-        pure
-        returns (int256 underlyingPosition)
-    {
-        for (uint256 i = 0; i < 2; i++) {
-            underlyingPosition = underlyingPosition.add(_amountsUnderlying[i]);
-        }
+    function getTotalHedgePositionValue(Info memory _info, int256 _spotPrice) internal pure returns (int256) {
+        int256 hedgeNotional = _spotPrice.mul(_info.amountUnderlying.toInt256()).div(1e8);
 
-        return underlyingPosition;
+        return (_info.amountsUsdc[0].add(_info.amountsUsdc[1])).toInt256().add(hedgeNotional);
     }
 
     /**
      * @notice Calculates weighted delta
-     * WeightedDelta = delta_i * (Σdelta_i) / (Σ|delta_i|)
+     * WeightedDelta = |delta_i| * (Σdelta_i) / (Σ|delta_i|)
      * @return weighted delta scaled by 1e8
      */
     function calculateWeightedDelta(
@@ -231,7 +185,21 @@ library NettingLib {
         int256 _delta1
     ) internal pure returns (int256) {
         int256 netDelta = _delta0.add(_delta1);
-        int256 totalDelta = (Math.abs(_delta0).add(Math.abs(_delta1))).toInt256();
+
+        return netDelta.mul(calculateWeight(_productId, _delta0, _delta1).toInt256()).div(1e16);
+    }
+
+    /**
+     * @notice Calculates delta weighted value
+     * WeightedDelta = |delta_i| / (Σ|delta_i|)
+     * @return weighted delta scaled by 1e16
+     */
+    function calculateWeight(
+        uint256 _productId,
+        int256 _delta0,
+        int256 _delta1
+    ) internal pure returns (uint256) {
+        uint256 totalDelta = (Math.abs(_delta0).add(Math.abs(_delta1)));
 
         require(totalDelta >= 0, "N1");
 
@@ -240,9 +208,9 @@ library NettingLib {
         }
 
         if (_productId == 0) {
-            return (Math.abs(_delta0).toInt256().mul(netDelta)).div(totalDelta);
+            return (Math.abs(_delta0).mul(1e16)).div(totalDelta);
         } else if (_productId == 1) {
-            return (Math.abs(_delta1).toInt256().mul(netDelta)).div(totalDelta);
+            return (Math.abs(_delta1).mul(1e16)).div(totalDelta);
         } else {
             revert("N0");
         }

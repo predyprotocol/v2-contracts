@@ -23,11 +23,11 @@ contract NettingLibTester {
     }
 
     function getRequiredTokenAmountsForHedge(
-        int128[2] memory _amountsUnderlying,
+        uint256 _amountUnderlying,
         int256[2] memory _deltas,
         int256 _spotPrice
     ) external pure returns (NettingLib.CompleteParams memory) {
-        return NettingLib.getRequiredTokenAmountsForHedge(_amountsUnderlying, _deltas, _spotPrice);
+        return NettingLib.getRequiredTokenAmountsForHedge(_amountUnderlying, _deltas, _spotPrice);
     }
 
     function complete(NettingLib.CompleteParams memory _params) external {

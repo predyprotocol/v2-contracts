@@ -585,8 +585,10 @@ describe('PerpetualMarket', function () {
 
     it('reverts if there is no liquidity', async () => {
       await testContractHelper.trade(wallet, 0, [scaledBN(1, 8), 0], MIN_MARGIN)
+      110
+      0.02 * 50 * 100 * 1.1
 
-      await expect(testContractHelper.trade(wallet, 0, [0, scaledBN(40, 8)], MIN_MARGIN)).to.be.revertedWith('PMC1')
+      await expect(testContractHelper.trade(wallet, 0, [0, scaledBN(50, 8)], MIN_MARGIN)).to.be.revertedWith('PMC1')
     })
 
     describe('Squeeth', () => {
@@ -608,7 +610,7 @@ describe('PerpetualMarket', function () {
           }),
         )
           .to.emit(perpetualMarket, 'PositionUpdated')
-          .withArgs(wallet.address, 1, subVaultIndex, SQUEETH_PRODUCT_ID, scaledBN(1, 8), 100300002, 0, 0, '0x12345678')
+          .withArgs(wallet.address, 1, subVaultIndex, SQUEETH_PRODUCT_ID, scaledBN(1, 8), 100300000, 0, 0, '0x12345678')
 
         expect(await usdc.balanceOf(testContractSet.feePool.address)).to.be.gt(0)
         expect((await testContractSet.perpetualMarketCore.pools(SQUEETH_PRODUCT_ID)).positionPerpetuals).to.be.eq(
@@ -873,127 +875,6 @@ describe('PerpetualMarket', function () {
         const after = await usdc.balanceOf(wallet.address)
 
         expect(after.sub(before)).to.be.eq('97128')
-      })
-    })
-  })
-
-  describe('execHedge', () => {
-    async function checkDeltaIs0() {
-      const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
-      expect(tokenAmounts[0]).to.be.false
-      expect(tokenAmounts[1]).to.be.eq(0)
-      expect(tokenAmounts[2]).to.be.eq(0)
-    }
-
-    beforeEach(async () => {
-      const amount = scaledBN(200, 6)
-
-      await perpetualMarket.initialize(amount, scaledBN(2, 5))
-
-      await testContractHelper.updateSpot(scaledBN(100, 8))
-    })
-
-    it('net delta is decreased', async () => {
-      await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 7)], MIN_MARGIN)
-
-      const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
-      expect(tokenAmounts[0]).to.be.true
-      expect(tokenAmounts[1]).to.be.gt(0)
-      expect(tokenAmounts[2]).to.be.gt(0)
-
-      const before = await usdc.balanceOf(wallet.address)
-      await perpetualMarket.execHedge()
-      const after = await usdc.balanceOf(wallet.address)
-
-      expect(after.sub(before)).to.be.gt(0)
-
-      await checkDeltaIs0()
-    })
-
-    it('nothing happens if net delta is positive', async () => {
-      await testContractHelper.trade(wallet, 0, [scaledBN(-1, 7), scaledBN(1, 6)], MIN_MARGIN)
-
-      const before = await usdc.balanceOf(wallet.address)
-      await perpetualMarket.execHedge()
-      const after = await usdc.balanceOf(wallet.address)
-
-      expect(after.sub(before)).to.be.eq(0)
-      await checkDeltaIs0()
-    })
-
-    describe('suceed to hedge in test cases', () => {
-      async function checkHedge(beforePositions: BigNumberish[], price: number, isWethReceived: boolean) {
-        await testContractHelper.trade(wallet, 0, beforePositions, MIN_MARGIN)
-
-        await perpetualMarket.execHedge()
-
-        await increaseTime(60 * 60 * 12)
-
-        await testContractHelper.updateSpot(scaledBN(price, 8))
-
-        const before = await weth.balanceOf(wallet.address)
-        await perpetualMarket.execHedge()
-        const after = await weth.balanceOf(wallet.address)
-
-        if (isWethReceived) {
-          expect(after.sub(before)).to.be.gt(0)
-        } else {
-          expect(after.sub(before)).to.be.lt(0)
-        }
-        await checkDeltaIs0()
-      }
-
-      it('succeed to hedge', async () => {
-        await testContractHelper.updateSpot(scaledBN(100, 8))
-
-        const testCases = [
-          [0, scaledBN(1, 8)],
-          [scaledBN(1, 6), scaledBN(1, 8)],
-          [scaledBN(1, 6), 0],
-          [scaledBN(-1, 6), scaledBN(2, 8)],
-          [scaledBN(2, 6), scaledBN(-1, 8)],
-          [scaledBN(1, 6), scaledBN(2, 8)],
-          [scaledBN(2, 6), scaledBN(1, 8)],
-        ]
-
-        for (let testData of testCases) {
-          await checkHedge(testData, 110, false)
-          await checkHedge(testData, 130, false)
-          await checkHedge(testData, 90, true)
-          await checkHedge(testData, 70, true)
-        }
-      })
-    })
-
-    describe('net delta is negative', () => {
-      beforeEach(async () => {
-        await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 7)], MIN_MARGIN)
-
-        await perpetualMarket.execHedge()
-
-        await increaseTime(60 * 60 * 12)
-      })
-
-      it('net delta increased', async () => {
-        await testContractHelper.trade(wallet, 1, [0, scaledBN(-2, 6)], MIN_MARGIN)
-
-        const before = await weth.balanceOf(wallet.address)
-        await perpetualMarket.execHedge()
-        const after = await weth.balanceOf(wallet.address)
-
-        expect(after.sub(before)).to.be.gt(0)
-        await checkDeltaIs0()
-      })
-
-      it('net delta becomes 0', async () => {
-        await testContractHelper.trade(wallet, 1, [0, scaledBN(-1, 7)], MIN_MARGIN)
-
-        const before = await weth.balanceOf(wallet.address)
-        await perpetualMarket.execHedge()
-        const after = await weth.balanceOf(wallet.address)
-
-        expect(after.sub(before)).to.be.gt(0)
-        await checkDeltaIs0()
       })
     })
   })
