@@ -998,6 +998,23 @@ describe('PerpetualMarket', function () {
     })
   })
 
+  describe('setHedger', () => {
+    const hedgerAddress = randomBytes(20).toString('hex')
+
+    it('set hedger address', async () => {
+      await perpetualMarket.setHedger(hedgerAddress)
+    })
+
+    it('reverts if caller is not owner', async () => {
+      await expect(perpetualMarket.connect(other).setHedger(hedgerAddress)).to.be.reverted
+    })
+
+    it('reverts if caller is not hedger', async () => {
+      await perpetualMarket.setHedger(hedgerAddress)
+      await expect(perpetualMarket.execHedge()).to.be.revertedWith('PM4')
+    })
+  })
+
   describe('addMargin', () => {
     beforeEach(async () => {
       await perpetualMarket.initialize(scaledBN(600, 6), scaledBN(2, 5))

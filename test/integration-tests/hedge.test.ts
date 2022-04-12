@@ -17,7 +17,7 @@ import { increaseTime, scaledBN } from '../utils/helpers'
 import { FlashHedge } from '../../typechain/FlashHedge'
 import { MIN_MARGIN } from '../utils/constants'
 
-describe('FlashHedge', function () {
+describe('integration.FlashHedge', function () {
   let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
@@ -32,6 +32,12 @@ describe('FlashHedge', function () {
   const MaxInt128 = BigNumber.from(2).pow(127).sub(1)
 
   const ethPriceInUSDC = 100
+
+  async function execRawHedge() {
+    await perpetualMarket.setHedger(wallet.address)
+    await perpetualMarket.execHedge()
+    await perpetualMarket.setHedger(flashHedge.address)
+  }
 
   before(async () => {
     ;[wallet] = await (ethers as any).getSigners()
@@ -111,7 +117,7 @@ describe('FlashHedge', function () {
       beforeEach(async () => {
         await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 7)], MIN_MARGIN)
 
-        await perpetualMarket.execHedge()
+        await execRawHedge()
 
         await increaseTime(60 * 60 * 12)
       })
@@ -139,7 +145,7 @@ describe('FlashHedge', function () {
       beforeEach(async () => {
         await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), 0], MIN_MARGIN)
 
-        await perpetualMarket.execHedge()
+        await execRawHedge()
 
         await increaseTime(60 * 60 * 12)
       })
@@ -164,7 +170,7 @@ describe('FlashHedge', function () {
       beforeEach(async () => {
         await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), scaledBN(1, 6)], MIN_MARGIN)
 
-        await perpetualMarket.execHedge()
+        await execRawHedge()
 
         await increaseTime(60 * 60 * 12)
       })

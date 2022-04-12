@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { FlashHedge__factory, MockERC20, PerpetualMarket } from '../typechain'
+import { FlashHedge, FlashHedge__factory, MockERC20, PerpetualMarket } from '../typechain'
 import { constants, Contract, Wallet } from 'ethers'
 import {
   createUniPool,
@@ -12,7 +12,7 @@ import {
 } from './utils/deploy'
 
 describe('FlashHedge', function () {
-  let wallet: Wallet
+  let wallet: Wallet, other: Wallet
   let weth: MockERC20
   let usdc: MockERC20
 
@@ -28,7 +28,7 @@ describe('FlashHedge', function () {
   const ethPriceInUSDC = 100
 
   before(async () => {
-    ;[wallet] = await (ethers as any).getSigners()
+    ;[wallet, other] = await (ethers as any).getSigners()
 
     testContractSet = await deployTestContractSet(wallet)
 
@@ -112,6 +112,36 @@ describe('FlashHedge', function () {
           constants.AddressZero,
         ),
       ).to.be.revertedWith('invalid eth-usdc pool address')
+    })
+  })
+
+  describe('setBot', () => {
+    let flashHedeg: FlashHedge
+
+    beforeEach(async () => {
+      flashHedeg = await FlashHedge.deploy(
+        usdc.address,
+        weth.address,
+        perpetualMarket.address,
+        uniswapFactory.address,
+        ethUsdcPool.address,
+      )
+    })
+
+    it('set bot address', async () => {
+      await flashHedeg.setBot(other.address)
+    })
+
+    it('reverts if caller is not owner', async () => {
+      await expect(flashHedeg.connect(other).setBot(other.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner',
+      )
+    })
+
+    it('reverts if caller is not bot', async () => {
+      await flashHedeg.setBot(other.address)
+
+      await expect(flashHedeg.hedgeOnUniswap(0)).to.be.revertedWith('FH4')
     })
   })
 })
