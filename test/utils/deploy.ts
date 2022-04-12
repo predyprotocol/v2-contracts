@@ -146,6 +146,8 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
   await vaultNFT.init(perpetualMarket.address)
 
+  await perpetualMarketCore.setPoolMarginRiskParam(2000)
+
   return {
     weth,
     usdc,

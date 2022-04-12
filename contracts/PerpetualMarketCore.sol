@@ -104,10 +104,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     SpreadLib.Info private lpTokenSpreadInfo;
 
     // Snapshot of pool state at last ETH variance calculation
-    PoolSnapshot internal poolSnapshot;
+    PoolSnapshot public poolSnapshot;
 
     // Infos for collateral calculation
-    NettingLib.Info private nettingInfo;
+    NettingLib.Info public nettingInfo;
 
     // The address of Chainlink price feed
     AggregatorV3Interface private priceFeed;
@@ -345,7 +345,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         deltas[0] = futurePoolDelta;
         deltas[1] = sqeethPoolDelta;
 
-        completeParams = NettingLib.getRequiredTokenAmountsForHedge(nettingInfo.amountsUnderlying, deltas, spotPrice);
+        completeParams = NettingLib.getRequiredTokenAmountsForHedge(nettingInfo.amountUnderlying, deltas, spotPrice);
 
         uint256 slippageTolerance = calculateSlippageToleranceForHedging(spotPrice);
 
@@ -491,12 +491,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             )
         );
 
+        int256 hedgePositionValue = nettingInfo.getTotalHedgePositionValue(spotPrice);
+
         return
             (
                 (
-                    uint256(amountLiquidity.toInt256().add(unrealizedPnL)).sub(pools[0].amountLockedLiquidity).sub(
-                        pools[1].amountLockedLiquidity
-                    )
+                    uint256(amountLiquidity.toInt256().add(hedgePositionValue).add(unrealizedPnL))
+                        .sub(pools[0].amountLockedLiquidity)
+                        .sub(pools[1].amountLockedLiquidity)
                 ).mul(1e16)
             ).div(totalSupply());
     }
@@ -885,12 +887,17 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             gamma = (IndexPricer.calculateGamma(1).mul(tradeAmount1)) / 1e8;
         }
 
-        int256 totalRequiredMargin = NettingLib.getRequiredMargin(
-            _productId,
-            NettingLib.AddMarginParams(delta0, delta1, gamma, _spot, poolMarginRiskParam)
+        NettingLib.AddMarginParams memory params = NettingLib.AddMarginParams(
+            delta0,
+            delta1,
+            gamma,
+            _spot,
+            poolMarginRiskParam
         );
 
-        hedgePositionValue = nettingInfo.getHedgePositionValue(_spot, _productId);
+        int256 totalRequiredMargin = NettingLib.getRequiredMargin(_productId, params);
+
+        hedgePositionValue = nettingInfo.getHedgePositionValue(params, _productId);
 
         deltaMargin = totalRequiredMargin - hedgePositionValue;
     }
@@ -1091,12 +1098,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             positionsValue =
                 pools[_productId].positionPerpetuals.mul(tradePrice.sub(pools[_productId].entryPrice.toInt256())) /
                 1e8;
-        }
-
-        {
-            int256 hedgePositionValue = nettingInfo.getHedgePositionValue(_spotPrice, _productId);
-
-            positionsValue = positionsValue.add(hedgePositionValue);
         }
 
         return positionsValue;

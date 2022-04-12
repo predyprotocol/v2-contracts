@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { BigNumber, BigNumberish } from 'ethers'
+import { BigNumberish } from 'ethers'
 import { ethers } from 'hardhat'
 import { NettingLibTester } from '../typechain'
 import { FUTURE_PRODUCT_ID, SQUEETH_PRODUCT_ID } from './utils/constants'
@@ -63,6 +63,24 @@ describe('NettingLib', function () {
           poolMarginRiskParam,
         }),
       ).to.be.eq('1120000')
+    })
+
+    it('long sqeeth and short future', async function () {
+      const a0 = await tester.getRequiredMargin(SQUEETH_PRODUCT_ID, {
+        gamma1: 2000,
+        delta0: -2000000,
+        delta1: 400000,
+        spotPrice: scaledBN(200, 8),
+        poolMarginRiskParam: 2000,
+      })
+      const a1 = await tester.getRequiredMargin(SQUEETH_PRODUCT_ID, {
+        gamma1: 2000,
+        delta0: -2000000,
+        delta1: 400000,
+        spotPrice: scaledBN(200, 8),
+        poolMarginRiskParam: 4000,
+      })
+      console.log(a0.toString(), a1.toString())
     })
   })
 
@@ -136,19 +154,13 @@ describe('NettingLib', function () {
           poolMarginRiskParam,
         })
 
-        const params = await tester.getRequiredTokenAmountsForHedge(
-          (
-            await tester.getInfo()
-          ).amountsUnderlying,
-          [-100, 0],
-          scaledBN(1000, 8),
-        )
+        const params = await tester.getRequiredTokenAmountsForHedge(0, [-100, 0], scaledBN(1000, 8))
 
         await tester.complete(params)
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
+        expect(info.amountUnderlying).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('40000')
       })
 
@@ -208,14 +220,14 @@ describe('NettingLib', function () {
     describe('deltas are negative', () => {
       beforeEach(async () => {
         await tester.addMargin(SQUEETH_PRODUCT_ID, {
-          gamma1: 0,
+          gamma1: -2,
           delta0: -100,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
         await tester.addMargin(FUTURE_PRODUCT_ID, {
-          gamma1: 0,
+          gamma1: -2,
           delta0: -100,
           delta1: -100,
           spotPrice: scaledBN(1000, 8),
@@ -225,7 +237,7 @@ describe('NettingLib', function () {
         const params = await tester.getRequiredTokenAmountsForHedge(
           (
             await tester.getInfo()
-          ).amountsUnderlying,
+          ).amountUnderlying,
           [-100, -100],
           scaledBN(1000, 8),
         )
@@ -234,21 +246,22 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('100')
-        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('40000')
+        expect(info.amountUnderlying).to.be.eq('200')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('40000')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1160000')
       })
 
       it('delta increases', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma1: 0,
           delta0: -90,
-          delta1: 0,
+          delta1: -100,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('26000')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('29864')
       })
 
       it('delta increases but no enough usdc', async function () {
@@ -311,7 +324,7 @@ describe('NettingLib', function () {
         const params = await tester.getRequiredTokenAmountsForHedge(
           (
             await tester.getInfo()
-          ).amountsUnderlying,
+          ).amountUnderlying,
           [100, -120],
           scaledBN(1000, 8),
         )
@@ -320,21 +333,23 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('120')
-        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('3091')
+        expect(info.amountUnderlying).to.be.eq('20')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq(3510)
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq(3090)
       })
 
       it('delta decreases', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma1: 0,
           delta0: 50,
-          delta1: 0,
+          delta1: -120,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('170000')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq(22118)
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq(3090)
       })
 
       it('delta becomes 0', async function () {
@@ -347,20 +362,21 @@ describe('NettingLib', function () {
         })
 
         const info = await tester.getInfo()
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('100000')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq(0)
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq(3090)
       })
 
       it('delta becomes negative', async function () {
         await tester.addMargin(FUTURE_PRODUCT_ID, {
           gamma1: 0,
           delta0: -50,
-          delta1: 0,
+          delta1: -120,
           spotPrice: scaledBN(1000, 8),
           poolMarginRiskParam,
         })
 
         const info = await tester.getInfo()
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('170000')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq(62718)
       })
     })
   })
@@ -368,77 +384,79 @@ describe('NettingLib', function () {
   describe('getRequiredTokenAmountsForHedge', () => {
     describe('neutral', () => {
       it('deltas are negative', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([0, 0], [-100, -100], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge(0, [-100, -100], scaledBN(1000, 8))
+
+        expect(params.isLong).to.be.true
         expect(params.amountUsdc).to.be.eq(200000)
         expect(params.amountUnderlying).to.be.eq(200)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('100'), BigNumber.from('100')])
+        expect(params.futureWeight).to.be.deep.eq('5000000000000000')
       })
 
       it('delta of squared perpetual is negative and delta of perpetual future is positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([0, 0], [100, -120], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge(0, [100, -120], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(20000)
         expect(params.amountUnderlying).to.be.eq(20)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('-100'), BigNumber.from('120')])
+        expect(params.futureWeight).to.be.deep.eq('4545454545454545')
       })
 
       it('deltas are positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([0, 0], [100, 0], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge(0, [100, 0], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(0)
         expect(params.amountUnderlying).to.be.eq(0)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('0'), BigNumber.from('0')])
+        expect(params.futureWeight).to.be.deep.eq('10000000000000000')
       })
     })
 
     describe('underlying positions are positive', () => {
       it('deltas are negative', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([100, 100], [-100, -100], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge(200, [-100, -100], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(0)
         expect(params.amountUnderlying).to.be.eq(0)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('0'), BigNumber.from('0')])
+        expect(params.futureWeight).to.be.deep.eq('5000000000000000')
       })
 
       it('delta of squared perpetual is negative and delta of perpetual future is positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([100, 100], [100, -120], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge(200, [100, -120], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(180000)
         expect(params.amountUnderlying).to.be.eq(180)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('-200'), BigNumber.from('20')])
+        expect(params.futureWeight).to.be.deep.eq('4545454545454545')
       })
 
       it('delta are positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([100, 100], [100, 0], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge(200, [100, 0], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(200000)
         expect(params.amountUnderlying).to.be.eq(200)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('-100'), BigNumber.from('-100')])
+        expect(params.futureWeight).to.be.deep.eq('10000000000000000')
       })
 
       it('delta are greater than underlying positions', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([100, 100], [200, 0], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge(200, [200, 0], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(200000)
         expect(params.amountUnderlying).to.be.eq(200)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('-100'), BigNumber.from('-100')])
+        expect(params.futureWeight).to.be.deep.eq('10000000000000000')
       })
     })
 
     describe('underlying position of squared perpetual is positive and underlying position of perpetual future is negative', () => {
       it('deltas are negative', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([-100, 100], [-100, -100], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge(0, [-100, -100], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(200000)
         expect(params.amountUnderlying).to.be.eq(200)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('200'), BigNumber.from('0')])
+        expect(params.futureWeight).to.be.deep.eq('5000000000000000')
       })
 
       it('delta of squared perpetual is negative and delta of perpetual future is positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([-100, 100], [100, -120], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge(0, [100, -120], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(20000)
         expect(params.amountUnderlying).to.be.eq(20)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('0'), BigNumber.from('20')])
+        expect(params.futureWeight).to.be.deep.eq('4545454545454545')
       })
 
       it('deltas are positive', async function () {
-        const params = await tester.getRequiredTokenAmountsForHedge([-100, 100], [100, 0], scaledBN(1000, 8))
+        const params = await tester.getRequiredTokenAmountsForHedge(0, [100, 0], scaledBN(1000, 8))
         expect(params.amountUsdc).to.be.eq(0)
         expect(params.amountUnderlying).to.be.eq(0)
-        expect(params.amountsRequiredUnderlying).to.be.deep.eq([BigNumber.from('100'), BigNumber.from('-100')])
+        expect(params.futureWeight).to.be.deep.eq('10000000000000000')
       })
     })
   })
@@ -449,7 +467,7 @@ describe('NettingLib', function () {
         await tester.getRequiredTokenAmountsForHedge(
           (
             await tester.getInfo()
-          ).amountsUnderlying,
+          ).amountUnderlying,
           deltas,
           scaledBN(spotPrice, 8),
         ),
@@ -484,9 +502,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('100')
+        expect(info.amountUnderlying).to.be.eq('100')
         expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1160000')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('0')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
       })
 
@@ -495,14 +512,13 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('100')
+        expect(info.amountUnderlying).to.be.eq('100')
         expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1150000')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('0')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
       })
 
       it('reverts if spot price becomes very high', async function () {
-        await expect(complete([0, -300], 5000)).to.be.revertedWith('N2')
+        await expect(complete([0, -300], 5000)).to.be.revertedWith('SafeMath: subtraction overflow')
       })
 
       it('spot price becomes low', async function () {
@@ -510,9 +526,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('100')
+        expect(info.amountUnderlying).to.be.eq('100')
         expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1170000')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('0')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
       })
     })
@@ -533,9 +548,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountUnderlying).to.be.eq('100')
         expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('0')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('40000')
       })
 
@@ -544,9 +558,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountUnderlying).to.be.eq('100')
         expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('0')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('30000')
       })
 
@@ -555,9 +568,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountUnderlying).to.be.eq('100')
         expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('0')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('50000')
       })
     })
@@ -585,9 +597,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('100')
+        expect(info.amountUnderlying).to.be.eq('200')
         expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1160000')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('40000')
       })
 
@@ -596,10 +607,9 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('120')
-        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1116000')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('20000')
+        expect(info.amountUnderlying).to.be.eq('220')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1115999')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('20001')
       })
 
       it('spot price becomes low', async function () {
@@ -607,10 +617,9 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('90')
-        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1179000')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('100')
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('50000')
+        expect(info.amountUnderlying).to.be.eq('190')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1178999')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('50001')
       })
     })
 
@@ -637,9 +646,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('120')
-        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1123091')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('-100')
+        expect(info.amountUnderlying).to.be.eq('20')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1123090')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('3510')
       })
 
@@ -648,10 +656,9 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('120')
-        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1122000')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('-100')
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('2600')
+        expect(info.amountUnderlying).to.be.eq('20')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1121999')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('2601')
       })
 
       it('spot price becomes low', async function () {
@@ -659,9 +666,8 @@ describe('NettingLib', function () {
 
         const info = await tester.getInfo()
 
-        expect(info.amountsUnderlying[SQUEETH_PRODUCT_ID]).to.be.eq('120')
-        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1124182')
-        expect(info.amountsUnderlying[FUTURE_PRODUCT_ID]).to.be.eq('-100')
+        expect(info.amountUnderlying).to.be.eq('20')
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.eq('1124181')
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('4419')
       })
     })
