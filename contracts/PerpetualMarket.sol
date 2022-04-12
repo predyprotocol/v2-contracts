@@ -22,6 +22,7 @@ import "./interfaces/IVaultNFT.sol";
  * PM1: limit price
  * PM2: caller is not vault owner
  * PM3: vault not found
+ * PM4: caller is not hedger
  */
 contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     using SafeERC20 for IERC20;
@@ -37,6 +38,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     int256 private constant LIQUIDATION_FEE = 2000;
 
     IPerpetualMarketCore private immutable perpetualMarketCore;
+
+    /// @dev hedger address
+    address public hedger;
 
     // Fee recepient address
     IFeePool public feeRecepient;
@@ -69,6 +73,11 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
     event SetFeeRecepient(address feeRecepient);
 
+    modifier onlyHedger() {
+        require(msg.sender == hedger, "PM4");
+        _;
+    }
+
     /**
      * @notice Constructor of Perpetual Market contract
      */
@@ -80,6 +89,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         address _vaultNFT
     ) BaseLiquidityPool(_quoteAsset, _underlyingAsset) {
         require(_feeRecepient != address(0));
+
+        hedger = msg.sender;
 
         perpetualMarketCore = IPerpetualMarketCore(_perpetualMarketCoreAddress);
         feeRecepient = IFeePool(_feeRecepient);
@@ -337,7 +348,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     /**
      * @notice Executes hedging
      */
-    function execHedge() external override returns (uint256 amountUsdc, uint256 amountUnderlying) {
+    function execHedge() external override onlyHedger returns (uint256 amountUsdc, uint256 amountUnderlying) {
         // execute funding payment
         perpetualMarketCore.executeFundingPayment();
 
@@ -506,5 +517,13 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         require(_feeRecepient != address(0));
         feeRecepient = IFeePool(_feeRecepient);
         emit SetFeeRecepient(_feeRecepient);
+    }
+
+    /**
+     * @notice set bot address
+     * @param _hedger bot address
+     */
+    function setHedger(address _hedger) external onlyOwner {
+        hedger = _hedger;
     }
 }

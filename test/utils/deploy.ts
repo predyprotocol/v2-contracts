@@ -175,6 +175,9 @@ export async function deployFlashHedge(
     ethUsdcPool.address,
   )) as FlashHedge
 
+  // Set hedger address
+  await perpetualMarket.setHedger(flashHedge.address)
+
   return flashHedge
 }
 

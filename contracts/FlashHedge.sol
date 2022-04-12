@@ -3,6 +3,7 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "./interfaces/IPerpetualMarket.sol";
 import "./base/BaseFlashSwap.sol";
@@ -15,8 +16,9 @@ import "./base/BaseFlashSwap.sol";
  * FH1: no enough usdc amount
  * FH2: profit is less than minUsdc
  * FH3: amounts must not be 0
+ * FH4: caller is not bot
  */
-contract FlashHedge is BaseFlashSwap {
+contract FlashHedge is BaseFlashSwap, Ownable {
     using SafeERC20 for IERC20;
     using LowGasSafeMath for uint256;
     using LowGasSafeMath for int256;
@@ -28,6 +30,9 @@ contract FlashHedge is BaseFlashSwap {
     address public immutable ethUsdcPool;
 
     IPerpetualMarket private perpetualMarket;
+
+    /// @dev bot address
+    address bot;
 
     struct FlashHedgeData {
         uint256 amountUsdc;
@@ -41,6 +46,11 @@ contract FlashHedge is BaseFlashSwap {
     }
 
     event HedgeOnUniswap(address indexed hedger, uint256 hedgeTimestamp, uint256 minUsdc);
+
+    modifier onlyBot() {
+        require(msg.sender == bot, "FH4");
+        _;
+    }
 
     constructor(
         address _collateral,
@@ -57,6 +67,8 @@ contract FlashHedge is BaseFlashSwap {
         underlying = _underlying;
         perpetualMarket = IPerpetualMarket(_perpetualMarket);
         ethUsdcPool = _ethUsdcPool;
+
+        bot = msg.sender;
     }
 
     /**
@@ -112,7 +124,7 @@ contract FlashHedge is BaseFlashSwap {
      * @notice Executes delta hedging by Uniswap
      * @param _minUsdc minimum USDC amount the caller willing to receive
      */
-    function hedgeOnUniswap(uint256 _minUsdc) external {
+    function hedgeOnUniswap(uint256 _minUsdc) external onlyBot {
         (bool isBuyingETH, uint256 amountUsdc, uint256 amountEth) = perpetualMarket.getTokenAmountForHedging();
 
         require(amountUsdc > 0 && amountEth > 0, "FH3");
@@ -140,5 +152,13 @@ contract FlashHedge is BaseFlashSwap {
         }
 
         emit HedgeOnUniswap(msg.sender, block.timestamp, _minUsdc);
+    }
+
+    /**
+     * @notice set bot address
+     * @param _bot bot address
+     */
+    function setBot(address _bot) external onlyOwner {
+        bot = _bot;
     }
 }
