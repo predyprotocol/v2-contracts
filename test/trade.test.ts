@@ -460,8 +460,8 @@ describe('trade', function () {
       })
 
       it('check trade price', async () => {
-        for (let i = 0; i < 10; i++) {
-          const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-5, 7).mul(i))
+        for (let i = 0; i < 30; i++) {
+          const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-2, 7).mul(i))
           console.log(tradePrice.fundingRate.toString())
         }
       })
@@ -483,11 +483,12 @@ describe('trade', function () {
 
         const beforeTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 0)
 
+        // locked liquidity of future pool becomes large
         await perpetualMarket.execHedge()
 
         const afterTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 0)
 
-        expect(beforeTradePrice.fundingRate.lt(afterTradePrice.fundingRate)).to.be.true
+        expect(beforeTradePrice.fundingRate.gt(afterTradePrice.fundingRate)).to.be.true
       })
     })
   })

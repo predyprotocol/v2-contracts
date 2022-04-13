@@ -187,7 +187,7 @@ describe('NettingLib', function () {
         })
 
         const info = await tester.getInfo()
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('-30000')
       })
 
       it('delta becomes 0', async function () {
@@ -213,7 +213,7 @@ describe('NettingLib', function () {
         })
 
         const info = await tester.getInfo()
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('-30000')
       })
     })
 
@@ -274,7 +274,7 @@ describe('NettingLib', function () {
         })
 
         const info = await tester.getInfo()
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('-130000')
       })
 
       it('delta becomes 0', async function () {
@@ -300,7 +300,7 @@ describe('NettingLib', function () {
         })
 
         const info = await tester.getInfo()
-        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
+        expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('-130000')
       })
     })
 
@@ -517,8 +517,11 @@ describe('NettingLib', function () {
         expect(info.amountsUsdc[FUTURE_PRODUCT_ID]).to.be.eq('0')
       })
 
-      it('reverts if spot price becomes very high', async function () {
-        await expect(complete([0, -300], 5000)).to.be.revertedWith('SafeMath: subtraction overflow')
+      it('spot price becomes very high', async function () {
+        await complete([0, -300], 5000)
+
+        const info = await tester.getInfo()
+        expect(info.amountsUsdc[SQUEETH_PRODUCT_ID]).to.be.lt(0)
       })
 
       it('spot price becomes low', async function () {

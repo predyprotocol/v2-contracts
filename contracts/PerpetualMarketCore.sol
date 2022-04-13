@@ -107,7 +107,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     PoolSnapshot public poolSnapshot;
 
     // Infos for collateral calculation
-    NettingLib.Info public nettingInfo;
+    NettingLib.Info private nettingInfo;
 
     // The address of Chainlink price feed
     AggregatorV3Interface private priceFeed;
@@ -373,6 +373,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         lastHedgeSpotPrice = spotPrice;
 
         nettingInfo.complete(_completeParams);
+    }
+
+    function getNettingInfo() external view returns (NettingLib.Info memory) {
+        return nettingInfo;
     }
 
     /**
@@ -696,11 +700,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             int256 deltaLiquidity
         )
     {
-        if (_deltaMargin > 0) {
+        if (_deltaMargin > 0 && _hedgePositionValue >= 0) {
             // In case of lock additional margin
             require(getAvailableLiquidityAmount() >= uint256(_deltaMargin), "PMC1");
             unlockLiquidityAmount = _deltaMargin;
-        } else if (_deltaMargin < 0) {
+        } else if (_deltaMargin != 0) {
             // In case of unlock unrequired margin
             (deltaLiquidity, unlockLiquidityAmount) = calculateUnlockedLiquidity(
                 pools[_productId].amountLockedLiquidity,
@@ -909,11 +913,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         hedgePositionValue = nettingInfo.getHedgePositionValue(params, _productId);
 
         deltaMargin = totalRequiredMargin.sub(hedgePositionValue);
-
-        // min deltaMargin is -(USDC amount)
-        if (nettingInfo.amountsUsdc[_productId].toInt256().add(deltaMargin) < 0) {
-            deltaMargin = -nettingInfo.amountsUsdc[_productId].toInt256();
-        }
     }
 
     /**
@@ -1189,6 +1188,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
             amountLocked = amountLocked.add(pools[i].amountLockedLiquidity);
+
+            if (nettingInfo.amountsUsdc[i] < 0) {
+                amountLocked = Math.addDelta(amountLocked, -nettingInfo.amountsUsdc[i]);
+            }
         }
 
         return amountLiquidity.sub(amountLocked);
