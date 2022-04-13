@@ -26,6 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const flashHedge = await ethers.getContract('FlashHedge', deployer)
   console.log(`FlashHedge Deployed at ${flashHedge.address}`)
 
+  // Set hedger address
   await perpetualMarket.setHedger(flashHedge.address)
 
   if (network.name === 'arbitrum') {

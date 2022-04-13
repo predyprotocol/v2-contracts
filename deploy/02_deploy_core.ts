@@ -46,14 +46,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (result.newlyDeployed) {
     const perpetualMarketCore = await ethers.getContract('PerpetualMarketCore', deployer)
 
-    // set SquaredPerpFundingMultiplier as 550%
-    await perpetualMarketCore.setSquaredPerpFundingMultiplier(550000000)
-    // set risk parameter as 120%
+    // set SquaredPerpFundingMultiplier as 690%
+    await perpetualMarketCore.setSquaredPerpFundingMultiplier(690000000)
+    // set PerpFutureMaxFundingRate as 0.69%
+    await perpetualMarketCore.setPerpFutureMaxFundingRate(690000)
+    // set risk parameter as 20%
     await perpetualMarketCore.setPoolMarginRiskParam(2000)
     // trade fee is 0.05% and protocol fee is 0.01%
     await perpetualMarketCore.setTradeFeeRate(50000, 10000)
-    // hedge slippage 0.32%-0.52%
-    await perpetualMarketCore.setHedgeParams(32, 52, 4000000)
+    // hedge slippage 0.36%-0.52%
+    await perpetualMarketCore.setHedgeParams(36, 52, 4000000)
   }
 }
 
