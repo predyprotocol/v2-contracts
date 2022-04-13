@@ -786,7 +786,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         returns (
             int256 tradePrice,
             int256 indexPrice,
-            int256 fundingRate,
+            int256 estFundingRate,
             int256 tradeFee,
             int256 protocolFee
         )
@@ -814,7 +814,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         {
             int256 signedMarginAmount = getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId);
 
-            (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePrice(
+            (tradePrice, indexPrice, , tradeFee, protocolFee) = calculateTradePrice(
                 _productId,
                 _spotPrice,
                 _tradeAmount > 0,
@@ -823,11 +823,20 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
                 signedDeltaMargin,
                 _deltaLiquidity
             );
+
+            // Calculate estimated funding rate
+            estFundingRate = calculateFundingRate(
+                _productId,
+                signedMarginAmount.add(signedDeltaMargin),
+                amountLiquidity.toInt256().add(_deltaLiquidity),
+                0,
+                0
+            );
         }
 
         tradePrice = spreadInfos[_productId].getUpdatedPrice(_tradeAmount > 0, tradePrice, block.timestamp);
 
-        return (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee);
+        return (tradePrice, indexPrice, estFundingRate, tradeFee, protocolFee);
     }
 
     /**
@@ -900,6 +909,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         hedgePositionValue = nettingInfo.getHedgePositionValue(params, _productId);
 
         deltaMargin = totalRequiredMargin.sub(hedgePositionValue);
+
+        // min deltaMargin is -(USDC amount)
+        if (nettingInfo.amountsUsdc[_productId].toInt256().add(deltaMargin) < 0) {
+            deltaMargin = -nettingInfo.amountsUsdc[_productId].toInt256();
+        }
     }
 
     /**
