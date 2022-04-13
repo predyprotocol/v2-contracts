@@ -270,7 +270,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         // Updates pool position
-        pools[_productId].positionPerpetuals -= _tradeAmount;
+        pools[_productId].positionPerpetuals = pools[_productId].positionPerpetuals.sub(_tradeAmount).toInt128();
 
         // Calculate trade price
         (tradePrice, protocolFee) = calculateSafeTradePrice(_productId, spotPrice, _tradeAmount);
@@ -285,7 +285,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
             pools[_productId].entryPrice = newEntryPrice.toUint256().toUint128();
 
-            amountLiquidity = Math.addDelta(amountLiquidity, profitValue - protocolFee.toInt256());
+            amountLiquidity = Math.addDelta(amountLiquidity, profitValue.sub(protocolFee.toInt256()));
         }
 
         return (tradePrice, pools[_productId].amountFundingPaidPerPosition, protocolFee);
@@ -870,16 +870,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 gamma;
 
         {
-            int128 tradeAmount0 = pools[0].positionPerpetuals;
-            int128 tradeAmount1 = pools[1].positionPerpetuals;
+            int256 tradeAmount0 = pools[0].positionPerpetuals;
+            int256 tradeAmount1 = pools[1].positionPerpetuals;
 
             if (_productId == 0) {
-                tradeAmount0 -= _tradeAmount;
+                tradeAmount0 = tradeAmount0.sub(_tradeAmount);
                 marginChangeType = getMarginChange(tradeAmount0, _tradeAmount);
             }
 
             if (_productId == 1) {
-                tradeAmount1 -= _tradeAmount;
+                tradeAmount1 = tradeAmount1.sub(_tradeAmount);
                 marginChangeType = getMarginChange(tradeAmount1, _tradeAmount);
             }
 
@@ -899,7 +899,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         hedgePositionValue = nettingInfo.getHedgePositionValue(params, _productId);
 
-        deltaMargin = totalRequiredMargin - hedgePositionValue;
+        deltaMargin = totalRequiredMargin.sub(hedgePositionValue);
     }
 
     /**
