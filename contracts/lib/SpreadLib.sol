@@ -17,8 +17,8 @@ library SpreadLib {
 
     /// @dev 6 minutes
     uint256 private constant SAFETY_PERIOD = 6 minutes;
-    /// @dev 8 bps
-    uint256 private constant SPREAD_DECREASE_PER_PERIOD = 8;
+    /// @dev 4 bps
+    uint256 private constant SPREAD_DECREASE_PER_PERIOD = 4;
     /// @dev 80 bps
     int256 private constant MAX_SPREAD_DECREASE = 80;
 
