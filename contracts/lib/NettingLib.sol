@@ -8,6 +8,37 @@ import "./Math.sol";
 
 /**
  * @title NettingLib
+ *
+ * HedgePositionValue = ETH * S + AmountUSDC
+ *
+ * Normally, Amount Locked is equal to HedgePositionValue.
+ * AMM adjusts the HedgePositionValue to be equal to the RequiredMargin
+ * by adding or decreasing AmountUSDC.
+ *
+ *  --------------------------------------------------
+ * |              Total Liquidity Amount              |
+ * |     Amount Locked       |
+ * |    ETH     | AmountUSDC |
+ *  --------------------------------------------------
+ *
+ * If RequiredMargin becomes smaller than ETH value that AMM has, AmountUSDC becomes negative.
+ *
+ *  --------------------------------------------------
+ * |              Total Liquidity Amount              |
+ * |      Amount Locked(10)       |
+ * |            ETH(15)                          |
+ *                                |AmountUSDC(-5)|
+ *  --------------------------------------------------
+ *
+ * After hedge completed, AmountUSDC becomes positive.
+ *
+ *  --------------------------------------------------
+ * |              Total Liquidity Amount              |
+ * |      Amount Locked(10)       |
+ * |      ETH(6)    |
+ *                  |AmountUSDC(4)|
+ *  --------------------------------------------------
+ *
  * Error codes
  * N0: Unknown product id
  * N1: Total delta must be greater than 0
