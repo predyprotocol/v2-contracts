@@ -77,10 +77,13 @@ describe('update-hedge', function () {
         await perpetualMarket.execHedge()
       }
 
-      await show()
+      console.log('LPToken price', (await perpetualMarket.getLPTokenPrice(0)).toString())
 
       const totalLiquidity = await testContractSet.perpetualMarketCore.amountLiquidity()
       await perpetualMarket.withdraw(totalLiquidity.div(100))
+
+      // check USDC is almost 0
+      expect(await testContractSet.perpetualMarketCore.balanceOf(wallet.address)).to.be.lte(110)
     })
 
     async function show() {
@@ -127,17 +130,11 @@ describe('update-hedge', function () {
       // 10% down
       await testContractHelper.updateSpot(scaledBN(price, 8))
 
-      await show()
-
       await execHedge()
 
       expect((await testContractSet.perpetualMarketCore.getNettingInfo()).amountsUsdc[0]).to.be.gt(0)
 
-      await show()
-
       await testContractHelper.trade(wallet, 1, [positions[0].mul(-1).div(2), 0], 0)
-
-      await show()
 
       await execHedge()
 
@@ -167,6 +164,180 @@ describe('update-hedge', function () {
       await perpetualMarket.execHedge()
       await testContractHelper.trade(wallet, 1, [scaledBN(-38, 7), 0], 0)
       await testContractHelper.trade(wallet, 1, [scaledBN(38, 7), 0], 0)
+    })
+
+    describe('AMM state is "deltaMargin > 0 && hedgePosition < 0 && |deltaMargin| > |hedgePosition|"', () => {
+      async function getHedgePositionValue(spot: BigNumber) {
+        const nettingInfo = await testContractSet.perpetualMarketCore.getNettingInfo()
+
+        return nettingInfo.amountsUsdc[0]
+          .add(nettingInfo.amountsUsdc[1])
+          .add(nettingInfo.amountUnderlying.mul(spot).div(100000000))
+      }
+      beforeEach(async () => {
+        await testContractHelper.trade(wallet, 0, [scaledBN(2, 8), BigNumber.from(0)], MIN_MARGIN)
+        await execHedge()
+        await testContractHelper.trade(wallet, 1, [scaledBN(-19, 7), 0], 0)
+
+        expect((await testContractSet.perpetualMarketCore.getNettingInfo()).amountsUsdc[0]).to.be.lt(0)
+        const totalLiquidity1 = await testContractSet.perpetualMarketCore.amountLiquidity()
+        console.log('totalLiquidity', totalLiquidity1.toString())
+
+        const locked = (await testContractSet.perpetualMarketCore.pools(0)).amountLockedLiquidity.add(
+          (await testContractSet.perpetualMarketCore.pools(1)).amountLockedLiquidity,
+        )
+
+        await expect(perpetualMarket.withdraw(totalLiquidity1.sub(locked).div(100))).to.be.revertedWith('PMC0')
+
+        // 30% down
+        await testContractHelper.updateSpot(scaledBN(700, 8))
+
+        expect((await testContractSet.perpetualMarketCore.getNettingInfo()).amountsUsdc[0].lt(0)).to.be.true
+        expect((await getHedgePositionValue(scaledBN(700, 8))).lt(0)).to.be.true
+      })
+
+      it('long', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
+      })
+
+      it('small long', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(1, 7), 0], 0)
+      })
+
+      it('large long', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(32, 7), 0], scaledBN(1000, 6))
+      })
+
+      it('long squared', async () => {
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(5, 8)], 0)
+      })
+
+      it('short squared', async () => {
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(-5, 8)], 0)
+      })
+
+      it('price down', async () => {
+        await testContractHelper.updateSpot(scaledBN(100, 8))
+        await increaseTime(SAFETY_PERIOD)
+        await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
+      })
+
+      it('price down', async () => {
+        await testContractHelper.updateSpot(scaledBN(100, 8))
+        await increaseTime(SAFETY_PERIOD)
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(-5, 8)], 0)
+      })
+
+      it('price up', async () => {
+        await testContractHelper.updateSpot(scaledBN(2001, 8))
+        await increaseTime(SAFETY_PERIOD)
+        await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
+      })
+
+      it('price up', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
+        await testContractHelper.updateSpot(scaledBN(2001, 8))
+        await increaseTime(SAFETY_PERIOD)
+      })
+
+      it('with hedging', async () => {
+        await execHedge()
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
+      })
+
+      it('with short', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(-5, 7), 0], 0)
+      })
+    })
+
+    describe('AMM state is "deltaMargin > 0 && hedgePosition < 0 && |deltaMargin| > |hedgePosition|" with future and squared', () => {
+      async function getHedgePositionValue(spot: BigNumber) {
+        const nettingInfo = await testContractSet.perpetualMarketCore.getNettingInfo()
+
+        return nettingInfo.amountsUsdc[0]
+          .add(nettingInfo.amountsUsdc[1])
+          .add(nettingInfo.amountUnderlying.mul(spot).div(100000000))
+      }
+      beforeEach(async () => {
+        await testContractHelper.trade(wallet, 0, [scaledBN(2, 8), scaledBN(1, 8)], MIN_MARGIN)
+        await execHedge()
+        await testContractHelper.trade(wallet, 1, [scaledBN(-26, 7), 0], 0)
+
+        expect((await testContractSet.perpetualMarketCore.getNettingInfo()).amountsUsdc[0]).to.be.lt(0)
+        const totalLiquidity1 = await testContractSet.perpetualMarketCore.amountLiquidity()
+        console.log('totalLiquidity', totalLiquidity1.toString())
+
+        const locked = (await testContractSet.perpetualMarketCore.pools(0)).amountLockedLiquidity.add(
+          (await testContractSet.perpetualMarketCore.pools(1)).amountLockedLiquidity,
+        )
+
+        await expect(perpetualMarket.withdraw(totalLiquidity1.sub(locked).div(100))).to.be.revertedWith('PMC0')
+
+        // 50% down
+        const spot = 500
+        await testContractHelper.updateSpot(scaledBN(spot, 8))
+
+        await show()
+        console.log((await getHedgePositionValue(scaledBN(spot, 8))).toString())
+
+        expect((await testContractSet.perpetualMarketCore.getNettingInfo()).amountsUsdc[0].lt(0)).to.be.true
+        expect((await getHedgePositionValue(scaledBN(spot, 8))).lt(0)).to.be.true
+      })
+
+      it('long', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(26, 7), 0], scaledBN(1000, 6))
+      })
+
+      it('small long', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(1, 7), 0], 0)
+      })
+
+      it('large long', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(32, 7), 0], scaledBN(1000, 6))
+      })
+
+      it('long squared', async () => {
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(5, 8)], 0)
+      })
+
+      it('short squared', async () => {
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(-5, 8)], 0)
+      })
+
+      it('price down', async () => {
+        await testContractHelper.updateSpot(scaledBN(100, 8))
+        await increaseTime(SAFETY_PERIOD)
+        await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
+      })
+
+      it('price down', async () => {
+        await testContractHelper.updateSpot(scaledBN(100, 8))
+        await increaseTime(SAFETY_PERIOD)
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(-5, 8)], 0)
+      })
+
+      it('price up', async () => {
+        await testContractHelper.updateSpot(scaledBN(2001, 8))
+        await increaseTime(SAFETY_PERIOD)
+        await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
+      })
+
+      it('price up', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
+        await testContractHelper.updateSpot(scaledBN(2001, 8))
+        await increaseTime(SAFETY_PERIOD)
+      })
+
+      it('with hedging', async () => {
+        await execHedge()
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
+      })
+
+      it('with short', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(-5, 7), 0], 0)
+      })
     })
   })
 })

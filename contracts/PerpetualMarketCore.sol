@@ -700,12 +700,24 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             int256 deltaLiquidity
         )
     {
-        if (_deltaMargin > 0 && _hedgePositionValue >= 0) {
-            // In case of lock additional margin
-            require(getAvailableLiquidityAmount() >= uint256(_deltaMargin), "PMC1");
-            unlockLiquidityAmount = _deltaMargin;
-        } else if (_deltaMargin != 0) {
+        if (_deltaMargin > 0) {
+            if (_hedgePositionValue >= 0) {
+                // In case of lock additional margin
+                require(getAvailableLiquidityAmount() >= uint256(_deltaMargin), "PMC1");
+                unlockLiquidityAmount = _deltaMargin;
+            } else {
+                // unlock all negative hedgePositionValue
+                (deltaLiquidity, unlockLiquidityAmount) = (
+                    _hedgePositionValue.sub(pools[_productId].amountLockedLiquidity.toInt256()),
+                    -pools[_productId].amountLockedLiquidity.toInt256()
+                );
+                // lock additional margin
+                require(getAvailableLiquidityAmount() >= uint256(_deltaMargin.add(_hedgePositionValue)), "PMC1");
+                unlockLiquidityAmount = unlockLiquidityAmount.add(_deltaMargin.add(_hedgePositionValue));
+            }
+        } else if (_deltaMargin < 0) {
             // In case of unlock unrequired margin
+            // _hedgePositionValue should be positive because _deltaMargin=RequiredMargin-_hedgePositionValue<0 => 0<RequiredMargin<_hedgePositionValue
             (deltaLiquidity, unlockLiquidityAmount) = calculateUnlockedLiquidity(
                 pools[_productId].amountLockedLiquidity,
                 _deltaMargin,
