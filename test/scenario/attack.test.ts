@@ -120,4 +120,56 @@ describe('attack', function () {
       await execAttackScenario(scaledBN(158, 7))
     })
   })
+
+  describe('price manipulation attack', () => {
+    const depositAmount = scaledBN(5000, 6)
+    const initialSpotPrice = 1001
+
+    beforeEach(async () => {
+      await testContractHelper.updateSpot(scaledBN(initialSpotPrice, 8))
+
+      await perpetualMarket.initialize(depositAmount, 100000)
+    })
+
+    it('attack failed', async () => {
+      await testContractHelper.trade(wallet, 0, [0, scaledBN(100, 7)], scaledBN(2000, 6))
+
+      const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
+
+      console.log('total', (await testContractSet.perpetualMarketCore.amountLiquidity()).toString())
+      console.log('locked', (await testContractSet.perpetualMarketCore.pools(1)).amountLockedLiquidity.toString())
+
+      await increaseTime(SAFETY_PERIOD)
+
+      //for (let i = 0; i < 10; i++) {
+      // Short ETH
+      await testContractHelper.trade(wallet, 1, [scaledBN(-37, 7), 0], 0)
+      await increaseTime(SAFETY_PERIOD)
+      await testContractHelper.trade(wallet, 1, [0, scaledBN(-99, 7)], 0)
+
+      // Long ETH2
+      await testContractHelper.trade(wallet, 1, [0, scaledBN(320, 7)], 0)
+      await increaseTime(SAFETY_PERIOD)
+      console.log('total', (await testContractSet.perpetualMarketCore.amountLiquidity()).toString())
+      console.log('locked', (await testContractSet.perpetualMarketCore.pools(1)).amountLockedLiquidity.toString())
+
+      // Long ETH
+      await testContractHelper.trade(wallet, 1, [scaledBN(37, 7), 0], 0)
+
+      await increaseTime(SAFETY_PERIOD)
+
+      // Short ETH2
+      await testContractHelper.trade(wallet, 1, [0, scaledBN(-150, 7)], 0)
+      await increaseTime(SAFETY_PERIOD)
+      //}
+
+      console.log('total', (await testContractSet.perpetualMarketCore.amountLiquidity()).toString())
+      console.log('locked', (await testContractSet.perpetualMarketCore.pools(1)).amountLockedLiquidity.toString())
+
+      const afterVaultStatus = await perpetualMarket.getVaultStatus(1)
+
+      // Ensure that position value becomes smaller than before trade
+      expect(afterVaultStatus.positionValue).to.be.lt(beforeVaultStatus.positionValue)
+    })
+  })
 })
