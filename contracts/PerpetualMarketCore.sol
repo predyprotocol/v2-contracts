@@ -1014,7 +1014,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     ) internal pure returns (int256 deltaLiquidity, int256 unlockLiquidityAmount) {
         unlockLiquidityAmount = _deltaMargin.mul(_amountLockedLiquidity.toInt256()).div(_hedgePositionValue);
 
-        return ((-_deltaMargin + unlockLiquidityAmount), unlockLiquidityAmount);
+        return ((unlockLiquidityAmount.sub(_deltaMargin)), unlockLiquidityAmount);
     }
 
     /**
