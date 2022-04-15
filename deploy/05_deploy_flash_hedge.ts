@@ -32,6 +32,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (network.name === 'arbitrum') {
     // Set bot address
+    console.log('set bot address')
     await flashHedge.setBot(botAddress)
   }
 
