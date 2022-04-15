@@ -132,36 +132,30 @@ describe('attack', function () {
     })
 
     it('attack failed', async () => {
-      await testContractHelper.trade(wallet, 0, [0, scaledBN(100, 7)], scaledBN(2000, 6))
+      await testContractHelper.trade(wallet, 0, [0, 0], scaledBN(5000, 6))
+
+      await increaseTime(SAFETY_PERIOD)
 
       const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
 
-      console.log('total', (await testContractSet.perpetualMarketCore.amountLiquidity()).toString())
-      console.log('locked', (await testContractSet.perpetualMarketCore.pools(1)).amountLockedLiquidity.toString())
+      for (let i = 0; i < 10; i++) {
+        await testContractHelper.trade(wallet, 1, [scaledBN(-15, 7), 0], 0)
+        // Long ETH2
 
-      await increaseTime(SAFETY_PERIOD)
+        const longTradePrices = await testContractHelper.tradeWithPrice(wallet, 1, [0, scaledBN(120, 7)], 0)
+        await increaseTime(SAFETY_PERIOD)
 
-      //for (let i = 0; i < 10; i++) {
-      // Short ETH
-      await testContractHelper.trade(wallet, 1, [scaledBN(-37, 7), 0], 0)
-      await increaseTime(SAFETY_PERIOD)
-      await testContractHelper.trade(wallet, 1, [0, scaledBN(-99, 7)], 0)
+        await testContractHelper.trade(wallet, 1, [scaledBN(15, 7), 0], 0)
+        // Short ETH2
 
-      // Long ETH2
-      await testContractHelper.trade(wallet, 1, [0, scaledBN(320, 7)], 0)
-      await increaseTime(SAFETY_PERIOD)
-      console.log('total', (await testContractSet.perpetualMarketCore.amountLiquidity()).toString())
-      console.log('locked', (await testContractSet.perpetualMarketCore.pools(1)).amountLockedLiquidity.toString())
+        await testContractHelper.trade(wallet, 1, [0, -100], 0)
 
-      // Long ETH
-      await testContractHelper.trade(wallet, 1, [scaledBN(37, 7), 0], 0)
+        const shortTradePrice = await testContractHelper.tradeWithPrice(wallet, 1, [0, scaledBN(-120, 7).add(100)], 0)
 
-      await increaseTime(SAFETY_PERIOD)
+        await increaseTime(SAFETY_PERIOD)
 
-      // Short ETH2
-      await testContractHelper.trade(wallet, 1, [0, scaledBN(-150, 7)], 0)
-      await increaseTime(SAFETY_PERIOD)
-      //}
+        expect(longTradePrices[0].gt(shortTradePrice[0])).to.be.true
+      }
 
       console.log('total', (await testContractSet.perpetualMarketCore.amountLiquidity()).toString())
       console.log('locked', (await testContractSet.perpetualMarketCore.pools(1)).amountLockedLiquidity.toString())

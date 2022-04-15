@@ -83,7 +83,7 @@ describe('update-hedge', function () {
       await perpetualMarket.withdraw(totalLiquidity.div(100))
 
       // check USDC is almost 0
-      expect(await testContractSet.perpetualMarketCore.balanceOf(wallet.address)).to.be.lte(110)
+      expect(await testContractSet.perpetualMarketCore.balanceOf(wallet.address)).to.be.lte(100)
     })
 
     async function show() {
@@ -110,6 +110,14 @@ describe('update-hedge', function () {
       if (tokenAmounts[1].gt(0)) {
         await perpetualMarket.execHedge()
       }
+    }
+
+    async function getHedgePositionValue(spot: BigNumber) {
+      const nettingInfo = await testContractSet.perpetualMarketCore.getNettingInfo()
+
+      return nettingInfo.amountsUsdc[0]
+        .add(nettingInfo.amountsUsdc[1])
+        .add(nettingInfo.amountUnderlying.mul(spot).div(100000000))
     }
 
     async function testCase1(positions: BigNumber[], price: number) {
@@ -167,13 +175,6 @@ describe('update-hedge', function () {
     })
 
     describe('AMM state is "deltaMargin > 0 && hedgePosition < 0 && |deltaMargin| > |hedgePosition|"', () => {
-      async function getHedgePositionValue(spot: BigNumber) {
-        const nettingInfo = await testContractSet.perpetualMarketCore.getNettingInfo()
-
-        return nettingInfo.amountsUsdc[0]
-          .add(nettingInfo.amountsUsdc[1])
-          .add(nettingInfo.amountUnderlying.mul(spot).div(100000000))
-      }
       beforeEach(async () => {
         await testContractHelper.trade(wallet, 0, [scaledBN(2, 8), BigNumber.from(0)], MIN_MARGIN)
         await execHedge()
@@ -252,13 +253,6 @@ describe('update-hedge', function () {
     })
 
     describe('AMM state is "deltaMargin > 0 && hedgePosition < 0 && |deltaMargin| > |hedgePosition|" with future and squared', () => {
-      async function getHedgePositionValue(spot: BigNumber) {
-        const nettingInfo = await testContractSet.perpetualMarketCore.getNettingInfo()
-
-        return nettingInfo.amountsUsdc[0]
-          .add(nettingInfo.amountsUsdc[1])
-          .add(nettingInfo.amountUnderlying.mul(spot).div(100000000))
-      }
       beforeEach(async () => {
         await testContractHelper.trade(wallet, 0, [scaledBN(2, 8), scaledBN(1, 8)], MIN_MARGIN)
         await execHedge()
@@ -337,6 +331,120 @@ describe('update-hedge', function () {
 
       it('with short', async () => {
         await testContractHelper.trade(wallet, 1, [scaledBN(-5, 7), 0], 0)
+      })
+    })
+
+    describe('complicated case', () => {
+      beforeEach(async () => {
+        await testContractHelper.updateSpot(scaledBN(3000, 8))
+        await perpetualMarket.deposit(scaledBN(15000, 6))
+        await testContractHelper.trade(wallet, 0, [scaledBN(2, 8), scaledBN(3, 8)], scaledBN(50000, 6))
+        await execHedge()
+      })
+
+      it('case 1', async () => {
+        await testContractHelper.updateSpot(scaledBN(3012, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(-2, 8), 0], 0)
+
+        await execHedge()
+        await show()
+
+        await testContractHelper.updateSpot(scaledBN(3123, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(21, 7), scaledBN(-31, 7)], 0)
+
+        await show()
+
+        await testContractHelper.updateSpot(scaledBN(3237, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(-21, 7), scaledBN(57, 7)], 0)
+
+        await show()
+        await execHedge()
+      })
+
+      it('case 2', async () => {
+        await testContractHelper.updateSpot(scaledBN(3012, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(-2, 8), 0], 0)
+
+        await show()
+
+        await testContractHelper.updateSpot(scaledBN(2123, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(21, 7), scaledBN(-31, 7)], 0)
+
+        await show()
+
+        await testContractHelper.updateSpot(scaledBN(1236, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(-21, 7), scaledBN(57, 7)], 0)
+
+        await show()
+        await execHedge()
+      })
+
+      it('case 3', async () => {
+        await testContractHelper.updateSpot(scaledBN(3012, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(-2, 8), 0], 0)
+
+        await testContractHelper.updateSpot(scaledBN(2123, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(21, 7), scaledBN(-31, 7)], 0)
+
+        await testContractHelper.updateSpot(scaledBN(1237, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(-21, 7), scaledBN(1, 7)], 0)
+
+        await execHedge()
+      })
+
+      it('case 4', async () => {
+        await testContractHelper.updateSpot(scaledBN(3012, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(-3, 8), 0], 0)
+
+        await execHedge()
+
+        await testContractHelper.updateSpot(scaledBN(1615, 8))
+        await increaseTime(SAFETY_PERIOD)
+
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(1, 8)], 0)
+      })
+    })
+
+    describe('edge case', () => {
+      beforeEach(async () => {
+        await testContractHelper.updateSpot(scaledBN(3000, 8))
+        await perpetualMarket.deposit(scaledBN(15000, 6))
+      })
+
+      it('trade 1', async () => {
+        await testContractHelper.updateSpot(scaledBN(3012, 8))
+
+        await testContractHelper.trade(wallet, 0, [1, 1], MIN_MARGIN)
+
+        await execHedge()
+      })
+
+      it('trade -1', async () => {
+        await testContractHelper.updateSpot(scaledBN(3012, 8))
+
+        await testContractHelper.trade(wallet, 0, [-1, -1], MIN_MARGIN)
+
+        await execHedge()
       })
     })
   })
