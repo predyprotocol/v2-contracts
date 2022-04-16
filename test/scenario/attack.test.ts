@@ -101,7 +101,7 @@ describe('attack', function () {
     beforeEach(async () => {
       await testContractHelper.updateSpot(scaledBN(initialSpotPrice, 8))
 
-      await perpetualMarket.initialize(depositAmount, 100000)
+      await perpetualMarket.initialize(depositAmount, 200000)
     })
 
     it('attack failed with 5 squared', async () => {
