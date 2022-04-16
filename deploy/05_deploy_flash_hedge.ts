@@ -3,6 +3,7 @@ import { DeployFunction } from 'hardhat-deploy/types'
 import { networkNameToUSDC, networkNameToWETH, networkNameToEthUsdcPool, networkNameToOperator } from '../tasks/utils'
 
 const uniswapFactoryAddress = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+// Relayer of Openzeppelin Defender
 const botAddress = '0xc622fd7adfe9aafa97d9bc6f269c186f07b59f0f'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -26,10 +27,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const flashHedge = await ethers.getContract('FlashHedge', deployer)
   console.log(`FlashHedge Deployed at ${flashHedge.address}`)
 
+  // Set hedger address
   await perpetualMarket.setHedger(flashHedge.address)
 
   if (network.name === 'arbitrum') {
     // Set bot address
+    console.log('set bot address')
     await flashHedge.setBot(botAddress)
   }
 

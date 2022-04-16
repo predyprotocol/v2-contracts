@@ -89,6 +89,18 @@ export class TestContractHelper {
     })
   }
 
+  async tradeWithPrice(
+    wallet: Wallet,
+    vaultId: BigNumberish,
+    tradeAmounts: BigNumberish[],
+    marginAmount?: BigNumberish,
+    subVaultIndex?: number,
+  ) {
+    const tx = await this.trade(wallet, vaultId, tradeAmounts, marginAmount, subVaultIndex)
+    const recepit = await tx.wait()
+    return recepit.events?.filter((e) => e.event == 'PositionUpdated').map((e) => e.args?.tradePrice) as BigNumber[]
+  }
+
   async getWithdrawalAmount(burnAmount: BigNumber, _withdrawnAmount: BigNumberish): Promise<BigNumber> {
     const withdrawnAmount = BigNumber.from(_withdrawnAmount)
 

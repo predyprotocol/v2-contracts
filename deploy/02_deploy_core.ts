@@ -2,8 +2,8 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { networkNameToPriceFeed } from '../tasks/utils'
 
-const lpTokenName = 'Predy V2 LP Token'
-const lpTokenSymbol = 'PREDY-V2-LP'
+const lpTokenName = 'Predy V2 ETH USDC LP Token'
+const lpTokenSymbol = 'PREDY2-ETH-USDC-LP'
 const vaultTokenName = 'pVault'
 const vaultTokenSymbol = 'PVAULT'
 
@@ -46,12 +46,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (result.newlyDeployed) {
     const perpetualMarketCore = await ethers.getContract('PerpetualMarketCore', deployer)
 
-    // set SquaredPerpFundingMultiplier as 350%
-    await perpetualMarketCore.setSquaredPerpFundingMultiplier(350000000)
-    // set risk parameter as 120%
+    // set SquaredPerpFundingMultiplier as 690%
+    await perpetualMarketCore.setSquaredPerpFundingMultiplier(690000000)
+    // set PerpFutureMaxFundingRate as 0.69%
+    await perpetualMarketCore.setPerpFutureMaxFundingRate(690000)
+    // set risk parameter as 20%
     await perpetualMarketCore.setPoolMarginRiskParam(2000)
     // trade fee is 0.05% and protocol fee is 0.01%
     await perpetualMarketCore.setTradeFeeRate(50000, 10000)
+    // hedge slippage 0.36%-0.52%
+    await perpetualMarketCore.setHedgeParams(36, 52, 4000000)
   }
 }
 

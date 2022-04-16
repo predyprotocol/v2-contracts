@@ -430,10 +430,10 @@ describe('trade', function () {
 
           expect(tradePrice.tradePrice).to.be.eq(10040212869)
           expect(tradePrice.indexPrice).to.be.eq(10000000000)
-          expect(tradePrice.fundingFee).to.be.eq(30212869)
+          expect(tradePrice.fundingFee).to.be.eq(30851448)
           expect(tradePrice.tradeFee).to.be.eq(10000000)
           expect(tradePrice.protocolFee).to.be.eq(4000000)
-          expect(tradePrice.fundingRate).to.be.eq(30212869325349)
+          expect(tradePrice.fundingRate).to.be.eq(30851448919768)
           expect(tradePrice.totalValue).to.be.eq(301206386070000)
           expect(tradePrice.totalFee).to.be.eq(300000000000)
         })
@@ -443,13 +443,52 @@ describe('trade', function () {
 
           expect(tradePrice.tradePrice).to.be.eq(100056084993)
           expect(tradePrice.indexPrice).to.be.eq(100000000000)
-          expect(tradePrice.fundingFee).to.be.eq(6084993)
+          expect(tradePrice.fundingFee).to.be.eq(24337540)
           expect(tradePrice.tradeFee).to.be.eq(50000000)
           expect(tradePrice.protocolFee).to.be.eq(20000000)
-          expect(tradePrice.fundingRate).to.be.eq(608499354961)
+          expect(tradePrice.fundingRate).to.be.eq(2433754044440)
           expect(tradePrice.totalValue).to.be.eq(2001121699860000)
           expect(tradePrice.totalFee).to.be.eq(1000000000000)
         })
+      })
+    })
+
+    describe('after hedging', () => {
+      beforeEach(async () => {
+        await testContractHelper.trade(wallet, 0, [scaledBN(2, 8), scaledBN(1, 8)], scaledBN(2000, 6))
+        await perpetualMarket.execHedge()
+      })
+
+      it('check trade price', async () => {
+        for (let i = 0; i < 30; i++) {
+          const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-2, 7).mul(i))
+          console.log(tradePrice.fundingRate.toString())
+        }
+      })
+
+      it('rebalance', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(-19, 7), 0], 0)
+
+        const beforeTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 0)
+
+        await perpetualMarket.execHedge()
+
+        const afterTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 0)
+
+        expect(beforeTradePrice.fundingRate.gt(afterTradePrice.fundingRate)).to.be.true
+      })
+
+      it('pool position becomes long', async () => {
+        await testContractHelper.trade(wallet, 1, [scaledBN(-3, 8), 0], 0)
+
+        const beforeTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 0)
+
+        // locked liquidity of future pool becomes large
+        await perpetualMarket.execHedge()
+
+        const afterTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 0)
+
+        expect(beforeTradePrice.fundingRate.gt(afterTradePrice.fundingRate)).to.be.true
       })
     })
   })

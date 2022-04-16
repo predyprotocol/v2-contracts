@@ -8,6 +8,37 @@ import "./Math.sol";
 
 /**
  * @title NettingLib
+ *
+ * HedgePositionValue = ETH * S + AmountUSDC
+ *
+ * Normally, Amount Locked is equal to HedgePositionValue.
+ * AMM adjusts the HedgePositionValue to be equal to the RequiredMargin
+ * by adding or decreasing AmountUSDC.
+ *
+ *  --------------------------------------------------
+ * |              Total Liquidity Amount              |
+ * |     Amount Locked       |
+ * |    ETH     | AmountUSDC |
+ *  --------------------------------------------------
+ *
+ * If RequiredMargin becomes smaller than ETH value that AMM has, AmountUSDC becomes negative.
+ *
+ *  --------------------------------------------------
+ * |              Total Liquidity Amount              |
+ * |      Amount Locked(10)       |
+ * |            ETH(15)                          |
+ *                                |AmountUSDC(-5)|
+ *  --------------------------------------------------
+ *
+ * After hedge completed, AmountUSDC becomes positive.
+ *
+ *  --------------------------------------------------
+ * |              Total Liquidity Amount              |
+ * |      Amount Locked(10)       |
+ * |      ETH(6)    |
+ *                  |AmountUSDC(4)|
+ *  --------------------------------------------------
+ *
  * Error codes
  * N0: Unknown product id
  * N1: Total delta must be greater than 0
@@ -39,7 +70,7 @@ library NettingLib {
     }
 
     struct Info {
-        uint256[2] amountsUsdc;
+        int256[2] amountsUsdc;
         uint256 amountUnderlying;
     }
 
@@ -57,11 +88,7 @@ library NettingLib {
 
         requiredMargin = totalRequiredMargin.sub(hedgePositionValue);
 
-        if (_info.amountsUsdc[_productId].toInt256().add(requiredMargin) < 0) {
-            requiredMargin = -_info.amountsUsdc[_productId].toInt256();
-        }
-
-        _info.amountsUsdc[_productId] = Math.addDelta(_info.amountsUsdc[_productId], requiredMargin).toUint128();
+        _info.amountsUsdc[_productId] = _info.amountsUsdc[_productId].add(requiredMargin);
     }
 
     function getRequiredTokenAmountsForHedge(
@@ -107,13 +134,13 @@ library NettingLib {
         if (_params.isLong) {
             _info.amountUnderlying = _info.amountUnderlying.add(_params.amountUnderlying);
 
-            _info.amountsUsdc[0] = _info.amountsUsdc[0].sub(amountRequired0).toUint128();
-            _info.amountsUsdc[1] = _info.amountsUsdc[1].sub(amountRequired1).toUint128();
+            _info.amountsUsdc[0] = _info.amountsUsdc[0].sub(amountRequired0.toInt256());
+            _info.amountsUsdc[1] = _info.amountsUsdc[1].sub(amountRequired1.toInt256());
         } else {
             _info.amountUnderlying = _info.amountUnderlying.sub(_params.amountUnderlying);
 
-            _info.amountsUsdc[0] = _info.amountsUsdc[0].add(amountRequired0).toUint128();
-            _info.amountsUsdc[1] = _info.amountsUsdc[1].add(amountRequired1).toUint128();
+            _info.amountsUsdc[0] = _info.amountsUsdc[0].add(amountRequired0.toInt256());
+            _info.amountsUsdc[1] = _info.amountsUsdc[1].add(amountRequired1.toInt256());
         }
     }
 
@@ -158,7 +185,7 @@ library NettingLib {
             productHedgeNotional = totalHedgeNotional.sub(productHedgeNotional);
         }
 
-        int256 hedgePositionValue = _info.amountsUsdc[_productId].toInt256().add(productHedgeNotional);
+        int256 hedgePositionValue = _info.amountsUsdc[_productId].add(productHedgeNotional);
 
         return hedgePositionValue;
     }
@@ -171,7 +198,7 @@ library NettingLib {
     function getTotalHedgePositionValue(Info memory _info, int256 _spotPrice) internal pure returns (int256) {
         int256 hedgeNotional = _spotPrice.mul(_info.amountUnderlying.toInt256()).div(1e8);
 
-        return (_info.amountsUsdc[0].add(_info.amountsUsdc[1])).toInt256().add(hedgeNotional);
+        return (_info.amountsUsdc[0].add(_info.amountsUsdc[1])).add(hedgeNotional);
     }
 
     /**

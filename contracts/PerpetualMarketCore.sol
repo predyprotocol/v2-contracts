@@ -107,7 +107,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     PoolSnapshot public poolSnapshot;
 
     // Infos for collateral calculation
-    NettingLib.Info public nettingInfo;
+    NettingLib.Info private nettingInfo;
 
     // The address of Chainlink price feed
     AggregatorV3Interface private priceFeed;
@@ -270,7 +270,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         // Updates pool position
-        pools[_productId].positionPerpetuals -= _tradeAmount;
+        pools[_productId].positionPerpetuals = pools[_productId].positionPerpetuals.sub(_tradeAmount).toInt128();
 
         // Calculate trade price
         (tradePrice, protocolFee) = calculateSafeTradePrice(_productId, spotPrice, _tradeAmount);
@@ -285,7 +285,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
             pools[_productId].entryPrice = newEntryPrice.toUint256().toUint128();
 
-            amountLiquidity = Math.addDelta(amountLiquidity, profitValue - protocolFee.toInt256());
+            amountLiquidity = Math.addDelta(amountLiquidity, profitValue.sub(protocolFee.toInt256()));
         }
 
         return (tradePrice, pools[_productId].amountFundingPaidPerPosition, protocolFee);
@@ -373,6 +373,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         lastHedgeSpotPrice = spotPrice;
 
         nettingInfo.complete(_completeParams);
+    }
+
+    function getNettingInfo() external view returns (NettingLib.Info memory) {
+        return nettingInfo;
     }
 
     /**
@@ -697,11 +701,23 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         )
     {
         if (_deltaMargin > 0) {
-            // In case of lock additional margin
-            require(getAvailableLiquidityAmount() >= uint256(_deltaMargin), "PMC1");
-            unlockLiquidityAmount = _deltaMargin;
+            if (_hedgePositionValue >= 0) {
+                // In case of lock additional margin
+                require(getAvailableLiquidityAmount() >= uint256(_deltaMargin), "PMC1");
+                unlockLiquidityAmount = _deltaMargin;
+            } else {
+                // unlock all negative hedgePositionValue
+                (deltaLiquidity, unlockLiquidityAmount) = (
+                    _hedgePositionValue.sub(pools[_productId].amountLockedLiquidity.toInt256()),
+                    -pools[_productId].amountLockedLiquidity.toInt256()
+                );
+                // lock additional margin
+                require(getAvailableLiquidityAmount() >= uint256(_deltaMargin.add(_hedgePositionValue)), "PMC1");
+                unlockLiquidityAmount = unlockLiquidityAmount.add(_deltaMargin.add(_hedgePositionValue));
+            }
         } else if (_deltaMargin < 0) {
             // In case of unlock unrequired margin
+            // _hedgePositionValue should be positive because _deltaMargin=RequiredMargin-_hedgePositionValue<0 => 0<RequiredMargin<_hedgePositionValue
             (deltaLiquidity, unlockLiquidityAmount) = calculateUnlockedLiquidity(
                 pools[_productId].amountLockedLiquidity,
                 _deltaMargin,
@@ -786,7 +802,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         returns (
             int256 tradePrice,
             int256 indexPrice,
-            int256 fundingRate,
+            int256 estFundingRate,
             int256 tradeFee,
             int256 protocolFee
         )
@@ -814,7 +830,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         {
             int256 signedMarginAmount = getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId);
 
-            (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee) = calculateTradePrice(
+            (tradePrice, indexPrice, , tradeFee, protocolFee) = calculateTradePrice(
                 _productId,
                 _spotPrice,
                 _tradeAmount > 0,
@@ -823,11 +839,20 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
                 signedDeltaMargin,
                 _deltaLiquidity
             );
+
+            // Calculate estimated funding rate
+            estFundingRate = calculateFundingRate(
+                _productId,
+                signedMarginAmount.add(signedDeltaMargin),
+                amountLiquidity.toInt256().add(_deltaLiquidity),
+                0,
+                0
+            );
         }
 
         tradePrice = spreadInfos[_productId].getUpdatedPrice(_tradeAmount > 0, tradePrice, block.timestamp);
 
-        return (tradePrice, indexPrice, fundingRate, tradeFee, protocolFee);
+        return (tradePrice, indexPrice, estFundingRate, tradeFee, protocolFee);
     }
 
     /**
@@ -870,16 +895,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 gamma;
 
         {
-            int128 tradeAmount0 = pools[0].positionPerpetuals;
-            int128 tradeAmount1 = pools[1].positionPerpetuals;
+            int256 tradeAmount0 = pools[0].positionPerpetuals;
+            int256 tradeAmount1 = pools[1].positionPerpetuals;
 
             if (_productId == 0) {
-                tradeAmount0 -= _tradeAmount;
+                tradeAmount0 = tradeAmount0.sub(_tradeAmount);
                 marginChangeType = getMarginChange(tradeAmount0, _tradeAmount);
             }
 
             if (_productId == 1) {
-                tradeAmount1 -= _tradeAmount;
+                tradeAmount1 = tradeAmount1.sub(_tradeAmount);
                 marginChangeType = getMarginChange(tradeAmount1, _tradeAmount);
             }
 
@@ -899,7 +924,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         hedgePositionValue = nettingInfo.getHedgePositionValue(params, _productId);
 
-        deltaMargin = totalRequiredMargin - hedgePositionValue;
+        deltaMargin = totalRequiredMargin.sub(hedgePositionValue);
     }
 
     /**
@@ -989,7 +1014,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     ) internal pure returns (int256 deltaLiquidity, int256 unlockLiquidityAmount) {
         unlockLiquidityAmount = _deltaMargin.mul(_amountLockedLiquidity.toInt256()).div(_hedgePositionValue);
 
-        return ((-_deltaMargin + unlockLiquidityAmount), unlockLiquidityAmount);
+        return ((unlockLiquidityAmount.sub(_deltaMargin)), unlockLiquidityAmount);
     }
 
     /**
@@ -1175,6 +1200,10 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         for (uint256 i = 0; i < MAX_PRODUCT_ID; i++) {
             amountLocked = amountLocked.add(pools[i].amountLockedLiquidity);
+
+            if (nettingInfo.amountsUsdc[i] < 0) {
+                amountLocked = Math.addDelta(amountLocked, -nettingInfo.amountsUsdc[i]);
+            }
         }
 
         return amountLiquidity.sub(amountLocked);

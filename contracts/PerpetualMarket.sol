@@ -355,12 +355,15 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         // Try to update variance after funding payment
         perpetualMarketCore.updatePoolSnapshot();
 
-        // rebalance
+        // rebalance before hedge
         perpetualMarketCore.rebalance();
 
         NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
 
         perpetualMarketCore.completeHedgingProcedure(completeParams);
+
+        // rebalance after hedge
+        perpetualMarketCore.rebalance();
 
         amountUsdc = completeParams.amountUsdc / 1e2;
         amountUnderlying = Math.scale(completeParams.amountUnderlying, 8, ERC20(underlyingAsset).decimals());
