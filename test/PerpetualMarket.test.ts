@@ -386,7 +386,7 @@ describe('PerpetualMarket', function () {
     it('variance updated', async () => {
       await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 6)], MIN_MARGIN)
 
-      const before = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 1000)
+      const before = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, [0, 1000])
 
       await testContractHelper.updateSpot(scaledBN(110, 8))
 
@@ -400,7 +400,7 @@ describe('PerpetualMarket', function () {
 
       await testContractHelper.trade(wallet, 1, [0, scaledBN(1, 6)], MIN_MARGIN)
 
-      const after = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 1000)
+      const after = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, [0, 1000])
 
       expect(after[0]).to.be.gt(before[0])
     })
@@ -622,11 +622,11 @@ describe('PerpetualMarket', function () {
       })
 
       it('open short', async () => {
-        const tradePriceBefore = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 100)
+        const tradePriceBefore = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, [0, 100])
 
         await testContractHelper.trade(wallet, 0, [0, scaledBN(-1, 8)], MIN_MARGIN)
 
-        const tradePriceAfter = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 100)
+        const tradePriceAfter = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, [0, 100])
 
         expect((await testContractSet.perpetualMarketCore.pools(SQUEETH_PRODUCT_ID)).positionPerpetuals).to.be.eq(
           100000000,
@@ -684,7 +684,7 @@ describe('PerpetualMarket', function () {
         expect((await testContractSet.perpetualMarketCore.pools(FUTURE_PRODUCT_ID)).positionPerpetuals).to.be.eq(
           -100000000,
         )
-        expect((await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 10)).fundingRate).to.be.gt(0)
+        expect((await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [10, 0])).fundingRate).to.be.gt(0)
         expect((await perpetualMarket.getTraderVault(1)).subVaults[0].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(
           scaledBN(1, 8),
         )
@@ -696,7 +696,7 @@ describe('PerpetualMarket', function () {
         expect((await testContractSet.perpetualMarketCore.pools(FUTURE_PRODUCT_ID)).positionPerpetuals).to.be.eq(
           100000000,
         )
-        expect((await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 10)).fundingRate).to.be.lt(0)
+        expect((await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [10, 0])).fundingRate).to.be.lt(0)
       })
 
       it('close', async () => {

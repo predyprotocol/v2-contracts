@@ -251,26 +251,52 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     }
 
     /**
-     * @notice Adds or removes positions
-     * @param _productId product id
-     * @param _tradeAmount amount of position to trade. positive for pool short and negative for pool long.
+     * @notice Adds or removes pool positions
+     * @param _tradeAmounts amount of positions to trade.
+     * positive for pool short and negative for pool long.
      */
-    function updatePoolPosition(uint256 _productId, int128 _tradeAmount)
+    function updatePoolPositions(int256[2] memory _tradeAmounts)
         public
         override
         onlyPerpetualMarket
+        returns (
+            uint256[2] memory tradePrice,
+            int256[2] memory fundingPaidPerPosition,
+            uint256 protocolFee
+        )
+    {
+        require(amountLiquidity > 0, "PMC1");
+
+        // Updates pool positions
+        pools[0].positionPerpetuals = pools[0].positionPerpetuals.sub(_tradeAmounts[0]).toInt128();
+        pools[1].positionPerpetuals = pools[1].positionPerpetuals.sub(_tradeAmounts[1]).toInt128();
+
+        if (_tradeAmounts[0] != 0) {
+            uint256 futureProtocolFee;
+            (tradePrice[0], fundingPaidPerPosition[0], futureProtocolFee) = updatePoolPosition(0, _tradeAmounts[0]);
+            protocolFee = protocolFee.add(futureProtocolFee);
+        }
+        if (_tradeAmounts[1] != 0) {
+            uint256 squaredProtocolFee;
+            (tradePrice[1], fundingPaidPerPosition[1], squaredProtocolFee) = updatePoolPosition(1, _tradeAmounts[1]);
+            protocolFee = protocolFee.add(squaredProtocolFee);
+        }
+    }
+
+    /**
+     * @notice Adds or removes pool position for a product
+     * @param _productId product id
+     * @param _tradeAmount amount of position to trade. positive for pool short and negative for pool long.
+     */
+    function updatePoolPosition(uint256 _productId, int256 _tradeAmount)
+        internal
         returns (
             uint256 tradePrice,
             int256,
             uint256 protocolFee
         )
     {
-        require(amountLiquidity > 0, "PMC1");
-
         (int256 spotPrice, ) = getUnderlyingPrice();
-
-        // Updates pool position
-        pools[_productId].positionPerpetuals = pools[_productId].positionPerpetuals.sub(_tradeAmount).toInt128();
 
         // Calculate trade price
         (tradePrice, protocolFee) = calculateSafeTradePrice(_productId, spotPrice, _tradeAmount);
@@ -510,9 +536,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     /**
      * @notice Gets trade price
      * @param _productId product id
-     * @param _tradeAmount amount of position to trade. positive for pool short and negative for pool long.
+     * @param _tradeAmounts amount of position to trade. positive for pool short and negative for pool long.
      */
-    function getTradePrice(uint256 _productId, int128 _tradeAmount)
+    function getTradePrice(uint256 _productId, int256[2] memory _tradeAmounts)
         external
         view
         override
@@ -526,7 +552,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
-        return calculateTradePriceReadOnly(_productId, spotPrice, _tradeAmount, 0);
+        return calculateTradePriceReadOnly(_productId, spotPrice, _tradeAmounts, 0);
     }
 
     /**
@@ -544,7 +570,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         return amountLocked.mul(1e8).div(amountLiquidity);
     }
 
-    function getTradePriceInfo(int128[2] memory amountAssets) external view override returns (TradePriceInfo memory) {
+    function getTradePriceInfo(int256[2] memory _tradeAmounts) external view override returns (TradePriceInfo memory) {
         (int256 spotPrice, ) = getUnderlyingPrice();
 
         int256[2] memory tradePrices;
@@ -556,7 +582,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             (tradePrices[i], indexPrice, fundingRates[i], , ) = calculateTradePriceReadOnly(
                 i,
                 spotPrice,
-                -amountAssets[i],
+                _tradeAmounts,
                 0
             );
 
@@ -806,7 +832,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     function calculateTradePriceReadOnly(
         uint256 _productId,
         int256 _spotPrice,
-        int256 _tradeAmount,
+        int256[2] memory _tradeAmounts,
         int256 _deltaLiquidity
     )
         internal
@@ -821,11 +847,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     {
         int256 signedDeltaMargin;
 
-        if (_tradeAmount != 0) {
+        if (_tradeAmounts[_productId] != 0) {
             (int256 deltaMargin, int256 hedgePositionValue, MarginChange marginChangeType) = getRequiredMargin(
                 _productId,
                 _spotPrice,
-                _tradeAmount.toInt128()
+                _tradeAmounts
             );
 
             int256 deltaLiquidityByTrade;
@@ -845,7 +871,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             (tradePrice, indexPrice, , tradeFee, protocolFee) = calculateTradePrice(
                 _productId,
                 _spotPrice,
-                _tradeAmount > 0,
+                _tradeAmounts[_productId] > 0,
                 signedMarginAmount,
                 amountLiquidity.toInt256(),
                 signedDeltaMargin,
@@ -862,7 +888,11 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             );
         }
 
-        tradePrice = spreadInfos[_productId].getUpdatedPrice(_tradeAmount > 0, tradePrice, block.timestamp);
+        tradePrice = spreadInfos[_productId].getUpdatedPrice(
+            _tradeAmounts[_productId] > 0,
+            tradePrice,
+            block.timestamp
+        );
 
         return (tradePrice, indexPrice, estFundingRate, tradeFee, protocolFee);
     }
@@ -892,7 +922,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     function getRequiredMargin(
         uint256 _productId,
         int256 _spot,
-        int128 _tradeAmount
+        int256[2] memory _tradeAmounts
     )
         internal
         view
@@ -910,14 +940,15 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             int256 tradeAmount0 = pools[0].positionPerpetuals;
             int256 tradeAmount1 = pools[1].positionPerpetuals;
 
+            tradeAmount0 = tradeAmount0.sub(_tradeAmounts[0]);
+            tradeAmount1 = tradeAmount1.sub(_tradeAmounts[1]);
+
             if (_productId == 0) {
-                tradeAmount0 = tradeAmount0.sub(_tradeAmount);
-                marginChangeType = getMarginChange(tradeAmount0, _tradeAmount);
+                marginChangeType = getMarginChange(tradeAmount0, _tradeAmounts[0]);
             }
 
             if (_productId == 1) {
-                tradeAmount1 = tradeAmount1.sub(_tradeAmount);
-                marginChangeType = getMarginChange(tradeAmount1, _tradeAmount);
+                marginChangeType = getMarginChange(tradeAmount1, _tradeAmounts[1]);
             }
 
             (delta0, delta1) = getDeltas(_spot, tradeAmount0, tradeAmount1);
@@ -1124,12 +1155,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 _deltaLiquidityAmount
     ) internal view returns (int256) {
         int256 positionsValue;
+        int256[2] memory positionPerpetuals;
+
+        positionPerpetuals[0] = pools[0].positionPerpetuals;
+        positionPerpetuals[1] = pools[1].positionPerpetuals;
 
         if (pools[_productId].positionPerpetuals != 0) {
             (int256 tradePrice, , , , ) = calculateTradePriceReadOnly(
                 _productId,
                 _spotPrice,
-                pools[_productId].positionPerpetuals,
+                positionPerpetuals,
                 _deltaLiquidityAmount
             );
             positionsValue =
