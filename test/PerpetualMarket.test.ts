@@ -822,6 +822,26 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.trade(wallet, 1, [scaledBN(-1, 14), scaledBN(-1, 14)], MAX_WITHDRAW_AMOUNT)
       })
+
+      it('open and close large crab position', async () => {
+        await testContractHelper.updateSpot(scaledBN(101, 8))
+
+        await testContractHelper.trade(wallet, 0, [scaledBN(600, 6), scaledBN(-30000, 6)], MIN_MARGIN)
+
+        // check utilization ratio is greater than 75%
+        const utilizationRatio = await testContractSet.perpetualMarketCore.getUtilizationRatio()
+        expect(utilizationRatio).to.be.gt('75000000')
+
+        await testContractHelper.updateSpot(scaledBN(99, 8))
+
+        const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(-600, 6), scaledBN(30000, 6)], MAX_WITHDRAW_AMOUNT, 0)
+
+        const afterVaultStatus = await perpetualMarket.getVaultStatus(1)
+
+        expect(beforeVaultStatus.positionValue).to.be.eq(afterVaultStatus.positionValue)
+      })
     })
 
     describe('long squeeth and short future', () => {
