@@ -9,7 +9,7 @@ import {
   TestContractHelper,
   TestContractSet,
 } from './utils/deploy'
-import { increaseTime, scaledBN } from './utils/helpers'
+import { assertCloseToPercentage, increaseTime, scaledBN } from './utils/helpers'
 import {
   FUTURE_PRODUCT_ID,
   MAX_WITHDRAW_AMOUNT,
@@ -826,21 +826,23 @@ describe('PerpetualMarket', function () {
       it('open and close large crab position', async () => {
         await testContractHelper.updateSpot(scaledBN(101, 8))
 
-        await testContractHelper.trade(wallet, 0, [scaledBN(600, 6), scaledBN(-30000, 6)], MIN_MARGIN)
+        await testContractHelper.trade(wallet, 0, [scaledBN(600, 6), scaledBN(-30000, 6)], scaledBN(2000, 6))
 
         // check utilization ratio is greater than 75%
         const utilizationRatio = await testContractSet.perpetualMarketCore.getUtilizationRatio()
         expect(utilizationRatio).to.be.gt('75000000')
 
+        await increaseTime(SAFETY_PERIOD)
+
         await testContractHelper.updateSpot(scaledBN(99, 8))
 
         const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
 
-        await testContractHelper.trade(wallet, 1, [scaledBN(-600, 6), scaledBN(30000, 6)], MAX_WITHDRAW_AMOUNT, 0)
+        await testContractHelper.trade(wallet, 1, [scaledBN(-600, 6), scaledBN(30000, 6)], 0)
 
         const afterVaultStatus = await perpetualMarket.getVaultStatus(1)
 
-        expect(beforeVaultStatus.positionValue).to.be.eq(afterVaultStatus.positionValue)
+        assertCloseToPercentage(beforeVaultStatus.positionValue, afterVaultStatus.positionValue)
       })
     })
 

@@ -200,7 +200,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         finalDepositOrWithdrawAmount = traderVaults[_tradeParams.vaultId].updateUsdcPosition(
             _tradeParams.marginAmount.mul(1e2),
-            perpetualMarketCore.getTradePriceInfo(getTradeAmountsToCloseVaults(traderVaults[_tradeParams.vaultId]))
+            perpetualMarketCore.getTradePriceInfo(getTradeAmountsToCloseVault(traderVaults[_tradeParams.vaultId]))
         );
 
         // Try to update variance after trade
@@ -233,7 +233,10 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         return limitPrices;
     }
 
-    function getTradeAmountsToCloseVaults(TraderVaultLib.TraderVault memory _traderVault)
+    /**
+     * @notice Gets trade amounts to close the vault
+     */
+    function getTradeAmountsToCloseVault(TraderVaultLib.TraderVault memory _traderVault)
         internal
         pure
         returns (int256[2] memory tradeAmounts)
@@ -278,7 +281,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         TraderVaultLib.TraderVault storage traderVault = traderVaults[_vaultId];
 
         IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
-            getTradeAmountsToCloseVaults(traderVault)
+            getTradeAmountsToCloseVault(traderVault)
         );
 
         // Check if PositionValue is less than MinCollateral or not
@@ -294,7 +297,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             int256[2] memory fundingPaidPerPositions;
 
             (tradePrices, fundingPaidPerPositions, totalProtocolFee) = updatePoolPosition(
-                getTradeAmountsToCloseVaults(traderVault),
+                getTradeAmountsToCloseVault(traderVault),
                 [uint256(0), uint256(0)]
             );
 
@@ -536,7 +539,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         minCollateral = traderVault.getMinCollateralToAddPosition(
             _tradeAmounts,
-            perpetualMarketCore.getTradePriceInfo(getTradeAmountsToCloseVaults(traderVault))
+            perpetualMarketCore.getTradePriceInfo(getTradeAmountsToCloseVault(traderVault))
         );
 
         minCollateral = minCollateral / 1e2;
@@ -555,7 +558,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultId];
 
         IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
-            getTradeAmountsToCloseVaults(traderVault)
+            getTradeAmountsToCloseVault(traderVault)
         );
 
         int256[2][] memory positionValues = new int256[2][](traderVault.subVaults.length);
