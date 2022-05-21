@@ -822,10 +822,11 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.trade(wallet, 1, [scaledBN(-1, 14), scaledBN(-1, 14)], MAX_WITHDRAW_AMOUNT)
       })
+    })
 
-      it('open and close large crab position', async () => {
+    describe('crab position', () => {
+      beforeEach(async () => {
         await testContractHelper.updateSpot(scaledBN(101, 8))
-
         await testContractHelper.trade(wallet, 0, [scaledBN(600, 6), scaledBN(-30000, 6)], scaledBN(2000, 6))
 
         // check utilization ratio is greater than 75%
@@ -833,8 +834,22 @@ describe('PerpetualMarket', function () {
         expect(utilizationRatio).to.be.gt('75000000')
 
         await increaseTime(SAFETY_PERIOD)
+      })
 
+      it('open and close large crab position', async () => {
         await testContractHelper.updateSpot(scaledBN(99, 8))
+
+        const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(-600, 6), scaledBN(30000, 6)], 0)
+
+        const afterVaultStatus = await perpetualMarket.getVaultStatus(1)
+
+        assertCloseToPercentage(beforeVaultStatus.positionValue, afterVaultStatus.positionValue)
+      })
+
+      it("if pool's future pnl becomes minus", async () => {
+        await testContractHelper.updateSpot(scaledBN(200, 8))
 
         const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
 
@@ -846,57 +861,40 @@ describe('PerpetualMarket', function () {
       })
     })
 
-    describe('long squeeth and short future', () => {
-      it('open long sqeeths and short futures', async () => {
-        await testContractHelper.trade(wallet, 0, [scaledBN(-1, 6), scaledBN(1, 6)], MIN_MARGIN)
+    describe('gamma long position', () => {
+      beforeEach(async () => {
+        await testContractHelper.updateSpot(scaledBN(101, 8))
+        await testContractHelper.trade(wallet, 0, [scaledBN(-600, 6), scaledBN(30000, 6)], scaledBN(2000, 6))
 
-        const vaultStatus = await perpetualMarket.getVaultStatus(1)
-
-        expect(vaultStatus.minCollateral).to.be.gt(0)
-        expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
-        expect(vaultStatus.rawVaultData.subVaults[0].positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
-        expect(vaultStatus.rawVaultData.subVaults[0].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(-1, 6))
-      })
-
-      it('close positions', async () => {
-        const before = await usdc.balanceOf(wallet.address)
-
-        await testContractHelper.trade(wallet, 0, [scaledBN(-1, 6), scaledBN(1, 6)], MIN_MARGIN)
-        await testContractHelper.trade(wallet, 1, [scaledBN(1, 6), scaledBN(-1, 6)], MAX_WITHDRAW_AMOUNT)
-
-        const after = await usdc.balanceOf(wallet.address)
-
-        expect(after.sub(before)).to.be.eq('-1020')
-      })
-
-      it('price becomes high and close positions', async () => {
-        const before = await usdc.balanceOf(wallet.address)
-
-        await testContractHelper.trade(wallet, 0, [scaledBN(-1, 6), scaledBN(1, 6)], MIN_MARGIN)
+        // check utilization ratio is greater than 75%
+        const utilizationRatio = await testContractSet.perpetualMarketCore.getUtilizationRatio()
+        expect(utilizationRatio).to.be.gt('75000000')
 
         await increaseTime(SAFETY_PERIOD)
-        await testContractHelper.updateSpot(scaledBN(110, 8))
-
-        await testContractHelper.trade(wallet, 1, [scaledBN(1, 6), scaledBN(-1, 6)], MAX_WITHDRAW_AMOUNT)
-
-        const after = await usdc.balanceOf(wallet.address)
-
-        expect(after.sub(before)).to.be.eq('-98968')
       })
 
-      it('price becomes low and close positions', async () => {
-        const before = await usdc.balanceOf(wallet.address)
+      it('open and close large gamma long position', async () => {
+        await testContractHelper.updateSpot(scaledBN(120, 8))
 
-        await testContractHelper.trade(wallet, 0, [scaledBN(-1, 6), scaledBN(1, 6)], MIN_MARGIN)
+        const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
 
-        await increaseTime(SAFETY_PERIOD)
-        await testContractHelper.updateSpot(scaledBN(90, 8))
+        await testContractHelper.trade(wallet, 1, [scaledBN(600, 6), scaledBN(-30000, 6)], 0)
 
-        await testContractHelper.trade(wallet, 1, [scaledBN(1, 6), scaledBN(-1, 6)], MAX_WITHDRAW_AMOUNT)
+        const afterVaultStatus = await perpetualMarket.getVaultStatus(1)
 
-        const after = await usdc.balanceOf(wallet.address)
+        assertCloseToPercentage(beforeVaultStatus.positionValue, afterVaultStatus.positionValue)
+      })
 
-        expect(after.sub(before)).to.be.eq('97128')
+      it("if pool's future pnl becomes minus", async () => {
+        await testContractHelper.updateSpot(scaledBN(50, 8))
+
+        const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
+
+        await testContractHelper.trade(wallet, 1, [scaledBN(600, 6), scaledBN(-30000, 6)], 0)
+
+        const afterVaultStatus = await perpetualMarket.getVaultStatus(1)
+
+        assertCloseToPercentage(beforeVaultStatus.positionValue, afterVaultStatus.positionValue)
       })
     })
   })

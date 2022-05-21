@@ -267,20 +267,34 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     {
         require(amountLiquidity > 0, "PMC1");
 
+        int256 profitValue = 0;
+
         // Updates pool positions
         pools[0].positionPerpetuals = pools[0].positionPerpetuals.sub(_tradeAmounts[0]).toInt128();
         pools[1].positionPerpetuals = pools[1].positionPerpetuals.sub(_tradeAmounts[1]).toInt128();
 
         if (_tradeAmounts[0] != 0) {
             uint256 futureProtocolFee;
-            (tradePrice[0], fundingPaidPerPosition[0], futureProtocolFee) = updatePoolPosition(0, _tradeAmounts[0]);
+            int256 futureProfitValue;
+            (tradePrice[0], fundingPaidPerPosition[0], futureProtocolFee, futureProfitValue) = updatePoolPosition(
+                0,
+                _tradeAmounts[0]
+            );
             protocolFee = protocolFee.add(futureProtocolFee);
+            profitValue = profitValue.add(futureProfitValue);
         }
         if (_tradeAmounts[1] != 0) {
             uint256 squaredProtocolFee;
-            (tradePrice[1], fundingPaidPerPosition[1], squaredProtocolFee) = updatePoolPosition(1, _tradeAmounts[1]);
+            int256 squaredProfitValue;
+            (tradePrice[1], fundingPaidPerPosition[1], squaredProtocolFee, squaredProfitValue) = updatePoolPosition(
+                1,
+                _tradeAmounts[1]
+            );
             protocolFee = protocolFee.add(squaredProtocolFee);
+            profitValue = profitValue.add(squaredProfitValue);
         }
+
+        amountLiquidity = Math.addDelta(amountLiquidity, profitValue.sub(protocolFee.toInt256()));
     }
 
     /**
@@ -293,7 +307,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         returns (
             uint256 tradePrice,
             int256,
-            uint256 protocolFee
+            uint256 protocolFee,
+            int256 profitValue
         )
     {
         (int256 spotPrice, ) = getUnderlyingPrice();
@@ -302,7 +317,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         (tradePrice, protocolFee) = calculateSafeTradePrice(_productId, spotPrice, _tradeAmount);
 
         {
-            (int256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
+            int256 newEntryPrice;
+            (newEntryPrice, profitValue) = EntryPriceMath.updateEntryPrice(
                 int256(pools[_productId].entryPrice),
                 pools[_productId].positionPerpetuals.add(_tradeAmount),
                 int256(tradePrice),
@@ -310,11 +326,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             );
 
             pools[_productId].entryPrice = newEntryPrice.toUint256().toUint128();
-
-            amountLiquidity = Math.addDelta(amountLiquidity, profitValue.sub(protocolFee.toInt256()));
         }
 
-        return (tradePrice, pools[_productId].amountFundingPaidPerPosition, protocolFee);
+        return (tradePrice, pools[_productId].amountFundingPaidPerPosition, protocolFee, profitValue);
     }
 
     /**
