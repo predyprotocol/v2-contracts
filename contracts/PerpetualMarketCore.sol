@@ -702,6 +702,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         ).div(FUNDING_PERIOD);
     }
 
+    function getCurrentFundingRate(uint256 _productId) internal view returns (int256 currentFundingRate) {
+        currentFundingRate = calculateFundingRate(
+            _productId,
+            getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId),
+            amountLiquidity.toInt256(),
+            0,
+            0
+        );
+    }
+
     /**
      * @notice Gets current funding rate
      * @param _productId product id
