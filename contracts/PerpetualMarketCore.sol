@@ -560,10 +560,13 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
                 0
             );
 
+            // funding payments should be calculated from the current funding rate
+            int256 currentFundingRate = getCurrentFundingRate(i);
+
             int256 fundingFeePerPosition = calculateFundingFeePerPosition(
                 i,
                 indexPrice,
-                fundingRates[i],
+                currentFundingRate,
                 block.timestamp
             );
 
@@ -638,13 +641,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     {
         int256 indexPrice = IndexPricer.calculateIndexPrice(_productId, _spotPrice);
 
-        currentFundingRate = calculateFundingRate(
-            _productId,
-            getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId),
-            amountLiquidity.toInt256(),
-            0,
-            0
-        );
+        currentFundingRate = getCurrentFundingRate(_productId);
 
         fundingFeePerPosition = calculateFundingFeePerPosition(
             _productId,
@@ -677,6 +674,21 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         fundingFeePerPosition = (
             fundingFeePerPosition.mul(int256(_currentTimestamp.sub(pools[_productId].lastFundingPaymentTime)))
         ).div(FUNDING_PERIOD);
+    }
+
+    /**
+     * @notice Gets current funding rate
+     * @param _productId product id
+     */
+    function getCurrentFundingRate(uint256 _productId) internal view returns (int256) {
+        return
+            calculateFundingRate(
+                _productId,
+                getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId),
+                amountLiquidity.toInt256(),
+                0,
+                0
+            );
     }
 
     /**
