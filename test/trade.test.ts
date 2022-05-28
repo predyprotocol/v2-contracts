@@ -336,7 +336,7 @@ describe('trade', function () {
     })
 
     it('get trade price of squared perpetual', async () => {
-      const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, 100)
+      const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, [0, 100])
 
       expect(tradePrice.tradePrice).to.be.eq(10040000000)
       expect(tradePrice.indexPrice).to.be.eq(10000000000)
@@ -349,7 +349,7 @@ describe('trade', function () {
     })
 
     it('get trade price of perpetual future', async () => {
-      const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 100)
+      const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [100, 0])
 
       expect(tradePrice.tradePrice).to.be.eq(100050000000)
       expect(tradePrice.indexPrice).to.be.eq(100000000000)
@@ -363,7 +363,9 @@ describe('trade', function () {
 
     it('reverts if trade amount is too large', async () => {
       await testContractHelper.updateSpot(scaledBN(3567, 8))
-      await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(100000, 8))).to.be.revertedWith('PMC1')
+      await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, [0, scaledBN(100000, 8)])).to.be.revertedWith(
+        'PMC1',
+      )
     })
 
     describe('pool has short position', () => {
@@ -373,14 +375,16 @@ describe('trade', function () {
 
       it('reverts if trade amount is too small', async () => {
         await testContractHelper.updateSpot(scaledBN(3567, 8))
-        await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(-100000, 8))).to.be.revertedWith('PMC1')
+        await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, [0, scaledBN(-100000, 8)])).to.be.revertedWith(
+          'PMC1',
+        )
       })
 
       it('check trade price', async () => {
-        const tradePrice1 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-1, 8))
-        const tradePrice2 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-2, 8))
-        const tradePrice3 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-3, 8))
-        const tradePrice5 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-5, 8))
+        const tradePrice1 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(-1, 8), 0])
+        const tradePrice2 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(-2, 8), 0])
+        const tradePrice3 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(-3, 8), 0])
+        const tradePrice5 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(-5, 8), 0])
 
         expect(tradePrice1.fundingRate).to.be.gt(tradePrice2.fundingRate)
         expect(tradePrice2.fundingRate).to.be.gt(tradePrice3.fundingRate)
@@ -397,14 +401,16 @@ describe('trade', function () {
 
       it('reverts if trade amount is too large', async () => {
         await testContractHelper.updateSpot(scaledBN(3567, 8))
-        await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(100000, 8))).to.be.revertedWith('PMC1')
+        await expect(perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, [0, scaledBN(100000, 8)])).to.be.revertedWith(
+          'PMC1',
+        )
       })
 
       it('check trade price', async () => {
-        const tradePrice1 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(1, 8))
-        const tradePrice2 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(2, 8))
-        const tradePrice3 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(3, 8))
-        const tradePrice5 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(5, 8))
+        const tradePrice1 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(1, 8), 0])
+        const tradePrice2 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(2, 8), 0])
+        const tradePrice3 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(3, 8), 0])
+        const tradePrice5 = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(5, 8), 0])
 
         expect(tradePrice1.fundingRate).to.be.lt(tradePrice2.fundingRate)
         expect(tradePrice2.fundingRate).to.be.lt(tradePrice3.fundingRate)
@@ -426,7 +432,7 @@ describe('trade', function () {
         })
 
         it("get squared perpetual's trade price of large position", async () => {
-          const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, scaledBN(3, 12))
+          const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, [0, scaledBN(3, 12)])
 
           expect(tradePrice.tradePrice).to.be.eq(10040212869)
           expect(tradePrice.indexPrice).to.be.eq(10000000000)
@@ -439,7 +445,7 @@ describe('trade', function () {
         })
 
         it("get perpetual future's trade price of large position", async () => {
-          const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(2, 12))
+          const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(2, 12), 0])
 
           expect(tradePrice.tradePrice).to.be.eq(100056084993)
           expect(tradePrice.indexPrice).to.be.eq(100000000000)
@@ -461,7 +467,7 @@ describe('trade', function () {
 
       it('check trade price', async () => {
         for (let i = 0; i < 30; i++) {
-          const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, scaledBN(-2, 7).mul(i))
+          const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(-2, 7).mul(i), 0])
           console.log(tradePrice.fundingRate.toString())
         }
       })
@@ -469,11 +475,11 @@ describe('trade', function () {
       it('rebalance', async () => {
         await testContractHelper.trade(wallet, 1, [scaledBN(-19, 7), 0], 0)
 
-        const beforeTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 0)
+        const beforeTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [0, 0])
 
         await perpetualMarket.execHedge()
 
-        const afterTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 0)
+        const afterTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [0, 0])
 
         expect(beforeTradePrice.fundingRate.gt(afterTradePrice.fundingRate)).to.be.true
       })
@@ -481,12 +487,12 @@ describe('trade', function () {
       it('pool position becomes long', async () => {
         await testContractHelper.trade(wallet, 1, [scaledBN(-3, 8), 0], 0)
 
-        const beforeTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 0)
+        const beforeTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [0, 0])
 
         // locked liquidity of future pool becomes large
         await perpetualMarket.execHedge()
 
-        const afterTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, 0)
+        const afterTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [0, 0])
 
         expect(beforeTradePrice.fundingRate.gt(afterTradePrice.fundingRate)).to.be.true
       })

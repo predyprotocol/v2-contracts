@@ -40,8 +40,9 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
         return calculateUnlockedLiquidity(_amountLockedLiquidity, _deltaM, _hedgePositionValue);
     }
 
-    function testUpdatePoolPosition(uint256 _productId, int128 _tradeAmount) external {
-        (result, , ) = updatePoolPosition(_productId, _tradeAmount);
+    function testUpdatePoolPositions(uint256 _productId, int256[2] memory _tradeAmounts) external {
+        (uint256[2] memory tradePrice, , ) = updatePoolPositions(_tradeAmounts);
+        result = tradePrice[_productId];
     }
 
     function testUpdateVariance(uint256 _timestamp) external {

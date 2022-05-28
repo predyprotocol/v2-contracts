@@ -83,7 +83,7 @@ describe('update-hedge', function () {
       await perpetualMarket.withdraw(totalLiquidity.div(100))
 
       // check USDC is almost 0
-      expect(await testContractSet.perpetualMarketCore.balanceOf(wallet.address)).to.be.lte(100)
+      expect(await testContractSet.perpetualMarketCore.balanceOf(wallet.address)).to.be.lte(200)
     })
 
     async function show() {

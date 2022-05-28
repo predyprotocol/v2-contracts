@@ -24,11 +24,11 @@ interface IPerpetualMarketCore {
 
     function addLiquidity(uint256 _amount) external;
 
-    function updatePoolPosition(uint256 _productId, int128 _tradeAmount)
+    function updatePoolPositions(int256[2] memory _tradeAmounts)
         external
         returns (
-            uint256 tradePrice,
-            int256,
+            uint256[2] memory tradePrice,
+            int256[2] memory,
             uint256 protocolFee
         );
 
@@ -38,9 +38,9 @@ interface IPerpetualMarketCore {
 
     function executeFundingPayment() external;
 
-    function getTradePriceInfo(int128[2] memory amountAssets) external view returns (TradePriceInfo memory);
+    function getTradePriceInfo(int256[2] memory _tradeAmounts) external view returns (TradePriceInfo memory);
 
-    function getTradePrice(uint256 _productId, int128 _tradeAmount)
+    function getTradePrice(uint256 _productId, int256[2] memory _tradeAmounts)
         external
         view
         returns (

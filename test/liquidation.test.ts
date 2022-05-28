@@ -320,4 +320,29 @@ describe('liquidation', function () {
       await expect(perpetualMarket.liquidateByPool(1)).revertedWith('vault is not danger')
     })
   })
+
+  describe('crab position', () => {
+    it('liquidate a crab position', async () => {
+      await updateSpotPrice(2000)
+
+      await testContractHelper.trade(wallet, 0, [scaledBN(28, 8), scaledBN(-70, 8)], scaledBN(1000, 6), 0)
+      await testContractHelper.trade(wallet, 1, [scaledBN(28, 8), scaledBN(-70, 8)], 0, 1)
+      await testContractHelper.trade(wallet, 1, [scaledBN(28, 8), scaledBN(-70, 8)], 0, 2)
+
+      // check utilization ratio is greater than 75%
+      const utilizationRatio = await testContractSet.perpetualMarketCore.getUtilizationRatio()
+      expect(utilizationRatio).to.be.gt('75000000')
+
+      await increaseTime(60 * 60)
+      await updateSpotPrice(1900)
+
+      const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
+      expect(beforeVaultStatus.positionValue).to.be.gt(0)
+
+      await perpetualMarket.liquidateByPool(1)
+
+      const afterVaultStatus = await perpetualMarket.getVaultStatus(1)
+      expect(afterVaultStatus.positionValue).to.be.gt(0)
+    })
+  })
 })

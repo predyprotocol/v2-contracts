@@ -167,18 +167,27 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         uint256 totalProtocolFee;
 
-        for (uint256 i = 0; i < _tradeParams.trades.length; i++) {
-            totalProtocolFee = totalProtocolFee.add(
-                updatePosition(
+        {
+            uint256[2] memory tradePrices;
+            int256[2] memory fundingPaidPerPositions;
+
+            (tradePrices, fundingPaidPerPositions, totalProtocolFee) = updatePoolPosition(
+                getTradeAmounts(_tradeParams.trades),
+                getLimitPrices(_tradeParams.trades)
+            );
+
+            for (uint256 i = 0; i < _tradeParams.trades.length; i++) {
+                updateSubVault(
                     traderVaults[_tradeParams.vaultId],
                     _tradeParams.trades[i].productId,
                     _tradeParams.vaultId,
                     _tradeParams.trades[i].subVaultIndex,
+                    tradePrices[_tradeParams.trades[i].productId],
+                    fundingPaidPerPositions[_tradeParams.trades[i].productId],
                     _tradeParams.trades[i].tradeAmount,
-                    _tradeParams.trades[i].limitPrice,
                     _tradeParams.trades[i].metadata
-                )
-            );
+                );
+            }
         }
 
         // Add protocol fee
@@ -191,7 +200,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         finalDepositOrWithdrawAmount = traderVaults[_tradeParams.vaultId].updateUsdcPosition(
             _tradeParams.marginAmount.mul(1e2),
-            perpetualMarketCore.getTradePriceInfo(traderVaults[_tradeParams.vaultId].getPositionPerpetuals())
+            perpetualMarketCore.getTradePriceInfo(getTradeAmountsToCloseVault(traderVaults[_tradeParams.vaultId]))
         );
 
         // Try to update variance after trade
@@ -206,6 +215,38 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             sendLiquidity(msg.sender, withdrawAmount);
             emit WithdrawnFromVault(msg.sender, _tradeParams.vaultId, withdrawAmount);
         }
+    }
+
+    function getTradeAmounts(TradeParams[] memory _trades) internal pure returns (int256[2] memory tradeAmounts) {
+        for (uint256 i = 0; i < _trades.length; i++) {
+            tradeAmounts[_trades[i].productId] = tradeAmounts[_trades[i].productId].add(_trades[i].tradeAmount);
+        }
+
+        return tradeAmounts;
+    }
+
+    function getLimitPrices(TradeParams[] memory _trades) internal pure returns (uint256[2] memory limitPrices) {
+        for (uint256 i = 0; i < _trades.length; i++) {
+            limitPrices[_trades[i].productId] = _trades[i].limitPrice;
+        }
+
+        return limitPrices;
+    }
+
+    /**
+     * @notice Gets trade amounts to close the vault
+     */
+    function getTradeAmountsToCloseVault(TraderVaultLib.TraderVault memory _traderVault)
+        internal
+        pure
+        returns (int256[2] memory tradeAmounts)
+    {
+        int128[2] memory positionPerpetuals = _traderVault.getPositionPerpetuals();
+
+        tradeAmounts[0] = -positionPerpetuals[0];
+        tradeAmounts[1] = -positionPerpetuals[1];
+
+        return tradeAmounts;
     }
 
     /**
@@ -240,7 +281,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         TraderVaultLib.TraderVault storage traderVault = traderVaults[_vaultId];
 
         IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
-            traderVault.getPositionPerpetuals()
+            getTradeAmountsToCloseVault(traderVault)
         );
 
         // Check if PositionValue is less than MinCollateral or not
@@ -250,13 +291,31 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         // Close all positions in the vault
         uint256 totalProtocolFee;
-        for (uint256 subVaultIndex = 0; subVaultIndex < traderVault.subVaults.length; subVaultIndex++) {
-            for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
-                int128 amountAssetInVault = traderVault.subVaults[subVaultIndex].positionPerpetuals[productId];
 
-                totalProtocolFee = totalProtocolFee.add(
-                    updatePosition(traderVault, productId, _vaultId, subVaultIndex, -amountAssetInVault, 0, "")
-                );
+        {
+            uint256[2] memory tradePrices;
+            int256[2] memory fundingPaidPerPositions;
+
+            (tradePrices, fundingPaidPerPositions, totalProtocolFee) = updatePoolPosition(
+                getTradeAmountsToCloseVault(traderVault),
+                [uint256(0), uint256(0)]
+            );
+
+            for (uint256 subVaultIndex = 0; subVaultIndex < traderVault.subVaults.length; subVaultIndex++) {
+                for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
+                    int128 amountAssetInVault = traderVault.subVaults[subVaultIndex].positionPerpetuals[productId];
+
+                    updateSubVault(
+                        traderVault,
+                        productId,
+                        _vaultId,
+                        subVaultIndex,
+                        tradePrices[productId],
+                        fundingPaidPerPositions[productId],
+                        -amountAssetInVault,
+                        ""
+                    );
+                }
             }
         }
 
@@ -282,44 +341,61 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         emit Liquidated(msg.sender, _vaultId, reward);
     }
 
-    function updatePosition(
+    /**
+     * @notice Updates pool position.
+     * It returns trade price and fundingPaidPerPosition for each product, and protocol fee.
+     */
+    function updatePoolPosition(int256[2] memory _tradeAmounts, uint256[2] memory _limitPrices)
+        internal
+        returns (
+            uint256[2] memory tradePrices,
+            int256[2] memory fundingPaidPerPositions,
+            uint256 protocolFee
+        )
+    {
+        (tradePrices, fundingPaidPerPositions, protocolFee) = perpetualMarketCore.updatePoolPositions(_tradeAmounts);
+
+        require(checkPrice(_tradeAmounts[0] > 0, tradePrices[0], _limitPrices[0]), "PM1");
+        require(checkPrice(_tradeAmounts[1] > 0, tradePrices[1], _limitPrices[1]), "PM1");
+
+        protocolFee = protocolFee / 1e2;
+    }
+
+    /**
+     * @notice Update sub-vault
+     */
+    function updateSubVault(
         TraderVaultLib.TraderVault storage _traderVault,
         uint256 _productId,
         uint256 _vaultId,
         uint256 _subVaultIndex,
+        uint256 _tradePrice,
+        int256 _fundingFeePerPosition,
         int128 _tradeAmount,
-        uint256 _limitPrice,
         bytes memory _metadata
-    ) internal returns (uint256) {
-        if (_tradeAmount != 0) {
-            (uint256 tradePrice, int256 fundingFeePerPosition, uint256 protocolFee) = perpetualMarketCore
-                .updatePoolPosition(_productId, _tradeAmount);
-
-            require(checkPrice(_tradeAmount > 0, tradePrice, _limitPrice), "PM1");
-
-            int256 deltaUsdcPosition = _traderVault.updateVault(
-                _subVaultIndex,
-                _productId,
-                _tradeAmount,
-                tradePrice,
-                fundingFeePerPosition
-            );
-
-            emit PositionUpdated(
-                msg.sender,
-                _vaultId,
-                _subVaultIndex,
-                _productId,
-                _tradeAmount,
-                tradePrice,
-                fundingFeePerPosition,
-                deltaUsdcPosition,
-                _metadata
-            );
-
-            return protocolFee / 1e2;
+    ) internal {
+        if (_tradeAmount == 0) {
+            return;
         }
-        return 0;
+        int256 deltaUsdcPosition = _traderVault.updateVault(
+            _subVaultIndex,
+            _productId,
+            _tradeAmount,
+            _tradePrice,
+            _fundingFeePerPosition
+        );
+
+        emit PositionUpdated(
+            msg.sender,
+            _vaultId,
+            _subVaultIndex,
+            _productId,
+            _tradeAmount,
+            _tradePrice,
+            _fundingFeePerPosition,
+            deltaUsdcPosition,
+            _metadata
+        );
     }
 
     /**
@@ -417,17 +493,22 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     /**
      * @notice Gets trade price
      * @param _productId product id
-     * @param _tradeAmount amount of position to trade. positive to get long price and negative to get short price.
+     * @param _tradeAmounts amount of position to trade. positive to get long price and negative to get short price.
      * @return trade info
      */
-    function getTradePrice(uint256 _productId, int128 _tradeAmount) external view override returns (TradeInfo memory) {
+    function getTradePrice(uint256 _productId, int256[2] memory _tradeAmounts)
+        external
+        view
+        override
+        returns (TradeInfo memory)
+    {
         (
             int256 tradePrice,
             int256 indexPrice,
             int256 fundingRate,
             int256 tradeFee,
             int256 protocolFee
-        ) = perpetualMarketCore.getTradePrice(_productId, _tradeAmount);
+        ) = perpetualMarketCore.getTradePrice(_productId, _tradeAmounts);
 
         return
             TradeInfo(
@@ -437,8 +518,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
                 tradeFee,
                 protocolFee,
                 indexPrice.mul(fundingRate).div(1e16),
-                tradePrice.toUint256().mul(Math.abs(_tradeAmount)).div(1e8),
-                tradeFee.toUint256().mul(Math.abs(_tradeAmount)).div(1e8)
+                tradePrice.toUint256().mul(Math.abs(_tradeAmounts[_productId])).div(1e8),
+                tradeFee.toUint256().mul(Math.abs(_tradeAmounts[_productId])).div(1e8)
             );
     }
 
@@ -458,7 +539,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         minCollateral = traderVault.getMinCollateralToAddPosition(
             _tradeAmounts,
-            perpetualMarketCore.getTradePriceInfo(traderVault.getPositionPerpetuals())
+            perpetualMarketCore.getTradePriceInfo(getTradeAmountsToCloseVault(traderVault))
         );
 
         minCollateral = minCollateral / 1e2;
@@ -477,7 +558,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultId];
 
         IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
-            traderVault.getPositionPerpetuals()
+            getTradeAmountsToCloseVault(traderVault)
         );
 
         int256[2][] memory positionValues = new int256[2][](traderVault.subVaults.length);

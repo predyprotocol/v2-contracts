@@ -64,7 +64,7 @@ interface IPerpetualMarket {
 
     function getLPTokenPrice(int256 _deltaLiquidityAmount) external view returns (uint256);
 
-    function getTradePrice(uint256 _productId, int128 _tradeAmount)
+    function getTradePrice(uint256 _productId, int256[2] memory _tradeAmounts)
         external
         view
         returns (TradeInfo memory tradePriceInfo);
