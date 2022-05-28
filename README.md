@@ -75,3 +75,14 @@ Gets vault status.
 npx hardhat vault --network rinkebyArbitrum
 ```
 
+## Using foundry
+
+```shell
+forge build --hardhat
+```
+
+### Testing
+
+```shell
+forge test
+```
