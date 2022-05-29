@@ -91,27 +91,6 @@ describe('liquidation', function () {
       await expect(perpetualMarket.liquidateByPool(1)).revertedWith('vault is not danger')
     })
 
-    it('liquidate an insolvent vault', async () => {
-      await updateSpotPrice(1800)
-
-      await perpetualMarket.liquidateByPool(1)
-
-      const vault = await perpetualMarket.getVaultStatus(1)
-      expect(vault.minCollateral).to.be.eq(0)
-      expect(vault.rawVaultData.positionUsdc).to.be.lt(0)
-      expect(vault.positionValue).to.be.lt(0)
-      expect(vault.rawVaultData.isInsolvent).to.be.true
-
-      await expect(
-        perpetualMarket.trade({
-          vaultId: 1,
-          trades: [],
-          marginAmount: scaledBN(1, 8),
-          deadline: 0,
-        }),
-      ).to.be.revertedWith('T2')
-    })
-
     describe('withdraw all USDC after the vault liquidated', () => {
       afterEach(async () => {
         // LP can withdraw USDC
@@ -137,7 +116,6 @@ describe('liquidation', function () {
         expect(vault.minCollateral).to.be.eq(0)
         expect(vault.rawVaultData.positionUsdc).to.be.gt(0)
         expect(vault.rawVaultData.positionUsdc).to.be.eq(vault.positionValue)
-        expect(vault.rawVaultData.isInsolvent).to.be.false
 
         const before = await usdc.balanceOf(wallet.address)
         await perpetualMarket.trade({
@@ -160,7 +138,6 @@ describe('liquidation', function () {
         expect(vault.minCollateral).to.be.eq(0)
         expect(vault.rawVaultData.positionUsdc).to.be.gt(0)
         expect(vault.rawVaultData.positionUsdc).to.be.eq(vault.positionValue)
-        expect(vault.rawVaultData.isInsolvent).to.be.false
       })
 
       describe('usdc position is negative', () => {
@@ -288,24 +265,6 @@ describe('liquidation', function () {
       const after = await usdc.balanceOf(wallet.address)
 
       expect(after.sub(before)).to.be.gt(0)
-    })
-
-    it('liquidate an insolvent vault', async () => {
-      await updateSpotPrice(1800)
-
-      await perpetualMarket.liquidateByPool(1)
-
-      await expect(
-        perpetualMarket.trade({
-          vaultId: 1,
-          trades: [],
-          marginAmount: scaledBN(1, 8),
-          deadline: 0,
-        }),
-      ).to.be.revertedWith('T2')
-
-      const vault = await perpetualMarket.getVaultStatus(1)
-      expect(vault.rawVaultData.isInsolvent).to.be.true
     })
 
     it('reverts if the vault has enough margin', async () => {

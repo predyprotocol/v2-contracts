@@ -69,8 +69,8 @@ describe('TraderVaultLib', function () {
         }
       }
 
-      const vault = await tester.traderVault()
-      expect(vault.positionUsdc).to.be.eq(numToBn(expectedData.positionUsdc, 8))
+      const vaultPositionUsdc = await tester.traderVault()
+      expect(vaultPositionUsdc).to.be.eq(numToBn(expectedData.positionUsdc, 8))
 
       for (let i = 0; i < expectedData.subVaults.length; i++) {
         const expectedSubVault = expectedData.subVaults[i]
@@ -419,7 +419,7 @@ describe('TraderVaultLib', function () {
         amountsFundingPaidPerPosition: [1000, 1000],
       })
 
-      expect((await tester.traderVault()).positionUsdc).to.be.eq(positionValue)
+      expect(await tester.traderVault()).to.be.eq(positionValue)
     })
 
     describe('ETH price becomes high', () => {
@@ -635,7 +635,7 @@ describe('TraderVaultLib', function () {
           amountsFundingPaidPerPosition: [0, 0],
         })
         expect(await tester.r()).to.be.eq('100000000000')
-        expect((await tester.traderVault()).positionUsdc).to.be.eq(100000000000)
+        expect(await tester.traderVault()).to.be.eq(100000000000)
       })
 
       it('there is excess collateral', async function () {
@@ -652,7 +652,7 @@ describe('TraderVaultLib', function () {
           amountsFundingPaidPerPosition: [0, 0],
         })
         expect(await tester.r()).to.be.eq('-101000000000')
-        expect((await tester.traderVault()).positionUsdc).to.be.eq('-1000000000')
+        expect(await tester.traderVault()).to.be.eq('-1000000000')
       })
     })
 
@@ -670,7 +670,7 @@ describe('TraderVaultLib', function () {
           amountsFundingPaidPerPosition: [0, 0],
         })
         expect(await tester.r()).to.be.eq('200000000000')
-        expect((await tester.traderVault()).positionUsdc).to.be.eq('200000000000')
+        expect(await tester.traderVault()).to.be.eq('200000000000')
       })
 
       it('there is excess collateral', async function () {
@@ -687,7 +687,7 @@ describe('TraderVaultLib', function () {
           amountsFundingPaidPerPosition: [0, 0],
         })
         expect(await tester.r()).to.be.eq('-282950000000')
-        expect((await tester.traderVault()).positionUsdc).to.be.eq('-82950000000')
+        expect(await tester.traderVault()).to.be.eq('-82950000000')
       })
     })
   })
@@ -775,72 +775,6 @@ describe('TraderVaultLib', function () {
     })
   })
 
-  describe('setInsolvencyFlagIfNeeded', () => {
-    describe('single sub-vault', () => {
-      beforeEach(async () => {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '7000000000', '10000000000', '0')
-        await tester.testUpdateUsdcPosition('112900000000', {
-          spotPrice: '100000000000',
-          tradePrices: ['100000000000', '10000000000'],
-          fundingRates: [0, 0],
-          amountsFundingPaidPerPosition: [0, 0],
-        })
-      })
-
-      it('reverts if there are positions', async function () {
-        await expect(tester.testSetInsolvencyFlagIfNeeded()).to.be.reverted
-      })
-
-      it('vault is not insolvent', async function () {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-7000000000', '10000000000', '0')
-
-        await tester.testSetInsolvencyFlagIfNeeded()
-
-        expect((await tester.traderVault()).isInsolvent).to.be.false
-      })
-
-      it('vault is insolvent', async function () {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-7000000000', '8000000000', '0')
-
-        await tester.testSetInsolvencyFlagIfNeeded()
-
-        expect((await tester.traderVault()).isInsolvent).to.be.true
-      })
-    })
-
-    describe('multiple sub-vault', () => {
-      beforeEach(async () => {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '3500000000', '10000000000', '0')
-        await tester.testUpdateVault(1, SQUEETH_PRODUCT_ID, '3500000000', '10000000000', '0')
-
-        await tester.testUpdateUsdcPosition('112900000000', {
-          spotPrice: '100000000000',
-          tradePrices: ['100000000000', '10000000000'],
-          fundingRates: [0, 0],
-          amountsFundingPaidPerPosition: [0, 0],
-        })
-      })
-
-      it('vault is not insolvent', async function () {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-3500000000', '10000000000', '0')
-        await tester.testUpdateVault(1, SQUEETH_PRODUCT_ID, '-3500000000', '10000000000', '0')
-
-        await tester.testSetInsolvencyFlagIfNeeded()
-
-        expect((await tester.traderVault()).isInsolvent).to.be.false
-      })
-
-      it('vault is insolvent', async function () {
-        await tester.testUpdateVault(0, SQUEETH_PRODUCT_ID, '-3500000000', '8000000000', '0')
-        await tester.testUpdateVault(1, SQUEETH_PRODUCT_ID, '-3500000000', '8000000000', '0')
-
-        await tester.testSetInsolvencyFlagIfNeeded()
-
-        expect((await tester.traderVault()).isInsolvent).to.be.true
-      })
-    })
-  })
-
   describe('decreaseLiquidationReward', () => {
     const liquidationFee = 2000
 
@@ -856,13 +790,13 @@ describe('TraderVaultLib', function () {
     it('reward is 0.2 of MinCollateral', async function () {
       await tester.testDecreaseLiquidationReward(scaledBN(10, 8), liquidationFee)
       expect(await tester.r()).to.be.eq(200000000)
-      expect((await tester.traderVault()).positionUsdc).to.be.eq(0)
+      expect(await tester.traderVault()).to.be.eq(0)
     })
 
     it('reward is equal to usdcPosition', async function () {
       await tester.testDecreaseLiquidationReward(scaledBN(5, 7), liquidationFee)
       expect(await tester.r()).to.be.eq(10000000)
-      expect((await tester.traderVault()).positionUsdc).to.be.eq(190000000)
+      expect(await tester.traderVault()).to.be.eq(190000000)
     })
   })
 })

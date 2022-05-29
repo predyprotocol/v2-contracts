@@ -58,7 +58,6 @@ library TraderVaultLib {
     struct TraderVault {
         int128 positionUsdc;
         SubVault[] subVaults;
-        bool isInsolvent;
     }
 
     /**
@@ -96,7 +95,6 @@ library TraderVaultLib {
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) external returns (int256 finalUsdcPosition) {
         finalUsdcPosition = _usdcPositionToAdd;
-        require(!_traderVault.isInsolvent, "T2");
 
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
         int256 minCollateral = getMinCollateral(_traderVault, _tradePriceInfo);
@@ -118,7 +116,6 @@ library TraderVaultLib {
      * @param _usdcPositionToAdd amount to add. value is always positive.
      */
     function addUsdcPosition(TraderVault storage _traderVault, int256 _usdcPositionToAdd) external {
-        require(!_traderVault.isInsolvent, "T2");
         require(_usdcPositionToAdd > 0, "T5");
 
         _traderVault.positionUsdc = _traderVault.positionUsdc.add(_usdcPositionToAdd).toInt128();
@@ -174,7 +171,6 @@ library TraderVaultLib {
         uint256 _tradePrice,
         int256 _fundingFeePerPosition
     ) external returns (int256 deltaUsdcPosition) {
-        require(!_traderVault.isInsolvent, "T2");
         require(_positionPerpetual != 0, "T4");
 
         if (_traderVault.subVaults.length == _subVaultIndex) {
@@ -235,25 +231,6 @@ library TraderVaultLib {
         int256 positionValue = getPositionValue(_traderVault, _tradePriceInfo);
 
         return positionValue < getMinCollateral(_traderVault, _tradePriceInfo);
-    }
-
-    /**
-     * @notice Set insolvency flag if needed
-     * If PositionValue is negative, set insolvency flag.
-     * @param _traderVault trader vault object
-     */
-    function setInsolvencyFlagIfNeeded(TraderVault storage _traderVault) external {
-        // Confirm that there are no positions
-        for (uint256 i = 0; i < _traderVault.subVaults.length; i++) {
-            for (uint256 j = 0; j < MAX_PRODUCT_ID; j++) {
-                require(_traderVault.subVaults[i].positionPerpetuals[j] == 0);
-            }
-        }
-
-        // If there are no positions, PositionUSDC is equal to PositionValue.
-        if (_traderVault.positionUsdc < 0) {
-            _traderVault.isInsolvent = true;
-        }
     }
 
     /**
