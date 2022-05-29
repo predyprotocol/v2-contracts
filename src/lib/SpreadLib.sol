@@ -56,10 +56,10 @@ library SpreadLib {
         adjustedPrice = getUpdatedPrice(cache, _isLong, _price, block.timestamp);
 
         _info.timeLastLongTransaction = cache.timeLastLongTransaction;
-        // _info.minLongTradePrice = cache.minLongTradePrice;
+        _info.minLongTradePrice = cache.minLongTradePrice;
         _info.timeLastShortTransaction = cache.timeLastShortTransaction;
-        // _info.maxShortTradePrice = cache.maxShortTradePrice;
-    }
+        _info.maxShortTradePrice = cache.maxShortTradePrice;
+            }
 
     function getUpdatedPrice(
         Info memory _info,
@@ -78,18 +78,18 @@ library SpreadLib {
                     if (spreadClosing > MAX_SPREAD_DECREASE) {
                         spreadClosing = MAX_SPREAD_DECREASE;
                     }
-                    // if (adjustedPrice <= (_info.maxShortTradePrice.mul(1e4 - spreadClosing)) / 1e4) {
-                    //     _info.maxShortTradePrice = ((_info.maxShortTradePrice.mul(1e4 - spreadClosing)) / 1e4)
-                    //         .toInt128();
-                    // }
-                    adjustedPrice = _info.maxShortTradePrice;
+                    if (adjustedPrice <= (_info.maxShortTradePrice.mul(1e4 - spreadClosing)) / 1e4) {
+                        adjustedPrice = ((_info.maxShortTradePrice.mul(1e4 - spreadClosing)) / 1e4)
+                            .toInt128();
+                    }
+                    
                 }
             }
 
             // Update min ask
-            // if (_info.minLongTradePrice > adjustedPrice || _info.timeLastLongTransaction + SAFETY_PERIOD < _timestamp) {
-            //     _info.minLongTradePrice = adjustedPrice.toInt128();
-            // }
+            if (_info.minLongTradePrice > adjustedPrice || _info.timeLastLongTransaction + SAFETY_PERIOD < _timestamp) {
+                // _info.minLongTradePrice = adjustedPrice.toInt128();
+            }
             _info.timeLastLongTransaction = uint128(_timestamp);
         } else {
             // if short
@@ -101,19 +101,19 @@ library SpreadLib {
                     if (spreadClosing > MAX_SPREAD_DECREASE) {
                         spreadClosing = MAX_SPREAD_DECREASE;
                     }
-                    // if (adjustedPrice <= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
-                    //     _info.minLongTradePrice = ((_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4).toInt128();
-                    // }
-                    adjustedPrice = _info.minLongTradePrice;
+                    if (adjustedPrice <= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
+                        adjustedPrice = ((_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4).toInt128();
+                    }
+                    
                 }
             }
 
             // Update max bit
-            // if (
-            //     _info.maxShortTradePrice < adjustedPrice || _info.timeLastShortTransaction + SAFETY_PERIOD < _timestamp
-            // ) {
-            //     _info.maxShortTradePrice = adjustedPrice.toInt128();
-            // }
+            if (
+                _info.maxShortTradePrice < adjustedPrice || _info.timeLastShortTransaction + SAFETY_PERIOD < _timestamp
+            ) {
+                // _info.maxShortTradePrice = adjustedPrice.toInt128();
+            }
             _info.timeLastShortTransaction = uint128(_timestamp);
         }
     }
