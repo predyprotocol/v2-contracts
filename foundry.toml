@@ -1,5 +1,5 @@
 [default]
-src = 'contracts'
+src = 'src'
 test = 'test/foundry'
 out = 'artifacts/contracts'
 libs = ['lib']

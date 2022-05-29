@@ -162,14 +162,14 @@ const config: HardhatUserConfig = {
     }),
   },
   paths: {
-    sources: './contracts',
-    cache: './cache',
+    sources: './src',
+    cache: './cache_hardhat',
   },
 }
 
 function getRemappings() {
   return fs
-    .readFileSync('remappings.txt', 'utf8')
+    .readFileSync('remappings-hardhat.txt', 'utf8')
     .split('\n')
     .filter(Boolean) // remove empty lines
     .map((line: any) => line.trim().split('='))
