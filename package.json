@@ -8,8 +8,8 @@
     "deploy": "hardhat deploy",
     "test": "hardhat test --network hardhat",
     "coverage": "hardhat coverage",
-    "lint:check": "prettier --check \"contracts/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\"",
-    "lint:write": "prettier --write \"contracts/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\""
+    "lint:check": "prettier --check \"src/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\"",
+    "lint:write": "prettier --write \"src/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\""
   },
   "author": "predy",
   "license": "ISC",
