@@ -78,8 +78,13 @@ npx hardhat vault --network rinkebyArbitrum
 ## Using foundry
 
 ```shell
-./bin/setup.sh
+forge install openzeppelin/openzeppelin-contracts@v3.4.2-solc-0.7
+forge install uniswap/v3-core@1.0.0
+forge install uniswap/v3-periphery
+forge install smartcontractkit/chainlink
+
 ```
+
 ```shell
 forge build --hardhat
 ```
@@ -90,7 +95,3 @@ forge build --hardhat
 forge test
 ```
 
-forge install openzeppelin/openzeppelin-contracts@v3.4.2-solc-0.7
-forge install uniswap/v3-core@1.0.0
-forge install uniswap/v3-periphery
-forge install smartcontractkit/chainlink
