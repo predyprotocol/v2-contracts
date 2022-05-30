@@ -2,24 +2,29 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import "../PerpetualMarketCore.sol";
+import "forge-std/Test.sol";
+
+import "../../src/PerpetualMarketCore.sol";
 
 /**
  * @title PerpetualMarketCoreTester
  * @notice Tester contract for Perpetual Market Core
  */
-contract PerpetualMarketCoreTester is PerpetualMarketCore {
+contract PerpetualMarketCoreTest is Test {
     uint256 public result;
+    PerpetualMarketCore pmc;
 
-    constructor(address _priceFeedAddress) PerpetualMarketCore(_priceFeedAddress, "TestLPToken", "TestLPToken") {}
+    function setUp() public {
+        pmc = new PerpetualMarketCore(0x, "TestLPToken", "TestLPToken");
+    }
 
-    function setPoolStatus(
+    function testSetPoolStatus(
         uint256 _productId,
         int128 _positionPerpetuals,
         uint128 _lastFundingPaymentTime
     ) external {
-        pools[_productId].positionPerpetuals = _positionPerpetuals;
-        pools[_productId].lastFundingPaymentTime = _lastFundingPaymentTime;
+        pmc.pools[_productId].positionPerpetuals = _positionPerpetuals;
+        pmc.pools[_productId].lastFundingPaymentTime = _lastFundingPaymentTime;
     }
 
     function setPoolSnapshot(
@@ -32,7 +37,7 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
         poolSnapshot.lastSnapshotTime = _lastSnapshotTime;
     }
 
-    function verifyCalculateUnlockedLiquidity(
+    function testCalculateUnlockedLiquidity(
         uint256 _amountLockedLiquidity,
         int256 _deltaM,
         int256 _hedgePositionValue
@@ -40,20 +45,20 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
         return calculateUnlockedLiquidity(_amountLockedLiquidity, _deltaM, _hedgePositionValue);
     }
 
-    function verifyUpdatePoolPositions(uint256 _productId, int256[2] memory _tradeAmounts) external {
+    function testUpdatePoolPositions(uint256 _productId, int256[2] memory _tradeAmounts) external {
         (uint256[2] memory tradePrice, , ) = updatePoolPositions(_tradeAmounts);
         result = tradePrice[_productId];
     }
 
-    function verifyUpdateVariance(uint256 _timestamp) external {
+    function testUpdateVariance(uint256 _timestamp) external {
         updateVariance(_timestamp);
     }
 
-    function verifyExecuteFundingPayment(uint256 _productId, int256 _spotPrice) external {
+    function testExecuteFundingPayment(uint256 _productId, int256 _spotPrice) external {
         _executeFundingPayment(_productId, _spotPrice);
     }
 
-    function verifyCalculateResultOfFundingPayment(
+    function testCalculateResultOfFundingPayment(
         uint256 _productId,
         int256 _spotPrice,
         uint256 _currentTimestamp
@@ -69,19 +74,19 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
         return calculateResultOfFundingPayment(_productId, _spotPrice, _currentTimestamp);
     }
 
-    function verifyGetSignedMarginAmount(uint256 _productId) external view returns (int256) {
+    function testGetSignedMarginAmount(uint256 _productId) external view returns (int256) {
         return getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId);
     }
 
-    function verifyCalculateSignedDeltaMargin(
-        MarginChange _marginChangeType,
+    function testCalculateSignedDeltaMargin(
+        PerpetualMarketCore.MarginChange _marginChangeType,
         int256 _deltaMargin,
         int256 _currentMarginAmount
     ) external pure returns (int256) {
         return calculateSignedDeltaMargin(_marginChangeType, _deltaMargin, _currentMarginAmount);
     }
 
-    function verifyCalculateFundingRate(
+    function testCalculateFundingRate(
         uint256 _productId,
         int256 _margin,
         int256 _totalLiquidityAmount,
