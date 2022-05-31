@@ -249,7 +249,13 @@ describe('TraderVaultLib', function () {
 
       for (let i = 0; i < subVaults.length; i++) {
         if (subVaults[i][0] !== 0) {
-          await tester.verifyUpdateVault(i, FUTURE_PRODUCT_ID, numToBn(subVaults[i][0], 8), numToBn(futurePrice, 8), '0')
+          await tester.verifyUpdateVault(
+            i,
+            FUTURE_PRODUCT_ID,
+            numToBn(subVaults[i][0], 8),
+            numToBn(futurePrice, 8),
+            '0',
+          )
           positionFuture += subVaults[i][0]
         }
         if (subVaults[i][1] !== 0) {
