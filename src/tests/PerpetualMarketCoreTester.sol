@@ -32,7 +32,7 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
         poolSnapshot.lastSnapshotTime = _lastSnapshotTime;
     }
 
-    function testCalculateUnlockedLiquidity(
+    function verifyCalculateUnlockedLiquidity(
         uint256 _amountLockedLiquidity,
         int256 _deltaM,
         int256 _hedgePositionValue
@@ -40,20 +40,20 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
         return calculateUnlockedLiquidity(_amountLockedLiquidity, _deltaM, _hedgePositionValue);
     }
 
-    function testUpdatePoolPositions(uint256 _productId, int256[2] memory _tradeAmounts) external {
+    function verifyUpdatePoolPositions(uint256 _productId, int256[2] memory _tradeAmounts) external {
         (uint256[2] memory tradePrice, , ) = updatePoolPositions(_tradeAmounts);
         result = tradePrice[_productId];
     }
 
-    function testUpdateVariance(uint256 _timestamp) external {
+    function verifyUpdateVariance(uint256 _timestamp) external {
         updateVariance(_timestamp);
     }
 
-    function testExecuteFundingPayment(uint256 _productId, int256 _spotPrice) external {
+    function verifyExecuteFundingPayment(uint256 _productId, int256 _spotPrice) external {
         _executeFundingPayment(_productId, _spotPrice);
     }
 
-    function testCalculateResultOfFundingPayment(
+    function verifyCalculateResultOfFundingPayment(
         uint256 _productId,
         int256 _spotPrice,
         uint256 _currentTimestamp
@@ -69,11 +69,11 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
         return calculateResultOfFundingPayment(_productId, _spotPrice, _currentTimestamp);
     }
 
-    function testGetSignedMarginAmount(uint256 _productId) external view returns (int256) {
+    function verifyGetSignedMarginAmount(uint256 _productId) external view returns (int256) {
         return getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId);
     }
 
-    function testCalculateSignedDeltaMargin(
+    function verifyCalculateSignedDeltaMargin(
         MarginChange _marginChangeType,
         int256 _deltaMargin,
         int256 _currentMarginAmount
@@ -81,7 +81,7 @@ contract PerpetualMarketCoreTester is PerpetualMarketCore {
         return calculateSignedDeltaMargin(_marginChangeType, _deltaMargin, _currentMarginAmount);
     }
 
-    function testCalculateFundingRate(
+    function verifyCalculateFundingRate(
         uint256 _productId,
         int256 _margin,
         int256 _totalLiquidityAmount,

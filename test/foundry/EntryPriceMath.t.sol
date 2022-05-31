@@ -1,9 +1,11 @@
 //SPDX-License-Identifier: agpl-3.0
 pragma solidity =0.7.6;
 
-import "../lib/EntryPriceMath.sol";
+import "forge-std/Test.sol";
 
-contract EntryPriceMathTester {
+import "../../src/lib/EntryPriceMath.sol";
+
+contract EntryPriceMathTest is Test {
     function testUpdateEntryPrice(
         int256 _entryPrice,
         int256 _position,

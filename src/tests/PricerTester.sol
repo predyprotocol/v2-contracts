@@ -8,15 +8,15 @@ import "../lib/IndexPricer.sol";
  * @notice Tester contract for Pricer library
  */
 contract PricerTester {
-    function testCalculatePrice(uint256 _productId, int256 _spotPrice) external pure returns (int256) {
+    function verifyCalculatePrice(uint256 _productId, int256 _spotPrice) external pure returns (int256) {
         return IndexPricer.calculateIndexPrice(_productId, _spotPrice);
     }
 
-    function testCalculateDelta(uint256 _productId, int256 _spotPrice) external pure returns (int256) {
+    function verifyCalculateDelta(uint256 _productId, int256 _spotPrice) external pure returns (int256) {
         return IndexPricer.calculateDelta(_productId, _spotPrice);
     }
 
-    function testCalculateGamma(uint256 _productId) external pure returns (int256) {
+    function verifyCalculateGamma(uint256 _productId) external pure returns (int256) {
         return IndexPricer.calculateGamma(_productId);
     }
 }

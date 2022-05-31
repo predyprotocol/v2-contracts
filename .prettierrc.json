@@ -6,7 +6,7 @@
   "semi": false,
   "overrides": [
     {
-      "files": "contracts/**/*.sol",
+      "files": "src/**/*.sol",
       "options": {
         "tabWidth": 4,
         "singleQuote": false

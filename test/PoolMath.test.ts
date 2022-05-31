@@ -23,7 +23,7 @@ describe('PoolMath', function () {
     }
 
     it('reverts if liquidity is 0', async () => {
-      await expect(tester.testCalculateMarginDivLiquidity(0, 0, 0, 0)).to.be.revertedWith('l must be positive')
+      await expect(tester.verifyCalculateMarginDivLiquidity(0, 0, 0, 0)).to.be.revertedWith('l must be positive')
     })
 
     it('return a correct value', async () => {
@@ -61,7 +61,7 @@ describe('PoolMath', function () {
             testValueOfLiquidity[0],
             testValueOfLiquidity[1],
           )
-          const result = await tester.testCalculateMarginDivLiquidity(
+          const result = await tester.verifyCalculateMarginDivLiquidity(
             numToBn(testValueOfMargin[0], decimals),
             numToBn(testValueOfMargin[1], decimals),
             numToBn(testValueOfLiquidity[0], decimals),

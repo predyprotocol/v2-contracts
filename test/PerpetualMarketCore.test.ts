@@ -236,7 +236,7 @@ describe('PerpetualMarketCore', function () {
       tradeAmounts[productId] = BigNumber.from(tradeAmount).mul(-1)
 
       const result = await updatePoolPosition(productId, tradeAmount)
-      await tester.testUpdatePoolPositions(productId, tradeAmounts)
+      await tester.verifyUpdatePoolPositions(productId, tradeAmounts)
       return result
     }
 
@@ -251,7 +251,7 @@ describe('PerpetualMarketCore', function () {
       tradeAmounts[productId] = tradeAmount
 
       const tradePrice = await tester.getTradePrice(productId, tradeAmounts)
-      await tester.testUpdatePoolPositions(productId, tradeAmounts)
+      await tester.verifyUpdatePoolPositions(productId, tradeAmounts)
       const result = await tester.result()
       // Check trade price
       expect(tradePrice[0]).to.be.eq(result)
@@ -644,7 +644,7 @@ describe('PerpetualMarketCore', function () {
     it('12 hours', async () => {
       await tester.setPoolSnapshot('100000000000', '300000', timestamp)
       await updateSpot('110000000000')
-      await expect(tester.testUpdateVariance(timestamp + 60 * 60 * 12))
+      await expect(tester.verifyUpdateVariance(timestamp + 60 * 60 * 12))
         .to.be.emit(tester, 'VarianceUpdated')
         .withArgs(402000, '110000000000', timestamp + 60 * 60 * 12)
     })
@@ -652,7 +652,7 @@ describe('PerpetualMarketCore', function () {
     it('24 hours', async () => {
       await tester.setPoolSnapshot('100000000000', '300000', timestamp)
       await updateSpot('110000000000')
-      await expect(tester.testUpdateVariance(timestamp + 60 * 60 * 24))
+      await expect(tester.verifyUpdateVariance(timestamp + 60 * 60 * 24))
         .to.be.emit(tester, 'VarianceUpdated')
         .withArgs(342000, '110000000000', timestamp + 60 * 60 * 24)
     })
@@ -660,7 +660,7 @@ describe('PerpetualMarketCore', function () {
     it('36 hours', async () => {
       await tester.setPoolSnapshot('100000000000', '300000', timestamp)
       await updateSpot('110000000000')
-      await expect(tester.testUpdateVariance(timestamp + 60 * 60 * 36))
+      await expect(tester.verifyUpdateVariance(timestamp + 60 * 60 * 36))
         .to.be.emit(tester, 'VarianceUpdated')
         .withArgs(321999, '110000000000', timestamp + 60 * 60 * 36)
     })
@@ -668,8 +668,8 @@ describe('PerpetualMarketCore', function () {
 
   describe('executeFundingPayment', () => {
     it('initialize timestamp', async () => {
-      await tester.testExecuteFundingPayment(FUTURE_PRODUCT_ID, scaledBN(1000, 8))
-      await tester.testExecuteFundingPayment(SQUEETH_PRODUCT_ID, scaledBN(1000, 8))
+      await tester.verifyExecuteFundingPayment(FUTURE_PRODUCT_ID, scaledBN(1000, 8))
+      await tester.verifyExecuteFundingPayment(SQUEETH_PRODUCT_ID, scaledBN(1000, 8))
 
       const futurePool = await tester.pools(FUTURE_PRODUCT_ID)
       const squaredPool = await tester.pools(SQUEETH_PRODUCT_ID)
@@ -683,7 +683,7 @@ describe('PerpetualMarketCore', function () {
       await tester.setPoolStatus(FUTURE_PRODUCT_ID, 0, timestamp * 2)
 
       const before = await tester.amountLiquidity()
-      await tester.testExecuteFundingPayment(FUNDING_PERIOD, scaledBN(1000, 8))
+      await tester.verifyExecuteFundingPayment(FUNDING_PERIOD, scaledBN(1000, 8))
       const after = await tester.amountLiquidity()
 
       expect(before).to.be.eq(after)
@@ -697,72 +697,72 @@ describe('PerpetualMarketCore', function () {
 
     it('short', async () => {
       await tester.updatePoolPositions([100000, 0])
-      expect(await tester.testGetSignedMarginAmount(FUTURE_PRODUCT_ID)).to.be.gt(0)
+      expect(await tester.verifyGetSignedMarginAmount(FUTURE_PRODUCT_ID)).to.be.gt(0)
     })
 
     it('long', async () => {
       await tester.updatePoolPositions([-100000, 0])
-      expect(await tester.testGetSignedMarginAmount(FUTURE_PRODUCT_ID)).to.be.lt(0)
+      expect(await tester.verifyGetSignedMarginAmount(FUTURE_PRODUCT_ID)).to.be.lt(0)
     })
   })
 
   describe('calculateSignedDeltaMargin', () => {
     it('short to short', async () => {
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.ShortToShort, 10, 100)).to.be.eq(10)
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.ShortToShort, -10, 100)).to.be.eq(-10)
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.ShortToShort, -100, 100)).to.be.eq(-100)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.ShortToShort, 10, 100)).to.be.eq(10)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.ShortToShort, -10, 100)).to.be.eq(-10)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.ShortToShort, -100, 100)).to.be.eq(-100)
     })
 
     it('long to long', async () => {
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.LongToLong, 10, 100)).to.be.eq(-10)
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.LongToLong, -10, 100)).to.be.eq(10)
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.LongToLong, -100, 100)).to.be.eq(100)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.LongToLong, 10, 100)).to.be.eq(-10)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.LongToLong, -10, 100)).to.be.eq(10)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.LongToLong, -100, 100)).to.be.eq(100)
     })
 
     it('short to long', async () => {
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.ShortToLong, 10, 100)).to.be.eq(-210)
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.ShortToLong, -10, 100)).to.be.eq(-190)
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.ShortToLong, -100, 100)).to.be.eq(-100)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.ShortToLong, 10, 100)).to.be.eq(-210)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.ShortToLong, -10, 100)).to.be.eq(-190)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.ShortToLong, -100, 100)).to.be.eq(-100)
     })
 
     it('long to short', async () => {
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.LongToShort, 10, 100)).to.be.eq(210)
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.LongToShort, -10, 100)).to.be.eq(190)
-      expect(await tester.testCalculateSignedDeltaMargin(MarginChange.LongToShort, -100, 100)).to.be.eq(100)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.LongToShort, 10, 100)).to.be.eq(210)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.LongToShort, -10, 100)).to.be.eq(190)
+      expect(await tester.verifyCalculateSignedDeltaMargin(MarginChange.LongToShort, -100, 100)).to.be.eq(100)
     })
   })
 
   describe('calculateUnlockedLiquidity', () => {
     it('lockedLiquidityAmount=100, deltaM=100, hedgePositionValue=100', async () => {
-      const result = await tester.testCalculateUnlockedLiquidity(100, -100, 100)
+      const result = await tester.verifyCalculateUnlockedLiquidity(100, -100, 100)
 
       expect(result[0]).to.be.eq(0)
       expect(result[1]).to.be.eq(-100)
     })
 
     it('lockedLiquidityAmount=100, deltaM=99, hedgePositionValue=99', async () => {
-      const result = await tester.testCalculateUnlockedLiquidity(100, -99, 99)
+      const result = await tester.verifyCalculateUnlockedLiquidity(100, -99, 99)
 
       expect(result[0]).to.be.eq(-1)
       expect(result[1]).to.be.eq(-100)
     })
 
     it('lockedLiquidityAmount=100, deltaM=101, hedgePositionValue=101', async () => {
-      const result = await tester.testCalculateUnlockedLiquidity(100, -101, 101)
+      const result = await tester.verifyCalculateUnlockedLiquidity(100, -101, 101)
 
       expect(result[0]).to.be.eq(1)
       expect(result[1]).to.be.eq(-100)
     })
 
     it('lockedLiquidityAmount=100, deltaM=50, hedgePositionValue=98', async () => {
-      const result = await tester.testCalculateUnlockedLiquidity(100, -50, 98)
+      const result = await tester.verifyCalculateUnlockedLiquidity(100, -50, 98)
 
       expect(result[0]).to.be.eq(-1)
       expect(result[1]).to.be.eq(-51)
     })
 
     it('lockedLiquidityAmount=100, deltaM=50, hedgePositionValue=102', async () => {
-      const result = await tester.testCalculateUnlockedLiquidity(100, -50, 102)
+      const result = await tester.verifyCalculateUnlockedLiquidity(100, -50, 102)
 
       expect(result[0]).to.be.eq(1)
       expect(result[1]).to.be.eq(-49)
@@ -782,12 +782,12 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('pool receives funding fee from short perpetual future position', async () => {
-      const result1 = await tester.testCalculateResultOfFundingPayment(
+      const result1 = await tester.verifyCalculateResultOfFundingPayment(
         FUTURE_PRODUCT_ID,
         scaledBN(1000, 8),
         FUNDING_PERIOD,
       )
-      const result2 = await tester.testCalculateResultOfFundingPayment(
+      const result2 = await tester.verifyCalculateResultOfFundingPayment(
         FUTURE_PRODUCT_ID,
         scaledBN(1000, 8),
         FUNDING_PERIOD * days,
@@ -801,7 +801,7 @@ describe('PerpetualMarketCore', function () {
 
     it('pool receives funding fee from long perpetual future position', async () => {
       await tester.updatePoolPositions([0, -200000000])
-      const result = await tester.testCalculateResultOfFundingPayment(
+      const result = await tester.verifyCalculateResultOfFundingPayment(
         FUTURE_PRODUCT_ID,
         scaledBN(1000, 8),
         FUNDING_PERIOD,
@@ -811,12 +811,12 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('pool receives funding fee from squared perpetual position', async () => {
-      const result1 = await tester.testCalculateResultOfFundingPayment(
+      const result1 = await tester.verifyCalculateResultOfFundingPayment(
         SQUEETH_PRODUCT_ID,
         scaledBN(1000, 8),
         FUNDING_PERIOD,
       )
-      const result2 = await tester.testCalculateResultOfFundingPayment(
+      const result2 = await tester.verifyCalculateResultOfFundingPayment(
         SQUEETH_PRODUCT_ID,
         scaledBN(1000, 8),
         FUNDING_PERIOD * days,
@@ -830,7 +830,7 @@ describe('PerpetualMarketCore', function () {
 
     it('pool pays funding fee from squared perpetual position', async () => {
       await tester.updatePoolPositions([0, -200000000])
-      const result = await tester.testCalculateResultOfFundingPayment(
+      const result = await tester.verifyCalculateResultOfFundingPayment(
         SQUEETH_PRODUCT_ID,
         scaledBN(1000, 8),
         FUNDING_PERIOD,
@@ -847,7 +847,7 @@ describe('PerpetualMarketCore', function () {
     async function checkFundingRate(productId: number, testDL: number, testValues: number[][]) {
       let previousResult = constants.MaxInt256
       for (let testValue of testValues) {
-        const result = await tester.testCalculateFundingRate(
+        const result = await tester.verifyCalculateFundingRate(
           productId,
           numToBn(testValue[0], decimals),
           numToBn(testL, decimals),
@@ -885,11 +885,11 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('reverts if liquidity is 0', async () => {
-      await expect(tester.testCalculateFundingRate(FUTURE_PRODUCT_ID, 0, 0, 0, 0)).to.be.revertedWith('a')
+      await expect(tester.verifyCalculateFundingRate(FUTURE_PRODUCT_ID, 0, 0, 0, 0)).to.be.revertedWith('a')
     })
 
     it('return 0 if product id is invalid', async () => {
-      expect(await tester.testCalculateFundingRate(2, 0, 0, 0, 0)).to.be.eq(0)
+      expect(await tester.verifyCalculateFundingRate(2, 0, 0, 0, 0)).to.be.eq(0)
     })
   })
 })

@@ -8,5 +8,6 @@ typechain-ovm
 #Hardhat files
 cache
 cache-ovm
+cache_hardhat
 artifacts
 artifacts-ovm

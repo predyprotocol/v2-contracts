@@ -1,13 +1,15 @@
 //SPDX-License-Identifier: agpl-3.0
 pragma solidity =0.7.6;
 
-import "../lib/PoolMath.sol";
+import "forge-std/Test.sol";
+
+import "../../src/lib/PoolMath.sol";
 
 /**
  * @title PoolMathTester
  * @notice Tester contract for PoolMath library
  */
-contract PoolMathTester {
+contract PoolMathTest is Test {
     using SignedSafeMath for int256;
 
     function testCalculateMarginDivLiquidity(
