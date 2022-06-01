@@ -91,6 +91,33 @@ describe('liquidation', function () {
       await expect(perpetualMarket.liquidateByPool(1)).revertedWith('vault is not danger')
     })
 
+    it('liquidate an insolvent vault', async () => {
+      await updateSpotPrice(1800)
+
+      await perpetualMarket.liquidateByPool(1)
+
+      const vault = await perpetualMarket.getVaultStatus(1)
+      expect(vault.minCollateral).to.be.eq(0)
+      expect(vault.rawVaultData.positionUsdc).to.be.lt(0)
+      expect(vault.positionValue).to.be.lt(0)
+
+      // can not create position when the position value is less than 0
+      await expect(
+        perpetualMarket.trade({
+          vaultId: 1,
+          trades: [],
+          marginAmount: scaledBN(1, 8),
+          deadline: 0,
+        }),
+      ).to.be.revertedWith('T0')
+
+      // deposit works when aother position value is less than 0
+      const before = await usdc.balanceOf(wallet.address)
+      await perpetualMarket.deposit(scaledBN(20, 6))
+      const after = await usdc.balanceOf(wallet.address)
+      expect(before.sub(after)).to.be.eq(20000000)
+    })
+
     describe('withdraw all USDC after the vault liquidated', () => {
       afterEach(async () => {
         // LP can withdraw USDC
@@ -265,6 +292,28 @@ describe('liquidation', function () {
       const after = await usdc.balanceOf(wallet.address)
 
       expect(after.sub(before)).to.be.gt(0)
+    })
+
+    it('liquidate an insolvent vault', async () => {
+      await updateSpotPrice(1800)
+
+      await perpetualMarket.liquidateByPool(1)
+
+      // can not create position when the position value is less than 0
+      await expect(
+        perpetualMarket.trade({
+          vaultId: 1,
+          trades: [],
+          marginAmount: scaledBN(1, 8),
+          deadline: 0,
+        }),
+      ).to.be.revertedWith('T0')
+
+      // deposit works when aother position value is less than 0
+      const before = await usdc.balanceOf(wallet.address)
+      await perpetualMarket.deposit(scaledBN(20, 6))
+      const after = await usdc.balanceOf(wallet.address)
+      expect(before.sub(after)).to.be.eq(20000000)
     })
 
     it('reverts if the vault has enough margin', async () => {
