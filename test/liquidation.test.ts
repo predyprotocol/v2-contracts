@@ -111,11 +111,16 @@ describe('liquidation', function () {
         }),
       ).to.be.revertedWith('T0')
 
-      // deposit works when aother position value is less than 0
-      const before = await usdc.balanceOf(wallet.address)
-      await perpetualMarket.deposit(scaledBN(20, 6))
-      const after = await usdc.balanceOf(wallet.address)
-      expect(before.sub(after)).to.be.eq(20000000)
+      // deposit to already exist vault, it works when aother position value is less than 0
+      const beforeBalance = await usdc.balanceOf(perpetualMarket.address)
+      const beforeVault = await perpetualMarket.getTraderVault(1)
+      await perpetualMarket.addMargin(1, scaledBN(100, 6))
+      const afterBalance = await usdc.balanceOf(perpetualMarket.address)
+      const afterVault = await perpetualMarket.getTraderVault(1)
+
+      // check that USDC amount is increased
+      expect(afterBalance.sub(beforeBalance)).to.be.eq(scaledBN(100, 6))
+      expect(afterVault.positionUsdc.sub(beforeVault.positionUsdc)).to.be.eq(scaledBN(100, 8))
     })
 
     describe('withdraw all USDC after the vault liquidated', () => {
@@ -309,11 +314,16 @@ describe('liquidation', function () {
         }),
       ).to.be.revertedWith('T0')
 
-      // deposit works when aother position value is less than 0
-      const before = await usdc.balanceOf(wallet.address)
-      await perpetualMarket.deposit(scaledBN(20, 6))
-      const after = await usdc.balanceOf(wallet.address)
-      expect(before.sub(after)).to.be.eq(20000000)
+      // deposit to already exist vault, it works when aother position value is less than 0
+      const beforeBalance = await usdc.balanceOf(perpetualMarket.address)
+      const beforeVault = await perpetualMarket.getTraderVault(1)
+      await perpetualMarket.addMargin(1, scaledBN(100, 6))
+      const afterBalance = await usdc.balanceOf(perpetualMarket.address)
+      const afterVault = await perpetualMarket.getTraderVault(1)
+
+      // check that USDC amount is increased
+      expect(afterBalance.sub(beforeBalance)).to.be.eq(scaledBN(100, 6))
+      expect(afterVault.positionUsdc.sub(beforeVault.positionUsdc)).to.be.eq(scaledBN(100, 8))
     })
 
     it('reverts if the vault has enough margin', async () => {
