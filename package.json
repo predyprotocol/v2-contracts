@@ -7,6 +7,7 @@
     "compile": "hardhat compile",
     "deploy": "hardhat deploy",
     "test": "hardhat test --network hardhat",
+    "typechain": "hardhat typechain",
     "coverage": "hardhat coverage",
     "lint:check": "prettier --check \"src/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\"",
     "lint:write": "prettier --write \"src/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\""

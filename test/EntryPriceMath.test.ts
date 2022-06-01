@@ -14,13 +14,13 @@ describe('EntryPriceMath', function () {
   describe('updateEntryPrice', () => {
     describe('no positions', () => {
       it('add long position', async function () {
-        const result = await tester.testUpdateEntryPrice(0, 0, 100, '100000000')
+        const result = await tester.verifyUpdateEntryPrice(0, 0, 100, '100000000')
         expect(result[0]).to.be.eq('100')
         expect(result[1]).to.be.eq('0')
       })
 
       it('add short position', async function () {
-        const result = await tester.testUpdateEntryPrice(0, 0, 100, '-100000000')
+        const result = await tester.verifyUpdateEntryPrice(0, 0, 100, '-100000000')
         expect(result[0]).to.be.eq('100')
         expect(result[1]).to.be.eq('0')
       })
@@ -31,25 +31,25 @@ describe('EntryPriceMath', function () {
 
       describe('there are long positions', () => {
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '-100000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('0')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-500000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '-500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add short position and positions becomes negative', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-600000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '-600000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('0')
         })
@@ -57,25 +57,25 @@ describe('EntryPriceMath', function () {
 
       describe('there are short positions', () => {
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '-100000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('0')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '500000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add long position and positions becomes positive', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '600000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '600000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('0')
         })
@@ -87,25 +87,25 @@ describe('EntryPriceMath', function () {
 
       describe('there are long positions', () => {
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('101')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '-100000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('10')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-500000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '-500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('50')
         })
 
         it('add short position and positions becomes negative', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-600000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '-600000000')
           expect(result[0]).to.be.eq('110')
           expect(result[1]).to.be.eq('50')
         })
@@ -113,25 +113,25 @@ describe('EntryPriceMath', function () {
 
       describe('there are short positions', () => {
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '-100000000')
           expect(result[0]).to.be.eq('101')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('-10')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '500000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('-50')
         })
 
         it('add long position and positions becomes positive', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '600000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '600000000')
           expect(result[0]).to.be.eq('110')
           expect(result[1]).to.be.eq('-50')
         })
@@ -143,26 +143,26 @@ describe('EntryPriceMath', function () {
 
       describe('there are long positions', () => {
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('98')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '-100000000')
 
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('-10')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-500000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '-500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('-50')
         })
 
         it('add short position and positions becomes negatve', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '500000000', tradePrice, '-600000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '500000000', tradePrice, '-600000000')
 
           expect(result[0]).to.be.eq('90')
           expect(result[1]).to.be.eq('-50')
@@ -171,28 +171,28 @@ describe('EntryPriceMath', function () {
 
       describe('there are short positions', () => {
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '-100000000')
 
           expect(result[0]).to.be.eq('98')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '100000000')
 
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('10')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '500000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '500000000')
 
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('50')
         })
 
         it('add long position and positions becomes positive', async function () {
-          const result = await tester.testUpdateEntryPrice(100, '-500000000', tradePrice, '600000000')
+          const result = await tester.verifyUpdateEntryPrice(100, '-500000000', tradePrice, '600000000')
 
           expect(result[0]).to.be.eq('90')
           expect(result[1]).to.be.eq('50')
@@ -205,25 +205,25 @@ describe('EntryPriceMath', function () {
 
       describe('there are long positions', () => {
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('-100')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '500000000', tradePrice, '-100000000')
           expect(result[0]).to.be.eq('-100')
           expect(result[1]).to.be.eq('0')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '500000000', tradePrice, '-500000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '500000000', tradePrice, '-500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add short position and positions becomes negative', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '500000000', tradePrice, '-600000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '500000000', tradePrice, '-600000000')
           expect(result[0]).to.be.eq('-100')
           expect(result[1]).to.be.eq('0')
         })
@@ -231,25 +231,25 @@ describe('EntryPriceMath', function () {
 
       describe('there are short positions', () => {
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '-500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '-500000000', tradePrice, '-100000000')
           expect(result[0]).to.be.eq('-100')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '-500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '-500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('-100')
           expect(result[1]).to.be.eq('0')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '-500000000', tradePrice, '500000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '-500000000', tradePrice, '500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add long position and positions becomes positive', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '-500000000', tradePrice, '600000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '-500000000', tradePrice, '600000000')
           expect(result[0]).to.be.eq('-100')
           expect(result[1]).to.be.eq('0')
         })
@@ -261,25 +261,25 @@ describe('EntryPriceMath', function () {
 
       describe('there are long positions', () => {
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('-66')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '500000000', tradePrice, '-100000000')
           expect(result[0]).to.be.eq('-100')
           expect(result[1]).to.be.eq('200')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '500000000', tradePrice, '-500000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '500000000', tradePrice, '-500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('1000')
         })
 
         it('add short position and positions becomes negative', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '500000000', tradePrice, '-600000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '500000000', tradePrice, '-600000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('1000')
         })
@@ -287,25 +287,25 @@ describe('EntryPriceMath', function () {
 
       describe('there are short positions', () => {
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '-500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '-500000000', tradePrice, '-100000000')
           expect(result[0]).to.be.eq('-66')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '-500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '-500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('-100')
           expect(result[1]).to.be.eq('-200')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '-500000000', tradePrice, '500000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '-500000000', tradePrice, '500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('-1000')
         })
 
         it('add long position and positions becomes positive', async function () {
-          const result = await tester.testUpdateEntryPrice(-100, '-500000000', tradePrice, '600000000')
+          const result = await tester.verifyUpdateEntryPrice(-100, '-500000000', tradePrice, '600000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('-1000')
         })
@@ -318,25 +318,25 @@ describe('EntryPriceMath', function () {
 
       describe('there are long positions', () => {
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(entryPrice, '500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(entryPrice, '500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('66')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(entryPrice, '500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(entryPrice, '500000000', tradePrice, '-100000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('-200')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(entryPrice, '500000000', tradePrice, '-500000000')
+          const result = await tester.verifyUpdateEntryPrice(entryPrice, '500000000', tradePrice, '-500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('-1000')
         })
 
         it('add short position and positions becomes negative', async function () {
-          const result = await tester.testUpdateEntryPrice(entryPrice, '500000000', tradePrice, '-600000000')
+          const result = await tester.verifyUpdateEntryPrice(entryPrice, '500000000', tradePrice, '-600000000')
           expect(result[0]).to.be.eq('-100')
           expect(result[1]).to.be.eq('-1000')
         })
@@ -344,25 +344,25 @@ describe('EntryPriceMath', function () {
 
       describe('there are short positions', () => {
         it('add short position', async function () {
-          const result = await tester.testUpdateEntryPrice(entryPrice, '-500000000', tradePrice, '-100000000')
+          const result = await tester.verifyUpdateEntryPrice(entryPrice, '-500000000', tradePrice, '-100000000')
           expect(result[0]).to.be.eq('66')
           expect(result[1]).to.be.eq('0')
         })
 
         it('add long position', async function () {
-          const result = await tester.testUpdateEntryPrice(entryPrice, '-500000000', tradePrice, '100000000')
+          const result = await tester.verifyUpdateEntryPrice(entryPrice, '-500000000', tradePrice, '100000000')
           expect(result[0]).to.be.eq('100')
           expect(result[1]).to.be.eq('200')
         })
 
         it('close all positions', async function () {
-          const result = await tester.testUpdateEntryPrice(entryPrice, '-500000000', tradePrice, '500000000')
+          const result = await tester.verifyUpdateEntryPrice(entryPrice, '-500000000', tradePrice, '500000000')
           expect(result[0]).to.be.eq('0')
           expect(result[1]).to.be.eq('1000')
         })
 
         it('add long position and positions becomes positive', async function () {
-          const result = await tester.testUpdateEntryPrice(entryPrice, '-500000000', tradePrice, '600000000')
+          const result = await tester.verifyUpdateEntryPrice(entryPrice, '-500000000', tradePrice, '600000000')
           expect(result[0]).to.be.eq('-100')
           expect(result[1]).to.be.eq('1000')
         })
