@@ -319,8 +319,6 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             }
         }
 
-        traderVault.setInsolvencyFlagIfNeeded();
-
         uint256 reward = traderVault.decreaseLiquidationReward(minCollateral, LIQUIDATION_FEE);
 
         // Sends a half of reward to the pool

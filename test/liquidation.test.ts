@@ -100,8 +100,8 @@ describe('liquidation', function () {
       expect(vault.minCollateral).to.be.eq(0)
       expect(vault.rawVaultData.positionUsdc).to.be.lt(0)
       expect(vault.positionValue).to.be.lt(0)
-      expect(vault.rawVaultData.isInsolvent).to.be.true
 
+      // can not create position when the position value is less than 0
       await expect(
         perpetualMarket.trade({
           vaultId: 1,
@@ -109,7 +109,18 @@ describe('liquidation', function () {
           marginAmount: scaledBN(1, 8),
           deadline: 0,
         }),
-      ).to.be.revertedWith('T2')
+      ).to.be.revertedWith('T0')
+
+      // deposit to already exist vault, it works when aother position value is less than 0
+      const beforeBalance = await usdc.balanceOf(perpetualMarket.address)
+      const beforeVault = await perpetualMarket.getTraderVault(1)
+      await perpetualMarket.addMargin(1, scaledBN(100, 6))
+      const afterBalance = await usdc.balanceOf(perpetualMarket.address)
+      const afterVault = await perpetualMarket.getTraderVault(1)
+
+      // check that USDC amount is increased
+      expect(afterBalance.sub(beforeBalance)).to.be.eq(scaledBN(100, 6))
+      expect(afterVault.positionUsdc.sub(beforeVault.positionUsdc)).to.be.eq(scaledBN(100, 8))
     })
 
     describe('withdraw all USDC after the vault liquidated', () => {
@@ -137,7 +148,6 @@ describe('liquidation', function () {
         expect(vault.minCollateral).to.be.eq(0)
         expect(vault.rawVaultData.positionUsdc).to.be.gt(0)
         expect(vault.rawVaultData.positionUsdc).to.be.eq(vault.positionValue)
-        expect(vault.rawVaultData.isInsolvent).to.be.false
 
         const before = await usdc.balanceOf(wallet.address)
         await perpetualMarket.trade({
@@ -160,7 +170,6 @@ describe('liquidation', function () {
         expect(vault.minCollateral).to.be.eq(0)
         expect(vault.rawVaultData.positionUsdc).to.be.gt(0)
         expect(vault.rawVaultData.positionUsdc).to.be.eq(vault.positionValue)
-        expect(vault.rawVaultData.isInsolvent).to.be.false
       })
 
       describe('usdc position is negative', () => {
@@ -295,6 +304,7 @@ describe('liquidation', function () {
 
       await perpetualMarket.liquidateByPool(1)
 
+      // can not create position when the position value is less than 0
       await expect(
         perpetualMarket.trade({
           vaultId: 1,
@@ -302,10 +312,18 @@ describe('liquidation', function () {
           marginAmount: scaledBN(1, 8),
           deadline: 0,
         }),
-      ).to.be.revertedWith('T2')
+      ).to.be.revertedWith('T0')
 
-      const vault = await perpetualMarket.getVaultStatus(1)
-      expect(vault.rawVaultData.isInsolvent).to.be.true
+      // deposit to already exist vault, it works when aother position value is less than 0
+      const beforeBalance = await usdc.balanceOf(perpetualMarket.address)
+      const beforeVault = await perpetualMarket.getTraderVault(1)
+      await perpetualMarket.addMargin(1, scaledBN(100, 6))
+      const afterBalance = await usdc.balanceOf(perpetualMarket.address)
+      const afterVault = await perpetualMarket.getTraderVault(1)
+
+      // check that USDC amount is increased
+      expect(afterBalance.sub(beforeBalance)).to.be.eq(scaledBN(100, 6))
+      expect(afterVault.positionUsdc.sub(beforeVault.positionUsdc)).to.be.eq(scaledBN(100, 8))
     })
 
     it('reverts if the vault has enough margin', async () => {

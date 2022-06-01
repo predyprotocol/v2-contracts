@@ -63,10 +63,6 @@ contract TraderVaultLibTester {
         return TraderVaultLib.checkVaultIsLiquidatable(traderVault, _tradePriceInfo);
     }
 
-    function verifySetInsolvencyFlagIfNeeded() external {
-        TraderVaultLib.setInsolvencyFlagIfNeeded(traderVault);
-    }
-
     function verifyDecreaseLiquidationReward(int256 _minCollateral, int256 liquidationFee) external {
         r = int128(TraderVaultLib.decreaseLiquidationReward(traderVault, _minCollateral, liquidationFee));
     }
