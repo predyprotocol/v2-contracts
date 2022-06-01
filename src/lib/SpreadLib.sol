@@ -101,7 +101,7 @@ library SpreadLib {
                     if (spreadClosing > MAX_SPREAD_DECREASE) {
                         spreadClosing = MAX_SPREAD_DECREASE;
                     }
-                    if (adjustedPrice <= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
+                    if (adjustedPrice >= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
                         _info.minLongTradePrice = ((_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4).toInt128();
                     }
                     adjustedPrice = _info.minLongTradePrice;
