@@ -13,7 +13,7 @@ import { increaseTime, scaledBN } from './utils/helpers'
 import { MAX_WITHDRAW_AMOUNT, MIN_MARGIN } from './utils/constants'
 
 describe('hedge', function () {
-  this.timeout(60000)
+  this.timeout(80000)
 
   let wallet: Wallet
   let weth: MockERC20

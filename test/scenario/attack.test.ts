@@ -13,6 +13,7 @@ import { SAFETY_PERIOD } from '../utils/constants'
 import { expect } from 'chai'
 
 describe('attack', function () {
+  this.timeout(60000)
   let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
