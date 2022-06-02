@@ -1212,7 +1212,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         if (_productId == 0) {
             int256 fundingRate = perpFutureMaxFundingRate
                 .mul(
-                    PoolMath.calculateMarginDivLiquidity(_margin, _deltaMargin, _totalLiquidityAmount, _deltaLiquidity)
+                    PoolMath.calculateFundingRateFormula(_margin, _deltaMargin, _totalLiquidityAmount, _deltaLiquidity)
                 )
                 .div(1e8);
             return poolSnapshot.futureBaseFundingRate.add(fundingRate);
@@ -1222,7 +1222,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             } else {
                 int256 addition = squaredPerpFundingMultiplier
                     .mul(
-                        PoolMath.calculateMarginDivLiquidity(
+                        PoolMath.calculateFundingRateFormula(
                             _margin,
                             _deltaMargin,
                             _totalLiquidityAmount,

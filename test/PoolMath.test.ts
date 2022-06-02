@@ -15,15 +15,28 @@ describe('PoolMath', function () {
 
   describe('calculateMarginDivLiquidity', () => {
     const decimals = 16
+    const K = 2
 
-    function marginDivLiquidity(m: number, dm: number, l: number, dl: number) {
+    function fundingRateFormula(m: number, dm: number, l: number, dl: number) {
+      return (K * marginDivLiquidity(m, dm, l, dl) + (10 - K) * marginDivLiquidity3(m, dm, l, dl)) / 10
+    }
+
+    function marginDivLiquidity3(m: number, dm: number, l: number, dl: number) {
       let result = m * m * m + (3 * m * m * dm) / 2 + m * dm * dm + (dm * dm * dm) / 4
 
       return (result * (l + dl / 2)) / (l * l * (l + dl) * (l + dl))
     }
 
+    function marginDivLiquidity(m: number, dm: number, l: number, dl: number) {
+      if (dl == 0) {
+        return (m + dm / 2) / l
+      } else {
+        return ((m + dm / 2) * (Math.log(l + dl) - Math.log(l))) / dl
+      }
+    }
+
     it('reverts if liquidity is 0', async () => {
-      await expect(tester.verifyCalculateMarginDivLiquidity(0, 0, 0, 0)).to.be.revertedWith('l must be positive')
+      await expect(tester.verifyCalculateFundingRateFormula(0, 0, 0, 0)).to.be.revertedWith('l must be positive')
     })
 
     it('return a correct value', async () => {
@@ -55,13 +68,13 @@ describe('PoolMath', function () {
 
       for (let testValueOfLiquidity of testValuesOfLiquidity) {
         for (let testValueOfMargin of testValuesOfMargin) {
-          const expected = marginDivLiquidity(
+          const expected = fundingRateFormula(
             testValueOfMargin[0],
             testValueOfMargin[1],
             testValueOfLiquidity[0],
             testValueOfLiquidity[1],
           )
-          const result = await tester.verifyCalculateMarginDivLiquidity(
+          const result = await tester.verifyCalculateFundingRateFormula(
             numToBn(testValueOfMargin[0], decimals),
             numToBn(testValueOfMargin[1], decimals),
             numToBn(testValueOfLiquidity[0], decimals),
