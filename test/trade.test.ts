@@ -462,7 +462,7 @@ describe('trade', function () {
     describe('after hedging', () => {
       beforeEach(async () => {
         await testContractHelper.trade(wallet, 0, [scaledBN(2, 8), scaledBN(1, 8)], scaledBN(2000, 6))
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
       })
 
       it('check trade price', async () => {
@@ -477,7 +477,7 @@ describe('trade', function () {
 
         const beforeTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [0, 0])
 
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
 
         const afterTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [0, 0])
 
@@ -490,7 +490,7 @@ describe('trade', function () {
         const beforeTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [0, 0])
 
         // locked liquidity of future pool becomes large
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
 
         const afterTradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [0, 0])
 
