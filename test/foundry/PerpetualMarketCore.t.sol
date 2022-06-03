@@ -51,9 +51,11 @@ contract PerpetualMarketCoreTest is Test {
         pmc.deposit(address(this), 1000);
     }
 
-    function testDepositFuzzing(uint128 _depositAmount) public {
+    function testDepositFuzzing(uint256 _depositAmount) public {
         this.testInitialize();
+        
         vm.prank(address(pm));
+        vm.assume(_depositAmount < 2 ** 128 - 1 );
         pmc.deposit(address(this), _depositAmount);
     }
 
@@ -73,9 +75,10 @@ contract PerpetualMarketCoreTest is Test {
         pmc.withdraw(address(this), 1000);
     }
 
-    function testAddLiquidityFuzzing(uint128 _amount) public {
+    function testAddLiquidityFuzzing(uint256 _amount) public {
         this.testDeposit();
         vm.prank(address(pm));
+        vm.assume(_amount < 2 ** 128 - 1 );
         pmc.addLiquidity(_amount);
     }
 
