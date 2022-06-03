@@ -45,11 +45,33 @@ contract PerpetualMarketCoreTest is Test {
         pmc.initialize(address(this), 1000, 5 * 10 ** 5);
     }
 
-    // currently this test is failed
     function testDeposit() public {
         this.testInitialize();
         vm.prank(address(pm));
         pmc.deposit(address(this), 1000);
+    }
+
+    // TODO fail
+    function testDepositFuzzing(uint256 _depositAmount) public {
+        this.testInitialize();
+        vm.prank(address(pm));
+        pmc.deposit(address(this), _depositAmount);
+    }
+
+    function testFailDeposit() public {
+        this.testInitialize();
+        pmc.deposit(address(this), 1000);
+    }
+
+    function testWithdraw()public {
+        this.testDeposit();
+        vm.prank(address(pm));
+        pmc.withdraw(address(this), 1000);
+    }
+
+    function testFailWithdraw()public {
+        this.testDeposit();
+        pmc.withdraw(address(this), 1000);
     }
 
     // function testSetPoolStatus(
