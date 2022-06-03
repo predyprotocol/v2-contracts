@@ -40,14 +40,14 @@ contract PerpetualMarketCoreTest is Test {
     }
 
     function testInitialize() public {
-        pmc.setPerpetualMarket(address(pm));
+        this.testSetPerpetualMarket();
         vm.prank(address(pm));
         pmc.initialize(address(this), 1000, 5 * 10 ** 5);
     }
 
     // currently this test is failed
     function testDeposit() public {
-        pmc.setPerpetualMarket(address(pm));
+        this.testInitialize();
         vm.prank(address(pm));
         pmc.deposit(address(this), 1000);
     }
