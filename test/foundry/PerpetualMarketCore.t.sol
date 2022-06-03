@@ -68,9 +68,15 @@ contract PerpetualMarketCoreTest is Test {
         pmc.withdraw(address(this), 1000);
     }
 
-    function testFailWithdraw()public {
+    function testFailWithdraw() public {
         this.testDeposit();
         pmc.withdraw(address(this), 1000);
+    }
+
+    function testAddLiquidityFuzzing(uint128 _amount) public {
+        this.testDeposit();
+        vm.prank(address(pm));
+        pmc.addLiquidity(_amount);
     }
 
     // function testSetPoolStatus(
