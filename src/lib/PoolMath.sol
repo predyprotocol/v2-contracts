@@ -12,7 +12,7 @@ library PoolMath {
     using SignedSafeMath for int256;
     using SafeCast for int256;
 
-    int256 private constant K = 2;
+    int256 private constant K = 4;
 
     function calculateFundingRateFormula(
         int256 _m,
