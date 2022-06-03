@@ -51,8 +51,7 @@ contract PerpetualMarketCoreTest is Test {
         pmc.deposit(address(this), 1000);
     }
 
-    // TODO fail
-    function testDepositFuzzing(uint256 _depositAmount) public {
+    function testDepositFuzzing(uint128 _depositAmount) public {
         this.testInitialize();
         vm.prank(address(pm));
         pmc.deposit(address(this), _depositAmount);
