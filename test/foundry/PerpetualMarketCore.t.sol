@@ -5,6 +5,11 @@ pragma abicoder v2;
 import "forge-std/Test.sol";
 
 import "../../src/PerpetualMarketCore.sol";
+import "../../src/PerpetualMarket.sol";
+import "../../src/FeePool.sol";
+import "../../src/VaultNFT.sol";
+import "../../src/mocks/MockChainlinkAggregator.sol";
+import "../../src/mocks/MockERC20.sol";
 
 /**
  * @title PerpetualMarketCoreTester
@@ -13,86 +18,121 @@ import "../../src/PerpetualMarketCore.sol";
 contract PerpetualMarketCoreTest is Test {
     uint256 public result;
     PerpetualMarketCore pmc;
+    PerpetualMarket pm;
+    MockERC20 usdc;
+    MockERC20 weth;
+    FeePool feePool;
+    VaultNFT vaultNFT;
 
     function setUp() public {
-        pmc = new PerpetualMarketCore(0x, "TestLPToken", "TestLPToken");
+        MockChainlinkAggregator aggregator = new MockChainlinkAggregator();
+        aggregator.setLatestRoundData(0, 1000 * 10 ** 8);
+        pmc = new PerpetualMarketCore(address(aggregator), "TestLPToken", "TestLPToken");
+        usdc = new MockERC20("USDC", "USDC", 6);
+        weth = new MockERC20("WETH", "WETH", 18);
+        feePool = new FeePool(usdc);
+        vaultNFT = new VaultNFT("Vault NFT", "Delta-Gamma-Vault", "http://example.com");
+        pm = new PerpetualMarket(address(pmc), address(usdc), address(weth), address(feePool), address(vaultNFT));
     }
 
-    function testSetPoolStatus(
-        uint256 _productId,
-        int128 _positionPerpetuals,
-        uint128 _lastFundingPaymentTime
-    ) external {
-        pmc.pools[_productId].positionPerpetuals = _positionPerpetuals;
-        pmc.pools[_productId].lastFundingPaymentTime = _lastFundingPaymentTime;
+    function testSetPerpetualMarket() public {
+        pmc.setPerpetualMarket(address(pm));
     }
 
-    function setPoolSnapshot(
-        int128 _ethPrice,
-        int128 _ethVariance,
-        uint128 _lastSnapshotTime
-    ) external {
-        poolSnapshot.ethPrice = _ethPrice;
-        poolSnapshot.ethVariance = _ethVariance;
-        poolSnapshot.lastSnapshotTime = _lastSnapshotTime;
+    function testInitialize() public {
+        pmc.setPerpetualMarket(address(pm));
+        vm.prank(address(pm));
+        pmc.initialize(address(this), 1000, 5 * 10 ** 5);
     }
 
-    function testCalculateUnlockedLiquidity(
-        uint256 _amountLockedLiquidity,
-        int256 _deltaM,
-        int256 _hedgePositionValue
-    ) external pure returns (int256 deltaLiquidity, int256 unlockLiquidityAmount) {
-        return calculateUnlockedLiquidity(_amountLockedLiquidity, _deltaM, _hedgePositionValue);
+    // currently this test is failed
+    function testDeposit() public {
+        pmc.setPerpetualMarket(address(pm));
+        vm.prank(address(pm));
+        pmc.deposit(address(this), 1000);
     }
 
-    function testUpdatePoolPositions(uint256 _productId, int256[2] memory _tradeAmounts) external {
-        (uint256[2] memory tradePrice, , ) = updatePoolPositions(_tradeAmounts);
-        result = tradePrice[_productId];
-    }
+    // function testSetPoolStatus(
+    //     uint256 _productId,
+    //     int128 _positionPerpetuals,
+    //     uint128 _lastFundingPaymentTime
+    // ) external {
+    //     pmc.pools;
+    //     // pmc.pools[_productId] = (
+    //     //     pmc.pools[_productId].amountLockedLiquidity,
+    //     //     _positionPerpetuals,
+    //     //     pmc.pools[_productId].entryPrice,
+    //     //     pmc.pools[_productId].amountFundingPaidPerPosition,
+    //     //     _lastFundingPaymentTime
+    //     // );
+    // }
 
-    function testUpdateVariance(uint256 _timestamp) external {
-        updateVariance(_timestamp);
-    }
+    // function setPoolSnapshot(
+    //     int128 _ethPrice,
+    //     int128 _ethVariance,
+    //     uint128 _lastSnapshotTime
+    // ) external {
+    //     pmc.poolSnapshot.ethPrice = _ethPrice;
+    //     pmc.poolSnapshot.ethVariance = _ethVariance;
+    //     pmc.poolSnapshot.lastSnapshotTime = _lastSnapshotTime;
+    // }
 
-    function testExecuteFundingPayment(uint256 _productId, int256 _spotPrice) external {
-        _executeFundingPayment(_productId, _spotPrice);
-    }
+    // function testCalculateUnlockedLiquidity(
+    //     uint256 _amountLockedLiquidity,
+    //     int256 _deltaM,
+    //     int256 _hedgePositionValue
+    // ) external pure returns (int256 deltaLiquidity, int256 unlockLiquidityAmount) {
+    //     return pmc.calculateUnlockedLiquidity(_amountLockedLiquidity, _deltaM, _hedgePositionValue);
+    // }
 
-    function testCalculateResultOfFundingPayment(
-        uint256 _productId,
-        int256 _spotPrice,
-        uint256 _currentTimestamp
-    )
-        external
-        view
-        returns (
-            int256 currentFundingRate,
-            int256 fundingFeePerPosition,
-            int256 fundingReceived
-        )
-    {
-        return calculateResultOfFundingPayment(_productId, _spotPrice, _currentTimestamp);
-    }
+    // function testUpdatePoolPositions(uint256 _productId, int256[2] memory _tradeAmounts) external {
+    //     (uint256[2] memory tradePrice, , ) = pmc.updatePoolPositions(_tradeAmounts);
+    //     result = tradePrice[_productId];
+    // }
 
-    function testGetSignedMarginAmount(uint256 _productId) external view returns (int256) {
-        return getSignedMarginAmount(pools[_productId].positionPerpetuals, _productId);
-    }
+    // function testUpdateVariance(uint256 _timestamp) external {
+    //     pmc.updateVariance(_timestamp);
+    // }
 
-    function testCalculateSignedDeltaMargin(
-        PerpetualMarketCore.MarginChange _marginChangeType,
-        int256 _deltaMargin,
-        int256 _currentMarginAmount
-    ) external pure returns (int256) {
-        return calculateSignedDeltaMargin(_marginChangeType, _deltaMargin, _currentMarginAmount);
-    }
+    // function testExecuteFundingPayment(uint256 _productId, int256 _spotPrice) external {
+    //     _executeFundingPayment(_productId, _spotPrice);
+    // }
 
-    function testCalculateFundingRate(
-        uint256 _productId,
-        int256 _margin,
-        int256 _totalLiquidityAmount,
-        int256 _deltaMargin,
-        int256 _deltaLiquidity
-    ) external view returns (int256) {
-        return calculateFundingRate(_productId, _margin, _totalLiquidityAmount, _deltaMargin, _deltaLiquidity);
-    }
+    // function testCalculateResultOfFundingPayment(
+    //     uint256 _productId,
+    //     int256 _spotPrice,
+    //     uint256 _currentTimestamp
+    // )
+    //     external
+    //     view
+    //     returns (
+    //         int256 currentFundingRate,
+    //         int256 fundingFeePerPosition,
+    //         int256 fundingReceived
+    //     )
+    // {
+    //     return pmc.calculateResultOfFundingPayment(_productId, _spotPrice, _currentTimestamp);
+    // }
+
+    // function testGetSignedMarginAmount(uint256 _productId) external view returns (int256) {
+    //     return pmc.getSignedMarginAmount(pmc.pools[_productId].positionPerpetuals, _productId);
+    // }
+
+    // function testCalculateSignedDeltaMargin(
+    //     PerpetualMarketCore.MarginChange _marginChangeType,
+    //     int256 _deltaMargin,
+    //     int256 _currentMarginAmount
+    // ) external pure returns (int256) {
+    //     return pmc.calculateSignedDeltaMargin(_marginChangeType, _deltaMargin, _currentMarginAmount);
+    // }
+
+    // function testCalculateFundingRate(
+    //     uint256 _productId,
+    //     int256 _margin,
+    //     int256 _totalLiquidityAmount,
+    //     int256 _deltaMargin,
+    //     int256 _deltaLiquidity
+    // ) external view returns (int256) {
+    //     return pmc.calculateFundingRate(_productId, _margin, _totalLiquidityAmount, _deltaMargin, _deltaLiquidity);
+    // }
 }

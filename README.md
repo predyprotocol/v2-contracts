@@ -46,6 +46,12 @@ As a result, Predy's margin requirements for perpetual positions are significant
 
 ## Development
 
+Run typechain
+
+```shell
+npm run typechain
+```
+
 Run all tests
 
 ```shell
@@ -93,5 +99,11 @@ forge build --hardhat
 
 ```shell
 forge test
+
+# specify test case
+forge test --match-path test/foundry/PerpetualMarketCore.t.sol
+
+# verbose mode
+forge test -vvv --match-path test/foundry/PerpetualMarketCore.t.sol
 ```
 
