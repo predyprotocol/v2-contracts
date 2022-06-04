@@ -13,14 +13,16 @@ import {
   TestContractHelper,
   TestContractSet,
 } from '../utils/deploy'
-import { increaseTime, scaledBN } from '../utils/helpers'
+import { scaledBN } from '../utils/helpers'
 import { FlashHedge } from '../../typechain/FlashHedge'
-import { MIN_MARGIN } from '../utils/constants'
+import { BLOCKS_PER_DAY, MIN_MARGIN, SAFETY_BLOCK_PERIOD } from '../utils/constants'
+import { MockArbSys } from '../../typechain/MockArbSys'
 
 describe('integration.FlashHedge', function () {
   let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
+  let arbSys: MockArbSys
 
   let testContractSet: TestContractSet
   let testContractHelper: TestContractHelper
@@ -39,6 +41,11 @@ describe('integration.FlashHedge', function () {
     await perpetualMarket.setHedger(flashHedge.address)
   }
 
+  async function increaseBlockNumber(blocknumber: number) {
+    const currentBlockNumber = await ethers.provider.getBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+  }
+
   before(async () => {
     ;[wallet] = await (ethers as any).getSigners()
 
@@ -48,6 +55,7 @@ describe('integration.FlashHedge', function () {
     weth = testContractSet.weth
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
+    arbSys = testContractSet.arbSys
 
     await weth.mint(wallet.address, constants.MaxUint256)
     await usdc.mint(wallet.address, constants.MaxUint256)
@@ -119,7 +127,7 @@ describe('integration.FlashHedge', function () {
 
         await execRawHedge()
 
-        await increaseTime(60 * 60 * 12)
+        await increaseBlockNumber(BLOCKS_PER_DAY / 2)
       })
 
       it('sell ETH to hedge', async () => {
@@ -147,7 +155,7 @@ describe('integration.FlashHedge', function () {
 
         await execRawHedge()
 
-        await increaseTime(60 * 60 * 12)
+        await increaseBlockNumber(BLOCKS_PER_DAY / 2)
       })
 
       it('net delta is positive and sell all ETH to hedge', async () => {
@@ -172,7 +180,7 @@ describe('integration.FlashHedge', function () {
 
         await execRawHedge()
 
-        await increaseTime(60 * 60 * 12)
+        await increaseBlockNumber(BLOCKS_PER_DAY / 2)
       })
 
       afterEach(async () => {

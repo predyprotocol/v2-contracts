@@ -1,23 +1,25 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { MockChainlinkAggregator, PerpetualMarketCore, PerpetualMarketCoreTester } from '../typechain'
+import { MockChainlinkAggregator, MockArbSys, PerpetualMarketCore, PerpetualMarketCoreTester } from '../typechain'
 import { BigNumber, BigNumberish, constants, Wallet } from 'ethers'
 import { restoreSnapshot, takeSnapshot } from './utils/deploy'
-import { getBlocktime, increaseTime, numToBn, scaledBN } from './utils/helpers'
+import { getBlocktime, numToBn, scaledBN } from './utils/helpers'
 import {
   MarginChange,
   FUNDING_PERIOD,
   FUTURE_PRODUCT_ID,
   MAX_PRODUCT_ID,
-  SAFETY_PERIOD,
   SQUEETH_PRODUCT_ID,
   VARIANCE_UPDATE_INTERVAL,
+  SAFETY_BLOCK_PERIOD,
+  VARIANCE_UPDATE_BLOCK_INTERVAL,
 } from './utils/constants'
 
 describe('PerpetualMarketCore', function () {
   let wallet: Wallet, other: Wallet
 
   let priceFeed: MockChainlinkAggregator
+  let arbSys: MockArbSys
   let perpetualMarketCore: PerpetualMarketCore
   let tester: PerpetualMarketCoreTester
   let snapshotId: number
@@ -30,21 +32,35 @@ describe('PerpetualMarketCore', function () {
     await updateRoundData(0, spot)
   }
 
+  async function increaseBlockNumber(blocknumber: number) {
+    const currentBlockNumber = await ethers.provider.getBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+  }
+
   before(async () => {
     ;[wallet, other] = await (ethers as any).getSigners()
 
     const MockChainlinkAggregator = await ethers.getContractFactory('MockChainlinkAggregator')
     priceFeed = (await MockChainlinkAggregator.deploy()) as MockChainlinkAggregator
 
+    const MockArbSys = await ethers.getContractFactory('MockArbSys')
+    arbSys = (await MockArbSys.deploy()) as MockArbSys
+
     const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
-    perpetualMarketCore = (await PerpetualMarketCore.deploy(priceFeed.address, '', '')) as PerpetualMarketCore
+    perpetualMarketCore = (await PerpetualMarketCore.deploy(
+      priceFeed.address,
+      '',
+      '',
+      arbSys.address,
+    )) as PerpetualMarketCore
 
     await perpetualMarketCore.setPerpetualMarket(wallet.address)
 
     const PerpetualMarketCoreTester = await ethers.getContractFactory('PerpetualMarketCoreTester')
-    tester = (await PerpetualMarketCoreTester.deploy(priceFeed.address)) as PerpetualMarketCoreTester
+    tester = (await PerpetualMarketCoreTester.deploy(priceFeed.address, arbSys.address)) as PerpetualMarketCoreTester
 
     await tester.setPerpetualMarket(wallet.address)
+    await arbSys.setBlockNumber(100)
   })
 
   beforeEach(async () => {
@@ -111,7 +127,7 @@ describe('PerpetualMarketCore', function () {
     it('deposits after pool gets loss', async () => {
       await perpetualMarketCore.updatePoolPositions([0, 1000])
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       await updateSpot(scaledBN(1005, 8))
 
       await perpetualMarketCore.deposit(wallet.address, 1000000)
@@ -164,7 +180,7 @@ describe('PerpetualMarketCore', function () {
     it('withdraws after the pool gets loss', async () => {
       await perpetualMarketCore.updatePoolPositions([0, 1000])
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       await updateSpot(scaledBN(1005, 8))
 
       await perpetualMarketCore.withdraw(wallet.address, 500000)
@@ -177,13 +193,15 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       await perpetualMarketCore.updatePoolPositions([0, 1000])
+      // const currentBlockNumber = await ethers.provider.getBlockNumber()
+      // arbSys.setBlockNumber(currentBlockNumber)
 
       await updateSpot(scaledBN(995, 8))
 
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500000)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500290)
     })
 
     it('spread returns low after time passed', async () => {
@@ -193,7 +211,7 @@ describe('PerpetualMarketCore', function () {
 
       await updateSpot(scaledBN(995, 8))
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
@@ -202,6 +220,8 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('spread becomes high when withdraw', async () => {
+      await increaseBlockNumber(0)
+
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       await perpetualMarketCore.updatePoolPositions([0, 1000])
@@ -211,7 +231,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500000)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1501506)
     })
 
     it('spread returns low when withdraw', async () => {
@@ -221,7 +241,7 @@ describe('PerpetualMarketCore', function () {
 
       await updateSpot(scaledBN(1005, 8))
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
@@ -426,7 +446,7 @@ describe('PerpetualMarketCore', function () {
     it('variance becomes low', async () => {
       const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, [0, scaledBN(1, 6)])
 
-      await increaseTime(VARIANCE_UPDATE_INTERVAL)
+      await increaseBlockNumber(VARIANCE_UPDATE_BLOCK_INTERVAL)
       await updateSpot(scaledBN(1020, 8))
       await perpetualMarketCore.updatePoolSnapshot()
       await updateSpot(scaledBN(1000, 8))
@@ -439,7 +459,7 @@ describe('PerpetualMarketCore', function () {
     it('variance becomes high', async () => {
       const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, [0, scaledBN(1, 6)])
 
-      await increaseTime(VARIANCE_UPDATE_INTERVAL)
+      await increaseBlockNumber(VARIANCE_UPDATE_BLOCK_INTERVAL)
       await updateSpot(scaledBN(1060, 8))
       await perpetualMarketCore.updatePoolSnapshot()
       await updateSpot(scaledBN(1000, 8))

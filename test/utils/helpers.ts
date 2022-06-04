@@ -12,10 +12,10 @@ export const div = (a: BigNumber, b: BigNumberish, roundUp?: boolean) => {
   return r
 }
 
-export const increaseTime = async (time: number) => {
-  await ethers.provider.send('evm_increaseTime', [time])
-  await ethers.provider.send('evm_mine', [])
-}
+// export const increaseTime = async (time: number) => {
+//   await ethers.provider.send('evm_increaseTime', [time])
+//   await ethers.provider.send('evm_mine', [])
+// }
 
 export const setTime = async (time: number) => {
   await ethers.provider.send('evm_setNextBlockTimestamp', [time])

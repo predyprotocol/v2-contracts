@@ -9,13 +9,15 @@ import {
   TestContractHelper,
   TestContractSet,
 } from './utils/deploy'
-import { increaseTime, scaledBN } from './utils/helpers'
-import { MAX_WITHDRAW_AMOUNT, MIN_MARGIN, SAFETY_PERIOD, SQUEETH_PRODUCT_ID } from './utils/constants'
+import { scaledBN } from './utils/helpers'
+import { BLOCKS_PER_DAY, MAX_WITHDRAW_AMOUNT, MIN_MARGIN, SAFETY_BLOCK_PERIOD, SQUEETH_PRODUCT_ID } from './utils/constants'
+import { MockArbSys } from '../typechain/MockArbSys'
 
 describe('liquidation', function () {
   let wallet: Wallet, other: Wallet
   let weth: MockERC20
   let usdc: MockERC20
+  let arbSys: MockArbSys
 
   let testContractSet: TestContractSet
   let testContractHelper: TestContractHelper
@@ -26,8 +28,13 @@ describe('liquidation', function () {
   const MaxUint256 = ethers.constants.MaxUint256
 
   async function updateSpotPrice(spotPrice: number) {
-    await increaseTime(SAFETY_PERIOD)
+    await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
     await testContractHelper.updateSpot(scaledBN(spotPrice, 8))
+  }
+
+  async function increaseBlockNumber(blocknumber: number) {
+    const currentBlockNumber = await ethers.provider.getBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
   }
 
   before(async () => {
@@ -39,6 +46,7 @@ describe('liquidation', function () {
     weth = testContractSet.weth
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
+    arbSys = testContractSet.arbSys
   })
 
   beforeEach(async () => {
@@ -162,7 +170,7 @@ describe('liquidation', function () {
       })
 
       it('liquidate a vault by funding payment', async () => {
-        await increaseTime(60 * 60 * 24 * 2)
+        await increaseBlockNumber(BLOCKS_PER_DAY * 2)
 
         await perpetualMarket.liquidateByPool(1)
 
@@ -283,7 +291,7 @@ describe('liquidation', function () {
     })
 
     it('liquidate a vault by funding payment', async () => {
-      await increaseTime(60 * 60 * 24)
+      await increaseBlockNumber(BLOCKS_PER_DAY)
 
       await perpetualMarket.liquidateByPool(1)
 
@@ -351,7 +359,8 @@ describe('liquidation', function () {
       const utilizationRatio = await testContractSet.perpetualMarketCore.getUtilizationRatio()
       expect(utilizationRatio).to.be.gt('75000000')
 
-      await increaseTime(60 * 60)
+      await increaseBlockNumber(BLOCKS_PER_DAY / 24)
+
       await updateSpotPrice(1900)
 
       const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)

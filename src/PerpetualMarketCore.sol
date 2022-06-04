@@ -15,6 +15,8 @@ import "./lib/SpreadLib.sol";
 import "./lib/EntryPriceMath.sol";
 import "./lib/PoolMath.sol";
 
+import "arbos-precompiles/arbos/builtin/ArbSys.sol";
+
 /**
  * @title PerpetualMarketCore
  * @notice Perpetual Market Core Contract manages perpetual pool positions and calculates amount of collaterals.
@@ -112,6 +114,9 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     // The address of Chainlink price feed
     AggregatorV3Interface private priceFeed;
 
+    // The address of ArbSys
+    ArbSys private arbSys;
+    
     // The last spot price at heding
     int256 public lastHedgeSpotPrice;
 
@@ -145,13 +150,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     constructor(
         address _priceFeedAddress,
         string memory _tokenName,
-        string memory _tokenSymbol
+        string memory _tokenSymbol,
+        address _arbSysAddress
     ) ERC20(_tokenName, _tokenSymbol) {
         // The decimals of LP token is 8
         _setupDecimals(8);
 
         priceFeed = AggregatorV3Interface(_priceFeedAddress);
 
+        arbSys = ArbSys(_arbSysAddress);
+        
         // initialize spread infos
         spreadInfos[0].init();
         spreadInfos[1].init();
@@ -217,7 +225,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         uint256 lpTokenPrice = getLPTokenPrice(_depositAmount.toInt256());
 
-        lpTokenPrice = lpTokenSpreadInfo.checkPrice(true, int256(lpTokenPrice)).toUint256();
+        lpTokenPrice = lpTokenSpreadInfo.checkPrice(true, int256(lpTokenPrice), arbSys.arbBlockNumber()).toUint256();
 
         mintAmount = _depositAmount.mul(1e16).div(lpTokenPrice);
 
@@ -238,7 +246,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
         uint256 lpTokenPrice = getLPTokenPrice(-_withdrawnAmount.toInt256());
 
-        lpTokenPrice = lpTokenSpreadInfo.checkPrice(false, int256(lpTokenPrice)).toUint256();
+        lpTokenPrice = lpTokenSpreadInfo.checkPrice(false, int256(lpTokenPrice), arbSys.arbBlockNumber()).toUint256();
 
         burnAmount = _withdrawnAmount.mul(1e16).div(lpTokenPrice);
 
@@ -814,17 +822,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             _productId
         );
 
-        (int256 tradePrice, , , , int256 protocolFee) = calculateTradePrice(
-            _productId,
-            _spotPrice,
-            _tradeAmount > 0,
-            signedMarginAmount,
-            amountLiquidity.toInt256(),
-            signedDeltaMargin,
-            deltaLiquidity
-        );
-
-        tradePrice = spreadInfos[_productId].checkPrice(_tradeAmount > 0, tradePrice);
+        (int256 tradePrice, int256 protocolFee) = calculateTradePriceAndProtocolFee(_productId, _spotPrice, _tradeAmount, signedMarginAmount, signedDeltaMargin, deltaLiquidity);
 
         // Update pool liquidity and locked liquidity
         {
@@ -837,6 +835,29 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         }
 
         return (tradePrice.toUint256(), protocolFee.toUint256().mul(Math.abs(_tradeAmount)).div(1e8));
+    }
+
+
+    function calculateTradePriceAndProtocolFee(
+        uint256 _productId,
+        int256 _spotPrice,
+        int256 _tradeAmount,
+        int256 _signedMarginAmount,
+        int256 _signedDeltaMargin,
+        int256 _deltaLiquidity
+    ) internal returns (int256 tradePrice, int256 protocolFee) { 
+        (tradePrice, , , , protocolFee) = calculateTradePrice(
+            _productId,
+            _spotPrice,
+            _tradeAmount > 0,
+            _signedMarginAmount,
+            amountLiquidity.toInt256(),
+            _signedDeltaMargin,
+            _deltaLiquidity
+        );
+
+        tradePrice = spreadInfos[_productId].checkPrice(_tradeAmount > 0, tradePrice, arbSys.arbBlockNumber());
+
     }
 
     /**

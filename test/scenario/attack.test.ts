@@ -8,14 +8,16 @@ import {
   TestContractHelper,
   TestContractSet,
 } from '../utils/deploy'
-import { increaseTime, scaledBN } from '../utils/helpers'
-import { SAFETY_PERIOD } from '../utils/constants'
+import { scaledBN } from '../utils/helpers'
+import { SAFETY_BLOCK_PERIOD } from '../utils/constants'
 import { expect } from 'chai'
+import { MockArbSys } from '../../typechain/MockArbSys'
 
 describe('attack', function () {
   let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
+  let arbSys: MockArbSys
 
   let testContractSet: TestContractSet
   let testContractHelper: TestContractHelper
@@ -24,6 +26,11 @@ describe('attack', function () {
   let perpetualMarket: PerpetualMarket
 
   const MaxInt128 = ethers.constants.MaxUint256
+
+  async function increaseBlockNumber(blocknumber: number) {
+    const currentBlockNumber = await ethers.provider.getBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+  }
 
   before(async () => {
     ;[wallet] = await (ethers as any).getSigners()
@@ -34,6 +41,7 @@ describe('attack', function () {
     weth = testContractSet.weth
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
+    arbSys = testContractSet.arbSys
   })
 
   beforeEach(async () => {
@@ -72,24 +80,24 @@ describe('attack', function () {
 
       const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
       for (let i = 0; i < 10; i++) {
         // Short ETH
         await testContractHelper.trade(wallet, 1, [scaledBN(-37, 7), 0], 0)
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         // Long ETH2
         await testContractHelper.trade(wallet, 1, [0, totalSquaredPosition.sub(baseSquaredPosition)], 0)
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         // Long ETH
         await testContractHelper.trade(wallet, 1, [scaledBN(37, 7), 0], 0)
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         // Short ETH2
         await testContractHelper.trade(wallet, 1, [0, baseSquaredPosition.sub(totalSquaredPosition)], 0)
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       }
 
       const afterVaultStatus = await perpetualMarket.getVaultStatus(1)
@@ -134,7 +142,7 @@ describe('attack', function () {
     it('attack failed', async () => {
       await testContractHelper.trade(wallet, 0, [0, 0], scaledBN(5000, 6))
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
       const beforeVaultStatus = await perpetualMarket.getVaultStatus(1)
 
@@ -143,7 +151,7 @@ describe('attack', function () {
         // Long ETH2
 
         const longTradePrices = await testContractHelper.tradeWithPrice(wallet, 1, [0, scaledBN(120, 7)], 0)
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(15, 7), 0], 0)
         // Short ETH2
@@ -152,7 +160,7 @@ describe('attack', function () {
 
         const shortTradePrice = await testContractHelper.tradeWithPrice(wallet, 1, [0, scaledBN(-120, 7).add(100)], 0)
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         expect(longTradePrices[0].gt(shortTradePrice[0])).to.be.true
       }

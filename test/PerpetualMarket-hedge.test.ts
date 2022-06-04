@@ -9,8 +9,9 @@ import {
   TestContractHelper,
   TestContractSet,
 } from './utils/deploy'
-import { increaseTime, scaledBN } from './utils/helpers'
+import { scaledBN } from './utils/helpers'
 import { MAX_WITHDRAW_AMOUNT, MIN_MARGIN } from './utils/constants'
+import { MockArbSys } from '../typechain/MockArbSys'
 
 describe('hedge', function () {
   this.timeout(60000)
@@ -18,7 +19,7 @@ describe('hedge', function () {
   let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
-
+  let arbSys: MockArbSys
   let testContractSet: TestContractSet
   let testContractHelper: TestContractHelper
   let snapshotId: number
@@ -36,6 +37,7 @@ describe('hedge', function () {
     weth = testContractSet.weth
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
+    arbSys = testContractSet.arbSys
 
     await weth.mint(wallet.address, MaxInt128)
     await usdc.mint(wallet.address, MaxInt128)
@@ -47,6 +49,7 @@ describe('hedge', function () {
 
   beforeEach(async () => {
     snapshotId = await takeSnapshot()
+    await arbSys.setBlockNumber(100)
   })
 
   afterEach(async () => {
@@ -173,7 +176,8 @@ describe('hedge', function () {
 
         await perpetualMarket.execHedge()
 
-        await increaseTime(60 * 60 * 12)
+        const currentBlockNumber = await ethers.provider.getBlockNumber()
+        await arbSys.setBlockNumber(currentBlockNumber + 100000)
 
         await testContractHelper.updateSpot(scaledBN(price, 8))
 
@@ -207,7 +211,7 @@ describe('hedge', function () {
       afterEach(async () => {
         await checkDeltaIs0()
 
-        await checkPoolPnL(scaledBN(200, 6))
+        await checkPoolPnL(scaledBN(191, 6))
       })
 
       it('succeed to hedge', async () => {
@@ -358,7 +362,8 @@ describe('hedge', function () {
 
         await perpetualMarket.execHedge()
 
-        await increaseTime(60 * 60 * 12)
+        const currentBlockNumber = await ethers.provider.getBlockNumber()
+        await arbSys.setBlockNumber(currentBlockNumber + 100000)
       })
 
       afterEach(async () => {

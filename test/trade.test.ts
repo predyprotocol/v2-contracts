@@ -9,20 +9,23 @@ import {
   TestContractHelper,
   TestContractSet,
 } from './utils/deploy'
-import { assertCloseToPercentage, increaseTime, numToBn, scaledBN } from './utils/helpers'
+import { assertCloseToPercentage, numToBn, scaledBN } from './utils/helpers'
 import {
+  FUNDING_BLOCK_PERIOD,
   FUNDING_PERIOD,
   FUTURE_PRODUCT_ID,
   MAX_WITHDRAW_AMOUNT,
   MIN_MARGIN,
-  SAFETY_PERIOD,
+  SAFETY_BLOCK_PERIOD,
   SQUEETH_PRODUCT_ID,
 } from './utils/constants'
+import { MockArbSys } from '../typechain/MockArbSys'
 
 describe('trade', function () {
   let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
+  let arbSys: MockArbSys
 
   let testContractSet: TestContractSet
   let testContractHelper: TestContractHelper
@@ -31,6 +34,11 @@ describe('trade', function () {
   let perpetualMarket: PerpetualMarket
 
   const MaxInt128 = ethers.constants.MaxUint256
+
+  async function increaseBlockNumber(blocknumber: number) {
+    const currentBlockNumber = await ethers.provider.getBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+  }
 
   before(async () => {
     ;[wallet] = await (ethers as any).getSigners()
@@ -41,6 +49,7 @@ describe('trade', function () {
     weth = testContractSet.weth
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
+    arbSys = testContractSet.arbSys
   })
 
   beforeEach(async () => {
@@ -78,7 +87,7 @@ describe('trade', function () {
         const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(depositAmount.mul(-1))
         await openPosition(tradeAmounts, vaultId, subVaultIndex)
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         // Close position and check payoff
         const before = await usdc.balanceOf(wallet.address)
@@ -120,7 +129,7 @@ describe('trade', function () {
         const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(depositAmount.mul(-1))
         await openPosition(tradeAmounts, vaultId, subVaultIndex)
 
-        await increaseTime(FUNDING_PERIOD * 100)
+        await increaseBlockNumber(FUNDING_BLOCK_PERIOD * 100)
 
         // Close position and check payoff
         const before = await usdc.balanceOf(wallet.address)
@@ -200,7 +209,7 @@ describe('trade', function () {
           subVaultIndex,
         )
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       }
 
       beforeEach(async () => {

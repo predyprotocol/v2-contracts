@@ -18,9 +18,9 @@ describe('SpreadLib', function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                timeLastLongTransaction: 600,
+                blockLastLongTransaction: 600,
                 minLongTradePrice: 80,
-                timeLastShortTransaction: 600,
+                blockLastShortTransaction: 600,
                 maxShortTradePrice: 80,
               },
               true,
@@ -34,9 +34,9 @@ describe('SpreadLib', function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                timeLastLongTransaction: 600,
+                blockLastLongTransaction: 600,
                 minLongTradePrice: 120,
-                timeLastShortTransaction: 600,
+                blockLastShortTransaction: 600,
                 maxShortTradePrice: 120,
               },
               true,
@@ -52,14 +52,14 @@ describe('SpreadLib', function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                timeLastLongTransaction: 600,
+                blockLastLongTransaction: 600,
                 minLongTradePrice: 80,
-                timeLastShortTransaction: 600,
+                blockLastShortTransaction: 600,
                 maxShortTradePrice: 80,
               },
               true,
               100,
-              660,
+              601,
             ),
           ).to.be.eq('100')
         })
@@ -68,14 +68,14 @@ describe('SpreadLib', function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                timeLastLongTransaction: 600,
+                blockLastLongTransaction: 600,
                 minLongTradePrice: 120,
-                timeLastShortTransaction: 600,
+                blockLastShortTransaction: 600,
                 maxShortTradePrice: 120,
               },
               true,
               100,
-              660,
+              601,
             ),
           ).to.be.eq('119')
         })
@@ -88,9 +88,9 @@ describe('SpreadLib', function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                timeLastLongTransaction: 600,
+                blockLastLongTransaction: 600,
                 minLongTradePrice: 80,
-                timeLastShortTransaction: 600,
+                blockLastShortTransaction: 600,
                 maxShortTradePrice: 80,
               },
               false,
@@ -104,9 +104,9 @@ describe('SpreadLib', function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                timeLastLongTransaction: 600,
+                blockLastLongTransaction: 600,
                 minLongTradePrice: 120,
-                timeLastShortTransaction: 600,
+                blockLastShortTransaction: 600,
                 maxShortTradePrice: 120,
               },
               false,
@@ -122,14 +122,14 @@ describe('SpreadLib', function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                timeLastLongTransaction: 600,
+                blockLastLongTransaction: 600,
                 minLongTradePrice: 80,
-                timeLastShortTransaction: 600,
+                blockLastShortTransaction: 600,
                 maxShortTradePrice: 80,
               },
               false,
               100,
-              660,
+              601,
             ),
           ).to.be.eq('80')
         })
@@ -138,14 +138,14 @@ describe('SpreadLib', function () {
           expect(
             await tester.getUpdatedPrice(
               {
-                timeLastLongTransaction: 600,
+                blockLastLongTransaction: 600,
                 minLongTradePrice: 120,
-                timeLastShortTransaction: 600,
+                blockLastShortTransaction: 600,
                 maxShortTradePrice: 120,
               },
               false,
               100,
-              660,
+              601,
             ),
           ).to.be.eq('100')
         })

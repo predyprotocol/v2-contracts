@@ -9,13 +9,15 @@ import {
   TestContractHelper,
   TestContractSet,
 } from '../utils/deploy'
-import { increaseTime, scaledBN } from '../utils/helpers'
-import { MAX_WITHDRAW_AMOUNT, MIN_MARGIN, SAFETY_PERIOD } from '../utils/constants'
+import { scaledBN } from '../utils/helpers'
+import { MAX_WITHDRAW_AMOUNT, MIN_MARGIN, SAFETY_BLOCK_PERIOD } from '../utils/constants'
+import { MockArbSys } from '../../typechain/MockArbSys'
 
 describe('update-hedge', function () {
   let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
+  let arbSys: MockArbSys
 
   let testContractSet: TestContractSet
   let testContractHelper: TestContractHelper
@@ -24,6 +26,11 @@ describe('update-hedge', function () {
   let perpetualMarket: PerpetualMarket
 
   const MaxInt128 = ethers.constants.MaxUint256
+
+  async function increaseBlockNumber(blocknumber: number) {
+    const currentBlockNumber = await ethers.provider.getBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+  }
 
   before(async () => {
     ;[wallet] = await (ethers as any).getSigners()
@@ -34,6 +41,7 @@ describe('update-hedge', function () {
     weth = testContractSet.weth
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
+    arbSys = testContractSet.arbSys
   })
 
   beforeEach(async () => {
@@ -146,7 +154,7 @@ describe('update-hedge', function () {
 
       await execHedge()
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
       expect((await testContractSet.perpetualMarketCore.getNettingInfo()).amountsUsdc[0]).to.be.eq(0)
     }
@@ -219,26 +227,26 @@ describe('update-hedge', function () {
 
       it('price down', async () => {
         await testContractHelper.updateSpot(scaledBN(100, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
       })
 
       it('price down', async () => {
         await testContractHelper.updateSpot(scaledBN(100, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.trade(wallet, 1, [0, scaledBN(-5, 8)], 0)
       })
 
       it('price up', async () => {
         await testContractHelper.updateSpot(scaledBN(2001, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
       })
 
       it('price up', async () => {
         await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
         await testContractHelper.updateSpot(scaledBN(2001, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       })
 
       it('with hedging', async () => {
@@ -301,26 +309,26 @@ describe('update-hedge', function () {
 
       it('price down', async () => {
         await testContractHelper.updateSpot(scaledBN(100, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
       })
 
       it('price down', async () => {
         await testContractHelper.updateSpot(scaledBN(100, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.trade(wallet, 1, [0, scaledBN(-5, 8)], 0)
       })
 
       it('price up', async () => {
         await testContractHelper.updateSpot(scaledBN(2001, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
       })
 
       it('price up', async () => {
         await testContractHelper.trade(wallet, 1, [scaledBN(19, 7), 0], 0)
         await testContractHelper.updateSpot(scaledBN(2001, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       })
 
       it('with hedging', async () => {
@@ -344,7 +352,7 @@ describe('update-hedge', function () {
 
       it('case 1', async () => {
         await testContractHelper.updateSpot(scaledBN(3012, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(-2, 8), 0], 0)
 
@@ -352,14 +360,14 @@ describe('update-hedge', function () {
         await show()
 
         await testContractHelper.updateSpot(scaledBN(3123, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(21, 7), scaledBN(-31, 7)], 0)
 
         await show()
 
         await testContractHelper.updateSpot(scaledBN(3237, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(-21, 7), scaledBN(57, 7)], 0)
 
@@ -369,21 +377,21 @@ describe('update-hedge', function () {
 
       it('case 2', async () => {
         await testContractHelper.updateSpot(scaledBN(3012, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(-2, 8), 0], 0)
 
         await show()
 
         await testContractHelper.updateSpot(scaledBN(2123, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(21, 7), scaledBN(-31, 7)], 0)
 
         await show()
 
         await testContractHelper.updateSpot(scaledBN(1236, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(-21, 7), scaledBN(57, 7)], 0)
 
@@ -393,17 +401,17 @@ describe('update-hedge', function () {
 
       it('case 3', async () => {
         await testContractHelper.updateSpot(scaledBN(3012, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(-2, 8), 0], 0)
 
         await testContractHelper.updateSpot(scaledBN(2123, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(21, 7), scaledBN(-31, 7)], 0)
 
         await testContractHelper.updateSpot(scaledBN(1237, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(-21, 7), scaledBN(1, 7)], 0)
 
@@ -412,14 +420,14 @@ describe('update-hedge', function () {
 
       it('case 4', async () => {
         await testContractHelper.updateSpot(scaledBN(3012, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(-3, 8), 0], 0)
 
         await execHedge()
 
         await testContractHelper.updateSpot(scaledBN(1615, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [0, scaledBN(1, 8)], 0)
       })
