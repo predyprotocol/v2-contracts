@@ -14,6 +14,14 @@ library PoolMath {
 
     int256 private constant K = 4;
 
+    /**
+     * @notice Calculate multiple integral of k*(m/L)+(1-k)(m/L)^3.
+     * @param _m required margin
+     * @param _deltaMargin difference of required margin
+     * @param _l total amount of liquidity
+     * @param _deltaL difference of liquidity
+     * @return returns result of above formula
+     */
     function calculateFundingRateFormula(
         int256 _m,
         int256 _deltaMargin,
