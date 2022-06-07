@@ -71,7 +71,7 @@ describe('PerpetualMarket', function () {
 
     // spot price is $1,000
     await testContractHelper.updateSpot(scaledBN(1000, 8))
-    await arbSys.setBlockNumber(100)
+    await increaseBlockNumber(0)
   })
 
   afterEach(async () => {

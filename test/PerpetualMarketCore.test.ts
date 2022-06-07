@@ -60,7 +60,7 @@ describe('PerpetualMarketCore', function () {
     tester = (await PerpetualMarketCoreTester.deploy(priceFeed.address, arbSys.address)) as PerpetualMarketCoreTester
 
     await tester.setPerpetualMarket(wallet.address)
-    await arbSys.setBlockNumber(100)
+    await increaseBlockNumber(0)
   })
 
   beforeEach(async () => {
@@ -193,8 +193,6 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       await perpetualMarketCore.updatePoolPositions([0, 1000])
-      // const currentBlockNumber = await ethers.provider.getBlockNumber()
-      // arbSys.setBlockNumber(currentBlockNumber)
 
       await updateSpot(scaledBN(995, 8))
 

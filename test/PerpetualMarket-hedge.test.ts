@@ -10,7 +10,7 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { scaledBN } from './utils/helpers'
-import { MAX_WITHDRAW_AMOUNT, MIN_MARGIN } from './utils/constants'
+import { BLOCKS_PER_DAY, MAX_WITHDRAW_AMOUNT, MIN_MARGIN } from './utils/constants'
 import { MockArbSys } from '../typechain/MockArbSys'
 
 describe('hedge', function () {
@@ -47,9 +47,14 @@ describe('hedge', function () {
     await usdc.approve(perpetualMarket.address, MaxInt128)
   })
 
+  async function increaseBlockNumber(blocknumber: number) {
+    const currentBlockNumber = await ethers.provider.getBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+  }
+
   beforeEach(async () => {
     snapshotId = await takeSnapshot()
-    await arbSys.setBlockNumber(100)
+    await increaseBlockNumber(0)
   })
 
   afterEach(async () => {
@@ -176,8 +181,7 @@ describe('hedge', function () {
 
         await perpetualMarket.execHedge()
 
-        const currentBlockNumber = await ethers.provider.getBlockNumber()
-        await arbSys.setBlockNumber(currentBlockNumber + 100000)
+        await increaseBlockNumber(BLOCKS_PER_DAY)
 
         await testContractHelper.updateSpot(scaledBN(price, 8))
 
@@ -362,8 +366,7 @@ describe('hedge', function () {
 
         await perpetualMarket.execHedge()
 
-        const currentBlockNumber = await ethers.provider.getBlockNumber()
-        await arbSys.setBlockNumber(currentBlockNumber + 100000)
+        await increaseBlockNumber(BLOCKS_PER_DAY)
       })
 
       afterEach(async () => {
