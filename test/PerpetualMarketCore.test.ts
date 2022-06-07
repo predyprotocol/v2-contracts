@@ -3,7 +3,7 @@ import { ethers } from 'hardhat'
 import { MockChainlinkAggregator, MockArbSys, PerpetualMarketCore, PerpetualMarketCoreTester } from '../typechain'
 import { BigNumber, BigNumberish, constants, Wallet } from 'ethers'
 import { restoreSnapshot, takeSnapshot } from './utils/deploy'
-import { getBlocktime, numToBn, scaledBN } from './utils/helpers'
+import { getBlocktime, increaseTime, numToBn, scaledBN } from './utils/helpers'
 import {
   MarginChange,
   FUNDING_PERIOD,
@@ -199,7 +199,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500290)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500000)
     })
 
     it('spread returns low after time passed', async () => {
@@ -229,7 +229,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1501506)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500000)
     })
 
     it('spread returns low when withdraw', async () => {
@@ -444,7 +444,7 @@ describe('PerpetualMarketCore', function () {
     it('variance becomes low', async () => {
       const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, [0, scaledBN(1, 6)])
 
-      await increaseBlockNumber(VARIANCE_UPDATE_BLOCK_INTERVAL)
+      await increaseTime(VARIANCE_UPDATE_INTERVAL)
       await updateSpot(scaledBN(1020, 8))
       await perpetualMarketCore.updatePoolSnapshot()
       await updateSpot(scaledBN(1000, 8))
@@ -457,7 +457,7 @@ describe('PerpetualMarketCore', function () {
     it('variance becomes high', async () => {
       const beforeTradePrice = await perpetualMarketCore.getTradePrice(SQUEETH_PRODUCT_ID, [0, scaledBN(1, 6)])
 
-      await increaseBlockNumber(VARIANCE_UPDATE_BLOCK_INTERVAL)
+      await increaseTime(VARIANCE_UPDATE_INTERVAL)
       await updateSpot(scaledBN(1060, 8))
       await perpetualMarketCore.updatePoolSnapshot()
       await updateSpot(scaledBN(1000, 8))

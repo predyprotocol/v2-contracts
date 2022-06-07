@@ -9,7 +9,7 @@ import {
   TestContractHelper,
   TestContractSet,
 } from './utils/deploy'
-import { scaledBN } from './utils/helpers'
+import { increaseTime, scaledBN } from './utils/helpers'
 import { BLOCKS_PER_DAY, MAX_WITHDRAW_AMOUNT, MIN_MARGIN } from './utils/constants'
 import { MockArbSys } from '../typechain/MockArbSys'
 
@@ -181,6 +181,7 @@ describe('hedge', function () {
 
         await perpetualMarket.execHedge()
 
+        await increaseTime(60 * 60 * 12)
         await increaseBlockNumber(BLOCKS_PER_DAY)
 
         await testContractHelper.updateSpot(scaledBN(price, 8))
@@ -215,7 +216,7 @@ describe('hedge', function () {
       afterEach(async () => {
         await checkDeltaIs0()
 
-        await checkPoolPnL(scaledBN(191, 6))
+        await checkPoolPnL(scaledBN(200, 6))
       })
 
       it('succeed to hedge', async () => {
@@ -366,6 +367,7 @@ describe('hedge', function () {
 
         await perpetualMarket.execHedge()
 
+        await increaseTime(60 * 60 * 12)
         await increaseBlockNumber(BLOCKS_PER_DAY)
       })
 

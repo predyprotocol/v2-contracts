@@ -9,8 +9,14 @@ import {
   TestContractHelper,
   TestContractSet,
 } from './utils/deploy'
-import { scaledBN } from './utils/helpers'
-import { BLOCKS_PER_DAY, MAX_WITHDRAW_AMOUNT, MIN_MARGIN, SAFETY_BLOCK_PERIOD, SQUEETH_PRODUCT_ID } from './utils/constants'
+import { increaseTime, scaledBN } from './utils/helpers'
+import {
+  BLOCKS_PER_DAY,
+  MAX_WITHDRAW_AMOUNT,
+  MIN_MARGIN,
+  SAFETY_BLOCK_PERIOD,
+  SQUEETH_PRODUCT_ID,
+} from './utils/constants'
 import { MockArbSys } from '../typechain/MockArbSys'
 
 describe('liquidation', function () {
@@ -170,7 +176,7 @@ describe('liquidation', function () {
       })
 
       it('liquidate a vault by funding payment', async () => {
-        await increaseBlockNumber(BLOCKS_PER_DAY * 2)
+        await increaseTime(60 * 60 * 24 * 2)
 
         await perpetualMarket.liquidateByPool(1)
 
@@ -291,7 +297,7 @@ describe('liquidation', function () {
     })
 
     it('liquidate a vault by funding payment', async () => {
-      await increaseBlockNumber(BLOCKS_PER_DAY)
+      await increaseTime(60 * 60 * 24)
 
       await perpetualMarket.liquidateByPool(1)
 

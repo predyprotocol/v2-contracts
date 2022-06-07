@@ -9,7 +9,7 @@ import {
   TestContractHelper,
   TestContractSet,
 } from './utils/deploy'
-import { assertCloseToPercentage, numToBn, scaledBN } from './utils/helpers'
+import { assertCloseToPercentage, increaseTime, numToBn, scaledBN } from './utils/helpers'
 import {
   FUNDING_BLOCK_PERIOD,
   FUNDING_PERIOD,
@@ -129,7 +129,7 @@ describe('trade', function () {
         const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(depositAmount.mul(-1))
         await openPosition(tradeAmounts, vaultId, subVaultIndex)
 
-        await increaseBlockNumber(FUNDING_BLOCK_PERIOD * 100)
+        await increaseTime(FUNDING_PERIOD * 100)
 
         // Close position and check payoff
         const before = await usdc.balanceOf(wallet.address)
