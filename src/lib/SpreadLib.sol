@@ -18,6 +18,9 @@ library SpreadLib {
     /// @dev block period for ETH - USD
     uint256 private constant SAFETY_BLOCK_PERIOD = 1;
 
+    /// @dev number of blocks per minute in arbitrum
+    uint256 private constant NUM_BLOCKS_PER_MINUTE = 12;
+
     /// @dev 4 bps
     uint256 private constant SPREAD_DECREASE_PER_PERIOD = 4;
 
@@ -76,7 +79,7 @@ library SpreadLib {
             if (_info.blockLastShortTransaction >= _blocknumber - SAFETY_BLOCK_PERIOD) {
                 // Within safety period
                 if (adjustedPrice < _info.maxShortTradePrice) {
-                    uint256 tt = _blocknumber - _info.blockLastShortTransaction;
+                    uint256 tt = (_blocknumber - _info.blockLastShortTransaction) / NUM_BLOCKS_PER_MINUTE;
                     int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
                     if (spreadClosing > MAX_SPREAD_DECREASE) {
                         spreadClosing = MAX_SPREAD_DECREASE;
@@ -90,7 +93,10 @@ library SpreadLib {
             }
 
             // Update min ask
-            if (_info.minLongTradePrice > adjustedPrice || _info.blockLastLongTransaction + SAFETY_BLOCK_PERIOD < _blocknumber) {
+            if (
+                _info.minLongTradePrice > adjustedPrice ||
+                _info.blockLastLongTransaction + SAFETY_BLOCK_PERIOD < _blocknumber
+            ) {
                 _info.minLongTradePrice = adjustedPrice.toInt128();
             }
             _info.blockLastLongTransaction = uint128(_blocknumber);
@@ -99,12 +105,12 @@ library SpreadLib {
             if (_info.blockLastLongTransaction >= _blocknumber - SAFETY_BLOCK_PERIOD) {
                 // Within safety period
                 if (adjustedPrice > _info.minLongTradePrice) {
-                    uint256 tt = _blocknumber - _info.blockLastLongTransaction;
+                    uint256 tt = (_blocknumber - _info.blockLastLongTransaction) / NUM_BLOCKS_PER_MINUTE;
                     int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
                     if (spreadClosing > MAX_SPREAD_DECREASE) {
                         spreadClosing = MAX_SPREAD_DECREASE;
                     }
-                    if (adjustedPrice <= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
+                    if (adjustedPrice >= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
                         _info.minLongTradePrice = ((_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4).toInt128();
                     }
                     adjustedPrice = _info.minLongTradePrice;
@@ -113,7 +119,8 @@ library SpreadLib {
 
             // Update max bit
             if (
-                _info.maxShortTradePrice < adjustedPrice || _info.blockLastShortTransaction + SAFETY_BLOCK_PERIOD < _blocknumber
+                _info.maxShortTradePrice < adjustedPrice ||
+                _info.blockLastShortTransaction + SAFETY_BLOCK_PERIOD < _blocknumber
             ) {
                 _info.maxShortTradePrice = adjustedPrice.toInt128();
             }
