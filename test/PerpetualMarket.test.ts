@@ -742,85 +742,37 @@ describe('PerpetualMarket', function () {
       })
     })
 
-    describe('Squeeth and Future', () => {
-      it('open Squeeth and Future contracts', async () => {
-        await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), scaledBN(1, 6)], MIN_MARGIN)
-
-        const traderVault = await perpetualMarket.getTraderVault(1)
-        expect(traderVault.positionUsdc).to.be.eq('100000000000')
-        expect(traderVault.subVaults[0].positionPerpetuals[0]).to.be.eq(scaledBN(1, 6))
-        expect(traderVault.subVaults[0].positionPerpetuals[1]).to.be.eq(scaledBN(1, 6))
-
-        const vaultStatus = await perpetualMarket.getVaultStatus(1)
-
-        expect(vaultStatus.minCollateral).to.be.gt(0)
-        expect(vaultStatus.positionValue).to.be.gte(vaultStatus.minCollateral)
-        expect(vaultStatus.rawVaultData.subVaults[0].positionPerpetuals[SQUEETH_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
-        expect(vaultStatus.rawVaultData.subVaults[0].positionPerpetuals[FUTURE_PRODUCT_ID]).to.be.eq(scaledBN(1, 6))
+    describe('vault limit', () => {
+      beforeEach(async () => {
+        await perpetualMarket.setMaxAmount(scaledBN(1, 8), scaledBN(1, 8))
       })
 
-      it('close positions', async () => {
-        const before = await usdc.balanceOf(wallet.address)
-
+      it('reverts if position exceeds limit', async () => {
         await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), scaledBN(1, 6)], MIN_MARGIN)
 
-        await testContractHelper.trade(wallet, 1, [scaledBN(-1, 6), scaledBN(-1, 6)], MAX_WITHDRAW_AMOUNT)
+        await expect(testContractHelper.trade(wallet, 1, [scaledBN(1, 8), 0], MIN_MARGIN)).to.be.revertedWith('PM5')
 
-        const after = await usdc.balanceOf(wallet.address)
+        await expect(testContractHelper.trade(wallet, 1, [0, scaledBN(1, 8)], MIN_MARGIN)).to.be.revertedWith('PM5')
 
-        expect(after.sub(before)).to.be.eq('-1020')
+        await expect(testContractHelper.trade(wallet, 1, [scaledBN(-2, 8), 0], MIN_MARGIN)).to.be.revertedWith('PM5')
+
+        await expect(testContractHelper.trade(wallet, 1, [0, scaledBN(-2, 8)], MIN_MARGIN)).to.be.revertedWith('PM5')
       })
 
-      it('close Squeeth', async () => {
-        const before = await usdc.balanceOf(wallet.address)
+      it('close position', async () => {
+        await testContractHelper.trade(wallet, 0, [scaledBN(1, 8), scaledBN(1, 8)], MIN_MARGIN)
 
-        await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), scaledBN(1, 6)], MIN_MARGIN)
+        await perpetualMarket.setMaxAmount(scaledBN(5, 7), scaledBN(5, 7))
 
-        await testContractHelper.trade(wallet, 1, [0, scaledBN(-1, 6)], MAX_WITHDRAW_AMOUNT)
-
-        const after = await usdc.balanceOf(wallet.address)
-
-        expect(after.sub(before)).to.be.eq('-200001020')
+        await testContractHelper.trade(wallet, 1, [scaledBN(-1, 6), scaledBN(-1, 6)], MIN_MARGIN)
       })
 
-      it('close Future', async () => {
-        const before = await usdc.balanceOf(wallet.address)
+      it('close gamma short', async () => {
+        await testContractHelper.trade(wallet, 0, [scaledBN(1, 8), scaledBN(-1, 8)], MIN_MARGIN)
 
-        await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), scaledBN(1, 6)], MIN_MARGIN)
+        await perpetualMarket.setMaxAmount(scaledBN(5, 7), scaledBN(5, 7))
 
-        await testContractHelper.trade(wallet, 1, [scaledBN(-1, 6), 0], MAX_WITHDRAW_AMOUNT)
-
-        const after = await usdc.balanceOf(wallet.address)
-
-        expect(after.sub(before)).to.be.eq('-200001020')
-      })
-
-      it('close positions with price move', async () => {
-        const before = await usdc.balanceOf(wallet.address)
-
-        await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), scaledBN(1, 6)], MIN_MARGIN)
-
-        await increaseTime(SAFETY_PERIOD)
-        await testContractHelper.updateSpot(scaledBN(110, 8))
-
-        await testContractHelper.trade(wallet, 1, [scaledBN(-1, 6), scaledBN(-1, 6)], MAX_WITHDRAW_AMOUNT)
-
-        const after = await usdc.balanceOf(wallet.address)
-
-        expect(after.sub(before)).to.be.eq('101032')
-      })
-
-      it('large position', async () => {
-        // 100B USDC
-        await perpetualMarket.deposit(scaledBN(100, 15))
-
-        // 1M Squeeth and 1M ETH future
-        await testContractHelper.trade(wallet, 0, [scaledBN(1, 14), scaledBN(1, 14)], scaledBN(100000000, 6))
-
-        await increaseTime(SAFETY_PERIOD)
-        await testContractHelper.updateSpot(scaledBN(110, 8))
-
-        await testContractHelper.trade(wallet, 1, [scaledBN(-1, 14), scaledBN(-1, 14)], MAX_WITHDRAW_AMOUNT)
+        await testContractHelper.trade(wallet, 1, [scaledBN(-1, 6), scaledBN(1, 6)], MIN_MARGIN)
       })
     })
 
