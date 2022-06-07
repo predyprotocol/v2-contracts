@@ -107,7 +107,7 @@ library TraderVaultLib {
 
         _traderVault.positionUsdc = _traderVault.positionUsdc.add(finalUsdcPosition).toInt128();
 
-        require(!checkVaultIsLiquidatable(_traderVault, _tradePriceInfo), "T0");
+        require(!checkVaultIsDanger(_traderVault, _tradePriceInfo), "T0");
     }
 
     /**
@@ -218,13 +218,12 @@ library TraderVaultLib {
     }
 
     /**
-     * @notice Checks the vault is liquidatable and return result
+     * @notice Checks the vault is danger or not
      * if PositionValue is less than MinCollateral return true
      * otherwise return false
      * @param _traderVault trader vault object
-     * @return if true the vault is liquidatable, if false the vault is not liquidatable
      */
-    function checkVaultIsLiquidatable(
+    function checkVaultIsDanger(
         TraderVault memory _traderVault,
         IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo
     ) internal pure returns (bool) {

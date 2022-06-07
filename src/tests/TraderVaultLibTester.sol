@@ -55,12 +55,12 @@ contract TraderVaultLibTester {
         r = TraderVaultLib.updateUsdcPosition(traderVault, _amount, _tradePriceInfo);
     }
 
-    function verifyCheckVaultIsLiquidatable(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
+    function verifyCheckVaultIsDanger(IPerpetualMarketCore.TradePriceInfo memory _tradePriceInfo)
         external
         view
         returns (bool)
     {
-        return TraderVaultLib.checkVaultIsLiquidatable(traderVault, _tradePriceInfo);
+        return TraderVaultLib.checkVaultIsDanger(traderVault, _tradePriceInfo);
     }
 
     function verifyDecreaseLiquidationReward(int256 _minCollateral, int256 liquidationFee) external {

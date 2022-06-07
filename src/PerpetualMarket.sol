@@ -285,9 +285,11 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         );
 
         // Check if PositionValue is less than MinCollateral or not
-        require(traderVault.checkVaultIsLiquidatable(tradePriceInfo), "vault is not danger");
+        require(traderVault.checkVaultIsDanger(tradePriceInfo), "vault is not danger");
 
         int256 minCollateral = traderVault.getMinCollateral(tradePriceInfo);
+
+        require(minCollateral > 0, "vault has no positions");
 
         // Close all positions in the vault
         uint256 totalProtocolFee;
@@ -545,6 +547,19 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
     function getTraderVault(uint256 _vaultId) external view override returns (TraderVaultLib.TraderVault memory) {
         return traderVaults[_vaultId];
+    }
+
+    /**
+     * @notice Gets position value and min collateral
+     * @param _vaultId The id of target vault
+     */
+    function getPositionValueAndMinCollateral(uint256 _vaultId) external view returns (int256, int256) {
+        TraderVaultLib.TraderVault memory traderVault = traderVaults[_vaultId];
+        IPerpetualMarketCore.TradePriceInfo memory tradePriceInfo = perpetualMarketCore.getTradePriceInfo(
+            getTradeAmountsToCloseVault(traderVault)
+        );
+
+        return (traderVault.getPositionValue(tradePriceInfo), traderVault.getMinCollateral(tradePriceInfo));
     }
 
     /**
