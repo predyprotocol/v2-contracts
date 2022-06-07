@@ -50,12 +50,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await perpetualMarketCore.setSquaredPerpFundingMultiplier(690000000)
     // set PerpFutureMaxFundingRate as 0.69%
     await perpetualMarketCore.setPerpFutureMaxFundingRate(690000)
-    // set risk parameter as 20%
-    await perpetualMarketCore.setPoolMarginRiskParam(2000)
+    // set risk parameter as 40%
+    await perpetualMarketCore.setPoolMarginRiskParam(4000)
     // trade fee is 0.05% and protocol fee is 0.01%
     await perpetualMarketCore.setTradeFeeRate(50000, 10000)
-    // hedge slippage 0.36%-0.52%
-    await perpetualMarketCore.setHedgeParams(36, 52, 4000000)
+    // hedge slippage 0.34%-0.48%
+    await perpetualMarketCore.setHedgeParams(34, 48, 5000000)
   }
 }
 
