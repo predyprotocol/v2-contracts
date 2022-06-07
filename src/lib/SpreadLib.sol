@@ -73,20 +73,19 @@ library SpreadLib {
         adjustedPrice = _price;
         if (_isLong) {
             // if long
-            if (_info.blockLastShortTransaction == _blocknumber - SAFETY_BLOCK_PERIOD) {
+            if (_info.blockLastShortTransaction >= _blocknumber - SAFETY_BLOCK_PERIOD) {
                 // Within safety period
                 if (adjustedPrice < _info.maxShortTradePrice) {
+                    uint256 tt = _blocknumber - _info.blockLastShortTransaction;
+                    int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
+                    if (spreadClosing > MAX_SPREAD_DECREASE) {
+                        spreadClosing = MAX_SPREAD_DECREASE;
+                    }
+                    if (adjustedPrice <= (_info.maxShortTradePrice.mul(1e4 - spreadClosing)) / 1e4) {
+                        _info.maxShortTradePrice = ((_info.maxShortTradePrice.mul(1e4 - spreadClosing)) / 1e4)
+                            .toInt128();
+                    }
                     adjustedPrice = _info.maxShortTradePrice;
-                }
-            } else {
-                uint256 tt = _blocknumber - _info.blockLastShortTransaction;
-                int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
-                if (spreadClosing > MAX_SPREAD_DECREASE) {
-                    spreadClosing = MAX_SPREAD_DECREASE;
-                }
-                if (adjustedPrice <= (_info.maxShortTradePrice.mul(1e4 - spreadClosing)) / 1e4) {
-                    _info.maxShortTradePrice = ((_info.maxShortTradePrice.mul(1e4 - spreadClosing)) / 1e4)
-                        .toInt128();
                 }
             }
 
@@ -97,19 +96,18 @@ library SpreadLib {
             _info.blockLastLongTransaction = uint128(_blocknumber);
         } else {
             // if short
-            if (_info.blockLastLongTransaction == _blocknumber - SAFETY_BLOCK_PERIOD) {
+            if (_info.blockLastLongTransaction >= _blocknumber - SAFETY_BLOCK_PERIOD) {
                 // Within safety period
                 if (adjustedPrice > _info.minLongTradePrice) {
+                    uint256 tt = _blocknumber - _info.blockLastLongTransaction;
+                    int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
+                    if (spreadClosing > MAX_SPREAD_DECREASE) {
+                        spreadClosing = MAX_SPREAD_DECREASE;
+                    }
+                    if (adjustedPrice <= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
+                        _info.minLongTradePrice = ((_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4).toInt128();
+                    }
                     adjustedPrice = _info.minLongTradePrice;
-                }
-            } else {
-                uint256 tt = _blocknumber - _info.blockLastLongTransaction;
-                int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
-                if (spreadClosing > MAX_SPREAD_DECREASE) {
-                    spreadClosing = MAX_SPREAD_DECREASE;
-                }
-                if (adjustedPrice >= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
-                    _info.minLongTradePrice = ((_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4).toInt128();
                 }
             }
 
