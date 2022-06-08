@@ -263,19 +263,21 @@ describe('PerpetualMarket', function () {
       })
 
       it('liquidation happened', async function () {
-        const vault = await perpetualMarket.getVaultStatus(1)
+        const positionValueAndMinCollateral1 = await perpetualMarket.getPositionValueAndMinCollateral(1)
 
         const minCollateral = await perpetualMarket.getMinCollateralToAddPosition(1, ['0', '500000000'])
         await testContractHelper.trade(
           wallet,
           0,
           [0, '500000000'],
-          minCollateral.sub(vault.positionValue).add(100000000),
+          minCollateral.sub(positionValueAndMinCollateral1[0]).add(100000000),
         )
 
         await testContractHelper.updateSpot(scaledBN(2800, 8))
         await increaseTime(SAFETY_PERIOD)
 
+        const positionValueAndMinCollateral2 = await perpetualMarket.getPositionValueAndMinCollateral(1)
+        expect(positionValueAndMinCollateral2[0].lt(positionValueAndMinCollateral2[1])).to.be.true
         await perpetualMarket.liquidateByPool(1)
       })
 

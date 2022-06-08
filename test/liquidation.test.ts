@@ -91,6 +91,17 @@ describe('liquidation', function () {
       await expect(perpetualMarket.liquidateByPool(1)).revertedWith('vault is not danger')
     })
 
+    it('reverts if the vault holds no positions and position value is less than 0', async () => {
+      await updateSpotPrice(1800)
+
+      await perpetualMarket.liquidateByPool(1)
+
+      const positionValueAndMinCollateral = await perpetualMarket.getPositionValueAndMinCollateral(1)
+      expect(positionValueAndMinCollateral[0]).to.be.lt(0)
+
+      await expect(perpetualMarket.liquidateByPool(1)).revertedWith('vault has no positions')
+    })
+
     it('liquidate an insolvent vault', async () => {
       await updateSpotPrice(1800)
 
