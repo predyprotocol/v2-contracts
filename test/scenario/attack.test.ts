@@ -14,6 +14,7 @@ import { expect } from 'chai'
 import { MockArbSys } from '../../typechain/MockArbSys'
 
 describe('attack', function () {
+  this.timeout(60000)
   let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
@@ -42,10 +43,6 @@ describe('attack', function () {
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
     arbSys = testContractSet.arbSys
-  })
-
-  beforeEach(async () => {
-    snapshotId = await takeSnapshot()
 
     await weth.mint(wallet.address, MaxInt128)
     await usdc.mint(wallet.address, MaxInt128)
@@ -60,6 +57,10 @@ describe('attack', function () {
     await testContractSet.perpetualMarketCore.setPerpFutureMaxFundingRate(690000)
     // trade fee is 0.05% and protocol fee is 0.01%
     await testContractSet.perpetualMarketCore.setTradeFeeRate(50000, 10000)
+  })
+
+  beforeEach(async () => {
+    snapshotId = await takeSnapshot()
   })
 
   afterEach(async () => {

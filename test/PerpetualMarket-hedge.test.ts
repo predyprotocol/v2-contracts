@@ -168,7 +168,7 @@ describe('hedge', function () {
       await expect(perpetualMarket.execHedge()).to.be.revertedWith('N1')
     })
 
-    describe('suceed to hedge in test cases', () => {
+    describe('succeed to hedge in test cases', () => {
       async function checkHedge(
         beforePositions: BigNumberish[],
         price: number,
