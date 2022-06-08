@@ -9,7 +9,7 @@ import {
   TestContractHelper,
   TestContractSet,
 } from './utils/deploy'
-import { assertCloseToPercentage, scaledBN } from './utils/helpers'
+import { assertCloseToPercentage, increaseTime, scaledBN } from './utils/helpers'
 import {
   BLOCKS_PER_DAY,
   FUTURE_PRODUCT_ID,
@@ -400,13 +400,13 @@ describe('PerpetualMarket', function () {
 
       await testContractHelper.updateSpot(scaledBN(110, 8))
 
-      await increaseBlockNumber(VARIANCE_UPDATE_BLOCK_INTERVAL)
+      await increaseTime(VARIANCE_UPDATE_INTERVAL)
 
       await testContractHelper.trade(wallet, 1, [0, scaledBN(1, 6)], MIN_MARGIN)
 
       await testContractHelper.updateSpot(scaledBN(100, 8))
 
-      await increaseBlockNumber(VARIANCE_UPDATE_BLOCK_INTERVAL)
+      await increaseTime(VARIANCE_UPDATE_INTERVAL)
 
       await testContractHelper.trade(wallet, 1, [0, scaledBN(1, 6)], MIN_MARGIN)
 

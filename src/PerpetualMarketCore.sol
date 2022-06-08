@@ -116,7 +116,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
 
     // The address of ArbSys
     ArbSys private arbSys;
-    
+
     // The last spot price at heding
     int256 public lastHedgeSpotPrice;
 
@@ -159,7 +159,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         priceFeed = AggregatorV3Interface(_priceFeedAddress);
 
         arbSys = ArbSys(_arbSysAddress);
-        
+
         // initialize spread infos
         spreadInfos[0].init();
         spreadInfos[1].init();
@@ -822,7 +822,14 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
             _productId
         );
 
-        (int256 tradePrice, int256 protocolFee) = calculateTradePriceAndProtocolFee(_productId, _spotPrice, _tradeAmount, signedMarginAmount, signedDeltaMargin, deltaLiquidity);
+        (int256 tradePrice, int256 protocolFee) = calculateTradePriceAndProtocolFee(
+            _productId,
+            _spotPrice,
+            _tradeAmount,
+            signedMarginAmount,
+            signedDeltaMargin,
+            deltaLiquidity
+        );
 
         // Update pool liquidity and locked liquidity
         {
@@ -837,7 +844,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         return (tradePrice.toUint256(), protocolFee.toUint256().mul(Math.abs(_tradeAmount)).div(1e8));
     }
 
-
     function calculateTradePriceAndProtocolFee(
         uint256 _productId,
         int256 _spotPrice,
@@ -845,7 +851,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         int256 _signedMarginAmount,
         int256 _signedDeltaMargin,
         int256 _deltaLiquidity
-    ) internal returns (int256 tradePrice, int256 protocolFee) { 
+    ) internal returns (int256 tradePrice, int256 protocolFee) {
         (tradePrice, , , , protocolFee) = calculateTradePrice(
             _productId,
             _spotPrice,
@@ -857,7 +863,6 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         );
 
         tradePrice = spreadInfos[_productId].checkPrice(_tradeAmount > 0, tradePrice, arbSys.arbBlockNumber());
-
     }
 
     /**

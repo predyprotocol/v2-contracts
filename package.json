@@ -10,7 +10,8 @@
     "typechain": "hardhat typechain",
     "coverage": "hardhat coverage",
     "lint:check": "prettier --check \"src/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\"",
-    "lint:write": "prettier --write \"src/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\""
+    "lint:write": "prettier --write \"src/**/*.sol\" \"test/**/*.ts\" \"tasks/**/*.ts\" \"deploy/**/*.ts\"",
+    "prepare": "husky install"
   },
   "author": "predy",
   "license": "ISC",
@@ -49,6 +50,7 @@
     "ethers": "^5.5.2",
     "hardhat-gas-reporter": "^1.0.6",
     "hardhat-preprocessor": "^0.1.4",
+    "husky": "^8.0.1",
     "prettier": "^2.5.0",
     "prettier-plugin-solidity": "^1.0.0-beta.13",
     "solhint": "^3.3.6",
