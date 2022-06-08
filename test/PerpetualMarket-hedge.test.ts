@@ -65,7 +65,7 @@ describe('hedge', function () {
     })
 
     it('enough USDC locked for a hedge', async () => {
-      await perpetualMarket.execHedge()
+      await perpetualMarket.execHedge(true)
       const result = await perpetualMarket.getTokenAmountForHedging()
 
       expect(result[1]).to.be.eq(0)
@@ -95,7 +95,7 @@ describe('hedge', function () {
 
         const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
         if (tokenAmounts[1].gt(0)) {
-          await perpetualMarket.execHedge()
+          await perpetualMarket.execHedge(true)
         }
       }
 
@@ -146,7 +146,7 @@ describe('hedge', function () {
       expect(tokenAmounts[2]).to.be.gt(0)
 
       const before = await usdc.balanceOf(wallet.address)
-      await perpetualMarket.execHedge()
+      await perpetualMarket.execHedge(true)
       const after = await usdc.balanceOf(wallet.address)
 
       expect(after.sub(before)).to.be.gt(0)
@@ -157,7 +157,7 @@ describe('hedge', function () {
     it('reverts if there are no WETH to sell(net delta is positive)', async () => {
       await testContractHelper.trade(wallet, 0, [scaledBN(-1, 7), scaledBN(1, 6)], MIN_MARGIN)
 
-      await expect(perpetualMarket.execHedge()).to.be.revertedWith('N1')
+      await expect(perpetualMarket.execHedge(true)).to.be.revertedWith('N1')
     })
 
     describe('suceed to hedge in test cases', () => {
@@ -171,7 +171,7 @@ describe('hedge', function () {
 
         await testContractHelper.trade(wallet, 1, beforePositions, MIN_MARGIN)
 
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
 
         await increaseTime(60 * 60 * 12)
 
@@ -179,7 +179,7 @@ describe('hedge', function () {
 
         if (isHedgeHappened) {
           const before = await weth.balanceOf(wallet.address)
-          await perpetualMarket.execHedge()
+          await perpetualMarket.execHedge(true)
           const after = await weth.balanceOf(wallet.address)
 
           if (isWethReceived) {
@@ -196,7 +196,7 @@ describe('hedge', function () {
           [BigNumber.from(beforePositions[0]).mul(-1), BigNumber.from(beforePositions[1]).mul(-1)],
           0,
         )
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
       }
 
       beforeEach(async () => {
@@ -260,7 +260,7 @@ describe('hedge', function () {
 
       it('succeed to hedge(short future & delta is positive)', async () => {
         await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), 0], MIN_MARGIN)
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
 
         const testCases = [[scaledBN(-5, 6), scaledBN(1, 8)]]
 
@@ -276,7 +276,7 @@ describe('hedge', function () {
         }
 
         await testContractHelper.trade(wallet, 2, [scaledBN(-1, 6), 0], MAX_WITHDRAW_AMOUNT)
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
       })
 
       it('succeed to hedge(short squared)', async () => {
@@ -296,7 +296,7 @@ describe('hedge', function () {
 
       it('succeed to hedge(short squared & delta is positive)', async () => {
         await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), 0], MIN_MARGIN)
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
 
         const testCases = [[scaledBN(2, 6), scaledBN(-1, 8)]]
 
@@ -312,7 +312,7 @@ describe('hedge', function () {
         }
 
         await testContractHelper.trade(wallet, 2, [scaledBN(-1, 6), 0], MAX_WITHDRAW_AMOUNT)
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
       })
 
       it('succeed to hedge(crossing)', async () => {
@@ -343,7 +343,7 @@ describe('hedge', function () {
     describe('net delta is negative', () => {
       async function hedge(isBuyingETH: boolean) {
         const before = await weth.balanceOf(wallet.address)
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
         const after = await weth.balanceOf(wallet.address)
 
         if (isBuyingETH) {
@@ -356,7 +356,7 @@ describe('hedge', function () {
       beforeEach(async () => {
         await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 8)], MIN_MARGIN)
 
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
 
         await increaseTime(60 * 60 * 12)
       })

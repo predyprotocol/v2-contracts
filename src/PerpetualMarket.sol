@@ -422,22 +422,31 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     /**
      * @notice Executes hedging
      */
-    function execHedge() external override onlyHedger returns (uint256 amountUsdc, uint256 amountUnderlying) {
+    function execHedge(bool _withRebalance)
+        external
+        override
+        onlyHedger
+        returns (uint256 amountUsdc, uint256 amountUnderlying)
+    {
         // execute funding payment
         perpetualMarketCore.executeFundingPayment();
 
         // Try to update variance after funding payment
         perpetualMarketCore.updatePoolSnapshot();
 
-        // rebalance before hedge
-        perpetualMarketCore.rebalance();
+        if (_withRebalance) {
+            // rebalance before hedge
+            perpetualMarketCore.rebalance();
+        }
 
         NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
 
         perpetualMarketCore.completeHedgingProcedure(completeParams);
 
-        // rebalance after hedge
-        perpetualMarketCore.rebalance();
+        if (_withRebalance) {
+            // rebalance after hedge
+            perpetualMarketCore.rebalance();
+        }
 
         amountUsdc = completeParams.amountUsdc / 1e2;
         amountUnderlying = Math.scale(completeParams.amountUnderlying, 8, ERC20(underlyingAsset).decimals());

@@ -38,6 +38,7 @@ contract FlashHedge is BaseFlashSwap, Ownable {
         uint256 amountUsdc;
         uint256 amountUnderlying;
         uint256 minUsdc;
+        bool withRebalance;
     }
 
     enum FLASH_SOURCE {
@@ -94,7 +95,7 @@ contract FlashHedge is BaseFlashSwap, Ownable {
             require(IERC20(collateral).balanceOf(address(this)) >= data.amountUsdc, "FH0");
 
             IERC20(collateral).approve(address(perpetualMarket), data.amountUsdc);
-            perpetualMarket.execHedge();
+            perpetualMarket.execHedge(data.withRebalance);
 
             // Repay and safeTransfer profit
             uint256 usdcProfit = IERC20(collateral).balanceOf(address(this));
@@ -106,7 +107,7 @@ contract FlashHedge is BaseFlashSwap, Ownable {
         } else if (FLASH_SOURCE(_callSource) == FLASH_SOURCE.FLASH_HEDGE_BUY) {
             IERC20(underlying).approve(address(perpetualMarket), data.amountUnderlying);
 
-            (uint256 receivedUsdcAmount, ) = perpetualMarket.execHedge();
+            (uint256 receivedUsdcAmount, ) = perpetualMarket.execHedge(data.withRebalance);
 
             require(receivedUsdcAmount >= _amountToPay, "FH1");
 
@@ -123,8 +124,9 @@ contract FlashHedge is BaseFlashSwap, Ownable {
     /**
      * @notice Executes delta hedging by Uniswap
      * @param _minUsdc minimum USDC amount the caller willing to receive
+     * @param _withRebalance exec hedge with rebalancing margin or not
      */
-    function hedgeOnUniswap(uint256 _minUsdc) external onlyBot {
+    function hedgeOnUniswap(uint256 _minUsdc, bool _withRebalance) external onlyBot {
         (bool isBuyingETH, uint256 amountUsdc, uint256 amountEth) = perpetualMarket.getTokenAmountForHedging();
 
         require(amountUsdc > 0 && amountEth > 0, "FH3");
@@ -137,7 +139,7 @@ contract FlashHedge is BaseFlashSwap, Ownable {
                 amountEth,
                 amountUsdc, // max amount of USDC to send
                 uint8(FLASH_SOURCE.FLASH_HEDGE_BUY),
-                abi.encodePacked(amountUsdc, amountEth, _minUsdc)
+                abi.encode(FlashHedgeData(amountUsdc, amountEth, _minUsdc, _withRebalance))
             );
         } else {
             _exactInFlashSwap(
@@ -147,7 +149,7 @@ contract FlashHedge is BaseFlashSwap, Ownable {
                 amountEth,
                 amountUsdc, // min amount of USDC to receive
                 uint8(FLASH_SOURCE.FLASH_HEDGE_SELL),
-                abi.encodePacked(amountUsdc, amountEth, _minUsdc)
+                abi.encode(FlashHedgeData(amountUsdc, amountEth, _minUsdc, _withRebalance))
             );
         }
 

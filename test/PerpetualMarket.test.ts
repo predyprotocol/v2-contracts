@@ -285,7 +285,7 @@ describe('PerpetualMarket', function () {
         await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot('307666035339')
 
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
 
         await increaseTime(SAFETY_PERIOD)
 
@@ -293,7 +293,7 @@ describe('PerpetualMarket', function () {
 
         await increaseTime(SAFETY_PERIOD)
         await testContractHelper.updateSpot('307236035339')
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
 
         await increaseTime(SAFETY_PERIOD)
 
@@ -1031,7 +1031,7 @@ describe('PerpetualMarket', function () {
 
     it('reverts if caller is not hedger', async () => {
       await perpetualMarket.setHedger(hedgerAddress)
-      await expect(perpetualMarket.execHedge()).to.be.revertedWith('PM4')
+      await expect(perpetualMarket.execHedge(true)).to.be.revertedWith('PM4')
     })
   })
 
