@@ -29,8 +29,8 @@ describe('attack', function () {
   const MaxInt128 = ethers.constants.MaxUint256
 
   async function increaseBlockNumber(blocknumber: number) {
-    const currentBlockNumber = await ethers.provider.getBlockNumber()
-    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+    const currentBlockNumber = await arbSys.arbBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber.add(blocknumber))
   }
 
   before(async () => {

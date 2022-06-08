@@ -16,16 +16,16 @@ library SpreadLib {
     using SignedSafeMath for int128;
 
     /// @dev block period for ETH - USD
-    uint256 private constant SAFETY_BLOCK_PERIOD = 1;
+    uint256 private constant SAFETY_BLOCK_PERIOD = 17;
 
-    /// @dev number of blocks per minute in arbitrum
-    uint256 private constant NUM_BLOCKS_PER_MINUTE = 12;
+    /// @dev number of blocks per spread decreasing
+    uint256 private constant NUM_BLOCKS_PER_SPREAD_DECREASING = 3;
 
-    /// @dev 4 bps
-    uint256 private constant SPREAD_DECREASE_PER_PERIOD = 4;
+    /// @dev 1 bps
+    uint256 private constant SPREAD_DECREASE_PER_PERIOD = 1;
 
-    /// @dev 80 bps
-    int256 private constant MAX_SPREAD_DECREASE = 80;
+    /// @dev 6 bps
+    int256 private constant MAX_SPREAD_DECREASE = 6;
 
     struct Info {
         uint128 blockLastLongTransaction;
@@ -79,7 +79,7 @@ library SpreadLib {
             if (_info.blockLastShortTransaction >= _blocknumber - SAFETY_BLOCK_PERIOD) {
                 // Within safety period
                 if (adjustedPrice < _info.maxShortTradePrice) {
-                    uint256 tt = (_blocknumber - _info.blockLastShortTransaction) / NUM_BLOCKS_PER_MINUTE;
+                    uint256 tt = (_blocknumber - _info.blockLastShortTransaction) / NUM_BLOCKS_PER_SPREAD_DECREASING;
                     int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
                     if (spreadClosing > MAX_SPREAD_DECREASE) {
                         spreadClosing = MAX_SPREAD_DECREASE;
@@ -105,7 +105,7 @@ library SpreadLib {
             if (_info.blockLastLongTransaction >= _blocknumber - SAFETY_BLOCK_PERIOD) {
                 // Within safety period
                 if (adjustedPrice > _info.minLongTradePrice) {
-                    uint256 tt = (_blocknumber - _info.blockLastLongTransaction) / NUM_BLOCKS_PER_MINUTE;
+                    uint256 tt = (_blocknumber - _info.blockLastLongTransaction) / NUM_BLOCKS_PER_SPREAD_DECREASING;
                     int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
                     if (spreadClosing > MAX_SPREAD_DECREASE) {
                         spreadClosing = MAX_SPREAD_DECREASE;

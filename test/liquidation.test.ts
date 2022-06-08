@@ -39,8 +39,8 @@ describe('liquidation', function () {
   }
 
   async function increaseBlockNumber(blocknumber: number) {
-    const currentBlockNumber = await ethers.provider.getBlockNumber()
-    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+    const currentBlockNumber = await arbSys.arbBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber.add(blocknumber))
   }
 
   before(async () => {
@@ -203,7 +203,7 @@ describe('liquidation', function () {
         })
 
         it('liquidate a vault', async () => {
-          await updateSpotPrice(2360)
+          await updateSpotPrice(2390)
 
           await perpetualMarket.liquidateByPool(1)
 

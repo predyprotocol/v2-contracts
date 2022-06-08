@@ -11,7 +11,6 @@ import {
 } from './utils/deploy'
 import { assertCloseToPercentage, increaseTime, numToBn, scaledBN } from './utils/helpers'
 import {
-  FUNDING_BLOCK_PERIOD,
   FUNDING_PERIOD,
   FUTURE_PRODUCT_ID,
   MAX_WITHDRAW_AMOUNT,
@@ -36,8 +35,8 @@ describe('trade', function () {
   const MaxInt128 = ethers.constants.MaxUint256
 
   async function increaseBlockNumber(blocknumber: number) {
-    const currentBlockNumber = await ethers.provider.getBlockNumber()
-    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+    const currentBlockNumber = await arbSys.arbBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber.add(blocknumber))
   }
 
   before(async () => {

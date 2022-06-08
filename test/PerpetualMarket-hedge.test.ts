@@ -48,8 +48,8 @@ describe('hedge', function () {
   })
 
   async function increaseBlockNumber(blocknumber: number) {
-    const currentBlockNumber = await ethers.provider.getBlockNumber()
-    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+    const currentBlockNumber = await arbSys.arbBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber.add(blocknumber))
   }
 
   beforeEach(async () => {

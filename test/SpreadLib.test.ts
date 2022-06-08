@@ -79,6 +79,22 @@ describe('SpreadLib', function () {
             ),
           ).to.be.eq('12000')
         })
+
+        it('spread closes', async function () {
+          expect(
+            await tester.getUpdatedPrice(
+              {
+                blockLastLongTransaction: 600,
+                minLongTradePrice: 12000,
+                blockLastShortTransaction: 600,
+                maxShortTradePrice: 12000,
+              },
+              true,
+              10000,
+              610,
+            ),
+          ).to.be.eq('11996')
+        })
       })
     })
 
@@ -132,6 +148,22 @@ describe('SpreadLib', function () {
               601,
             ),
           ).to.be.eq('8000')
+        })
+
+        it('spread closes', async function () {
+          expect(
+            await tester.getUpdatedPrice(
+              {
+                blockLastLongTransaction: 600,
+                minLongTradePrice: 8000,
+                blockLastShortTransaction: 600,
+                maxShortTradePrice: 8000,
+              },
+              false,
+              10000,
+              610,
+            ),
+          ).to.be.eq('8002')
         })
 
         it('minLongTradePrice is 12000', async function () {
