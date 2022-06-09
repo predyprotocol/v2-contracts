@@ -1,4 +1,5 @@
 export const SAFETY_BLOCK_PERIOD = 18
+export const NUM_BLOCKS_PER_SPREAD_DECREASING = 3
 export const VARIANCE_UPDATE_INTERVAL = 12 * 60 * 60
 // arbitrum mines 12 blocks per minute
 export const VARIANCE_UPDATE_BLOCK_INTERVAL = 12 * 60 * 12

@@ -12,6 +12,7 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 library SpreadLib {
     using SafeCast for int256;
     using SafeCast for uint128;
+    using SafeCast for uint256;
     using SafeMath for uint256;
     using SignedSafeMath for int128;
 
@@ -21,22 +22,29 @@ library SpreadLib {
     /// @dev number of blocks per spread decreasing
     uint256 private constant NUM_BLOCKS_PER_SPREAD_DECREASING = 3;
 
-    /// @dev 1 bps
-    uint256 private constant SPREAD_DECREASE_PER_PERIOD = 1;
-
-    /// @dev 6 bps
-    int256 private constant MAX_SPREAD_DECREASE = 6;
-
     struct Info {
         uint128 blockLastLongTransaction;
         int128 minLongTradePrice;
         uint128 blockLastShortTransaction;
         int128 maxShortTradePrice;
+        uint256 safetyBlockPeriod;
+        uint256 numBlocksPerSpreadDecreasing;
     }
 
     function init(Info storage _info) internal {
         _info.minLongTradePrice = type(int128).max;
         _info.maxShortTradePrice = 0;
+        _info.safetyBlockPeriod = SAFETY_BLOCK_PERIOD;
+        _info.numBlocksPerSpreadDecreasing = NUM_BLOCKS_PER_SPREAD_DECREASING;
+    }
+
+    function setParams(
+        Info storage _info,
+        uint256 _safetyBlockPeriod,
+        uint256 _numBlocksPerSpreadDecreasing
+    ) internal {
+        _info.safetyBlockPeriod = _safetyBlockPeriod;
+        _info.numBlocksPerSpreadDecreasing = _numBlocksPerSpreadDecreasing;
     }
 
     /**
@@ -56,7 +64,9 @@ library SpreadLib {
             _info.blockLastLongTransaction,
             _info.minLongTradePrice,
             _info.blockLastShortTransaction,
-            _info.maxShortTradePrice
+            _info.maxShortTradePrice,
+            _info.safetyBlockPeriod,
+            _info.numBlocksPerSpreadDecreasing
         );
         // MockArbSys mockArbSys = new MockArbSys();
         adjustedPrice = getUpdatedPrice(cache, _isLong, _price, _blocknumber);
@@ -76,14 +86,11 @@ library SpreadLib {
         adjustedPrice = _price;
         if (_isLong) {
             // if long
-            if (_info.blockLastShortTransaction >= _blocknumber - SAFETY_BLOCK_PERIOD) {
+            if (_info.blockLastShortTransaction >= _blocknumber - _info.safetyBlockPeriod) {
                 // Within safety period
                 if (adjustedPrice < _info.maxShortTradePrice) {
-                    uint256 tt = (_blocknumber - _info.blockLastShortTransaction) / NUM_BLOCKS_PER_SPREAD_DECREASING;
-                    int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
-                    if (spreadClosing > MAX_SPREAD_DECREASE) {
-                        spreadClosing = MAX_SPREAD_DECREASE;
-                    }
+                    int256 spreadClosing = ((_blocknumber - _info.blockLastShortTransaction) /
+                        _info.numBlocksPerSpreadDecreasing).toInt256();
                     if (adjustedPrice <= (_info.maxShortTradePrice.mul(1e4 - spreadClosing)) / 1e4) {
                         _info.maxShortTradePrice = ((_info.maxShortTradePrice.mul(1e4 - spreadClosing)) / 1e4)
                             .toInt128();
@@ -95,21 +102,18 @@ library SpreadLib {
             // Update min ask
             if (
                 _info.minLongTradePrice > adjustedPrice ||
-                _info.blockLastLongTransaction + SAFETY_BLOCK_PERIOD < _blocknumber
+                _info.blockLastLongTransaction + _info.safetyBlockPeriod < _blocknumber
             ) {
                 _info.minLongTradePrice = adjustedPrice.toInt128();
             }
             _info.blockLastLongTransaction = uint128(_blocknumber);
         } else {
             // if short
-            if (_info.blockLastLongTransaction >= _blocknumber - SAFETY_BLOCK_PERIOD) {
+            if (_info.blockLastLongTransaction >= _blocknumber - _info.safetyBlockPeriod) {
                 // Within safety period
                 if (adjustedPrice > _info.minLongTradePrice) {
-                    uint256 tt = (_blocknumber - _info.blockLastLongTransaction) / NUM_BLOCKS_PER_SPREAD_DECREASING;
-                    int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
-                    if (spreadClosing > MAX_SPREAD_DECREASE) {
-                        spreadClosing = MAX_SPREAD_DECREASE;
-                    }
+                    int256 spreadClosing = ((_blocknumber - _info.blockLastLongTransaction) /
+                        _info.numBlocksPerSpreadDecreasing).toInt256();
                     if (adjustedPrice >= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
                         _info.minLongTradePrice = ((_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4).toInt128();
                     }
@@ -120,7 +124,7 @@ library SpreadLib {
             // Update max bit
             if (
                 _info.maxShortTradePrice < adjustedPrice ||
-                _info.blockLastShortTransaction + SAFETY_BLOCK_PERIOD < _blocknumber
+                _info.blockLastShortTransaction + _info.safetyBlockPeriod < _blocknumber
             ) {
                 _info.maxShortTradePrice = adjustedPrice.toInt128();
             }

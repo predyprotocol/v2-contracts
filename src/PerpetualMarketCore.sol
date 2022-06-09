@@ -141,6 +141,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
     );
     event SetPoolMarginRiskParam(int256 poolMarginRiskParam);
     event SetTradeFeeRate(int256 tradeFeeRate, int256 protocolFeeRate);
+    event SetSpreadParams(uint256 safetyPeriod, uint256 numBlocksPerSpreadDecreasing);
 
     modifier onlyPerpetualMarket() {
         require(msg.sender == perpetualMarket, "PMC2");
@@ -163,6 +164,7 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         // initialize spread infos
         spreadInfos[0].init();
         spreadInfos[1].init();
+        lpTokenSpreadInfo.init();
 
         // 550%
         squaredPerpFundingMultiplier = 550 * 1e6;
@@ -523,6 +525,16 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         tradeFeeRate = _tradeFeeRate;
         protocolFeeRate = _protocolFeeRate;
         emit SetTradeFeeRate(_tradeFeeRate, _protocolFeeRate);
+    }
+
+    function setSpreadParams(uint256 _safetyPeriod, uint256 _numBlocksPerSpreadDecreasing) external onlyOwner {
+        require(0 <= _safetyPeriod && _safetyPeriod <= 600, "PMC5");
+        require(0 < _numBlocksPerSpreadDecreasing && _numBlocksPerSpreadDecreasing <= 600, "PMC5");
+
+        spreadInfos[0].setParams(_safetyPeriod, _numBlocksPerSpreadDecreasing);
+        spreadInfos[1].setParams(_safetyPeriod, _numBlocksPerSpreadDecreasing);
+        lpTokenSpreadInfo.setParams(_safetyPeriod, _numBlocksPerSpreadDecreasing);
+        emit SetSpreadParams(_safetyPeriod, _numBlocksPerSpreadDecreasing);
     }
 
     /////////////////////////

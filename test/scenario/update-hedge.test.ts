@@ -280,8 +280,8 @@ describe('update-hedge', function () {
         const spot = 500
         await testContractHelper.updateSpot(scaledBN(spot, 8))
 
-        await show()
-        console.log((await getHedgePositionValue(scaledBN(spot, 8))).toString())
+        // await show()
+        // console.log((await getHedgePositionValue(scaledBN(spot, 8))).toString())
 
         expect((await testContractSet.perpetualMarketCore.getNettingInfo()).amountsUsdc[0].lt(0)).to.be.true
         expect((await getHedgePositionValue(scaledBN(spot, 8))).lt(0)).to.be.true
