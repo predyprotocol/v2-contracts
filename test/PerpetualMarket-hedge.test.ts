@@ -10,7 +10,8 @@ import {
   TestContractSet,
 } from './utils/deploy'
 import { increaseTime, scaledBN } from './utils/helpers'
-import { MAX_WITHDRAW_AMOUNT, MIN_MARGIN } from './utils/constants'
+import { BLOCKS_PER_DAY, MAX_WITHDRAW_AMOUNT, MIN_MARGIN } from './utils/constants'
+import { MockArbSys } from '../typechain/MockArbSys'
 
 describe('hedge', function () {
   this.timeout(80000)
@@ -18,7 +19,7 @@ describe('hedge', function () {
   let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
-
+  let arbSys: MockArbSys
   let testContractSet: TestContractSet
   let testContractHelper: TestContractHelper
   let snapshotId: number
@@ -36,6 +37,7 @@ describe('hedge', function () {
     weth = testContractSet.weth
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
+    arbSys = testContractSet.arbSys
 
     await weth.mint(wallet.address, MaxInt128)
     await usdc.mint(wallet.address, MaxInt128)
@@ -45,8 +47,14 @@ describe('hedge', function () {
     await usdc.approve(perpetualMarket.address, MaxInt128)
   })
 
+  async function increaseBlockNumber(blocknumber: number) {
+    const currentBlockNumber = await arbSys.arbBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber.add(blocknumber))
+  }
+
   beforeEach(async () => {
     snapshotId = await takeSnapshot()
+    await increaseBlockNumber(0)
   })
 
   afterEach(async () => {
@@ -160,7 +168,7 @@ describe('hedge', function () {
       await expect(perpetualMarket.execHedge(true)).to.be.revertedWith('N1')
     })
 
-    describe('suceed to hedge in test cases', () => {
+    describe('succeed to hedge in test cases', () => {
       async function checkHedge(
         beforePositions: BigNumberish[],
         price: number,
@@ -174,6 +182,7 @@ describe('hedge', function () {
         await perpetualMarket.execHedge(true)
 
         await increaseTime(60 * 60 * 12)
+        await increaseBlockNumber(BLOCKS_PER_DAY)
 
         await testContractHelper.updateSpot(scaledBN(price, 8))
 
@@ -359,6 +368,7 @@ describe('hedge', function () {
         await perpetualMarket.execHedge(true)
 
         await increaseTime(60 * 60 * 12)
+        await increaseBlockNumber(BLOCKS_PER_DAY)
       })
 
       afterEach(async () => {

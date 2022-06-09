@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { MockChainlinkAggregator, PerpetualMarketCore, PerpetualMarketCoreTester } from '../typechain'
+import { MockChainlinkAggregator, MockArbSys, PerpetualMarketCore, PerpetualMarketCoreTester } from '../typechain'
 import { BigNumber, BigNumberish, constants, Wallet } from 'ethers'
 import { restoreSnapshot, takeSnapshot } from './utils/deploy'
 import { assertCloseToPercentage, getBlocktime, increaseTime, numToBn, scaledBN } from './utils/helpers'
@@ -9,15 +9,17 @@ import {
   FUNDING_PERIOD,
   FUTURE_PRODUCT_ID,
   MAX_PRODUCT_ID,
-  SAFETY_PERIOD,
   SQUEETH_PRODUCT_ID,
   VARIANCE_UPDATE_INTERVAL,
+  SAFETY_BLOCK_PERIOD,
+  VARIANCE_UPDATE_BLOCK_INTERVAL,
 } from './utils/constants'
 
 describe('PerpetualMarketCore', function () {
   let wallet: Wallet, other: Wallet
 
   let priceFeed: MockChainlinkAggregator
+  let arbSys: MockArbSys
   let perpetualMarketCore: PerpetualMarketCore
   let tester: PerpetualMarketCoreTester
   let snapshotId: number
@@ -30,21 +32,35 @@ describe('PerpetualMarketCore', function () {
     await updateRoundData(0, spot)
   }
 
+  async function increaseBlockNumber(blocknumber: number) {
+    const currentBlockNumber = await ethers.provider.getBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+  }
+
   before(async () => {
     ;[wallet, other] = await (ethers as any).getSigners()
 
     const MockChainlinkAggregator = await ethers.getContractFactory('MockChainlinkAggregator')
     priceFeed = (await MockChainlinkAggregator.deploy()) as MockChainlinkAggregator
 
+    const MockArbSys = await ethers.getContractFactory('MockArbSys')
+    arbSys = (await MockArbSys.deploy()) as MockArbSys
+
     const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
-    perpetualMarketCore = (await PerpetualMarketCore.deploy(priceFeed.address, '', '')) as PerpetualMarketCore
+    perpetualMarketCore = (await PerpetualMarketCore.deploy(
+      priceFeed.address,
+      '',
+      '',
+      arbSys.address,
+    )) as PerpetualMarketCore
 
     await perpetualMarketCore.setPerpetualMarket(wallet.address)
 
     const PerpetualMarketCoreTester = await ethers.getContractFactory('PerpetualMarketCoreTester')
-    tester = (await PerpetualMarketCoreTester.deploy(priceFeed.address)) as PerpetualMarketCoreTester
+    tester = (await PerpetualMarketCoreTester.deploy(priceFeed.address, arbSys.address)) as PerpetualMarketCoreTester
 
     await tester.setPerpetualMarket(wallet.address)
+    await increaseBlockNumber(0)
   })
 
   beforeEach(async () => {
@@ -111,7 +127,7 @@ describe('PerpetualMarketCore', function () {
     it('deposits after pool gets loss', async () => {
       await perpetualMarketCore.updatePoolPositions([0, 1000])
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       await updateSpot(scaledBN(1005, 8))
 
       await perpetualMarketCore.deposit(wallet.address, 1000000)
@@ -164,7 +180,7 @@ describe('PerpetualMarketCore', function () {
     it('withdraws after the pool gets loss', async () => {
       await perpetualMarketCore.updatePoolPositions([0, 1000])
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       await updateSpot(scaledBN(1005, 8))
 
       await perpetualMarketCore.withdraw(wallet.address, 500000)
@@ -193,7 +209,7 @@ describe('PerpetualMarketCore', function () {
 
       await updateSpot(scaledBN(995, 8))
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
@@ -202,6 +218,8 @@ describe('PerpetualMarketCore', function () {
     })
 
     it('spread becomes high when withdraw', async () => {
+      await increaseBlockNumber(0)
+
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       await perpetualMarketCore.updatePoolPositions([0, 1000])
@@ -221,7 +239,7 @@ describe('PerpetualMarketCore', function () {
 
       await updateSpot(scaledBN(1005, 8))
 
-      await increaseTime(SAFETY_PERIOD)
+      await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 

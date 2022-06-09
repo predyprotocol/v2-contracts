@@ -10,6 +10,8 @@ import "../../src/FeePool.sol";
 import "../../src/VaultNFT.sol";
 import "../../src/mocks/MockChainlinkAggregator.sol";
 import "../../src/mocks/MockERC20.sol";
+import "../../src/mocks/MockChainlinkAggregator.sol";
+import "../../src/mocks/MockArbSys.sol";
 
 /**
  * @title PerpetualMarketCoreTester
@@ -27,7 +29,8 @@ contract PerpetualMarketCoreTest is Test {
     function setUp() public {
         MockChainlinkAggregator aggregator = new MockChainlinkAggregator();
         aggregator.setLatestRoundData(0, 1000 * 10 ** 8);
-        pmc = new PerpetualMarketCore(address(aggregator), "TestLPToken", "TestLPToken");
+        MockArbSys arbSys = new MockArbSys();
+        pmc = new PerpetualMarketCore(address(aggregator), "TestLPToken", "TestLPToken", address(arbSys));
         usdc = new MockERC20("USDC", "USDC", 6);
         weth = new MockERC20("WETH", "WETH", 18);
         feePool = new FeePool(usdc);
@@ -84,7 +87,7 @@ contract PerpetualMarketCoreTest is Test {
 
     function testAddLiquidityFuzzing(uint256 _amount) public {
         this.testDeposit();
-        
+
         vm.prank(address(pm));
         vm.assume(_amount < 2 ** 128 - 1 );
         pmc.addLiquidity(_amount);

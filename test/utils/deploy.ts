@@ -6,6 +6,7 @@ import {
   PerpetualMarket,
   PerpetualMarketCore,
   MockERC20,
+  MockArbSys,
   MockChainlinkAggregator,
   IFeePool,
   VaultNFT,
@@ -34,6 +35,7 @@ export type TestContractSet = {
   feePool: IFeePool
   usdc: MockERC20
   weth: MockERC20
+  arbSys: MockArbSys
 }
 
 /**
@@ -126,11 +128,15 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
   const MockChainlinkAggregator = await ethers.getContractFactory('MockChainlinkAggregator')
   const priceFeed = (await MockChainlinkAggregator.deploy()) as MockChainlinkAggregator
 
+  const MockArbSys = await ethers.getContractFactory('MockArbSys')
+  const arbSys = (await MockArbSys.deploy()) as MockArbSys
+
   const PerpetualMarketCore = await ethers.getContractFactory('PerpetualMarketCore')
   const perpetualMarketCore = (await PerpetualMarketCore.deploy(
     priceFeed.address,
     'Predy V2 LP Token',
     'PREDY-V2-LP',
+    arbSys.address,
   )) as PerpetualMarketCore
 
   const VaultNFT = await ethers.getContractFactory('VaultNFT')
@@ -167,6 +173,7 @@ export async function deployTestContractSet(wallet: Wallet): Promise<TestContrac
     perpetualMarket,
     perpetualMarketCore,
     feePool: mockFeePool,
+    arbSys,
   }
 }
 

@@ -15,17 +15,22 @@ library SpreadLib {
     using SafeMath for uint256;
     using SignedSafeMath for int128;
 
-    /// @dev 6 minutes
-    uint256 private constant SAFETY_PERIOD = 6 minutes;
-    /// @dev 4 bps
-    uint256 private constant SPREAD_DECREASE_PER_PERIOD = 4;
-    /// @dev 80 bps
-    int256 private constant MAX_SPREAD_DECREASE = 80;
+    /// @dev block period for ETH - USD
+    uint256 private constant SAFETY_BLOCK_PERIOD = 17;
+
+    /// @dev number of blocks per spread decreasing
+    uint256 private constant NUM_BLOCKS_PER_SPREAD_DECREASING = 3;
+
+    /// @dev 1 bps
+    uint256 private constant SPREAD_DECREASE_PER_PERIOD = 1;
+
+    /// @dev 6 bps
+    int256 private constant MAX_SPREAD_DECREASE = 6;
 
     struct Info {
-        uint128 timeLastLongTransaction;
+        uint128 blockLastLongTransaction;
         int128 minLongTradePrice;
-        uint128 timeLastShortTransaction;
+        uint128 blockLastShortTransaction;
         int128 maxShortTradePrice;
     }
 
@@ -44,20 +49,21 @@ library SpreadLib {
     function checkPrice(
         Info storage _info,
         bool _isLong,
-        int256 _price
+        int256 _price,
+        uint256 _blocknumber
     ) internal returns (int256 adjustedPrice) {
         Info memory cache = Info(
-            _info.timeLastLongTransaction,
+            _info.blockLastLongTransaction,
             _info.minLongTradePrice,
-            _info.timeLastShortTransaction,
+            _info.blockLastShortTransaction,
             _info.maxShortTradePrice
         );
+        // MockArbSys mockArbSys = new MockArbSys();
+        adjustedPrice = getUpdatedPrice(cache, _isLong, _price, _blocknumber);
 
-        adjustedPrice = getUpdatedPrice(cache, _isLong, _price, block.timestamp);
-
-        _info.timeLastLongTransaction = cache.timeLastLongTransaction;
+        _info.blockLastLongTransaction = cache.blockLastLongTransaction;
         _info.minLongTradePrice = cache.minLongTradePrice;
-        _info.timeLastShortTransaction = cache.timeLastShortTransaction;
+        _info.blockLastShortTransaction = cache.blockLastShortTransaction;
         _info.maxShortTradePrice = cache.maxShortTradePrice;
     }
 
@@ -65,15 +71,15 @@ library SpreadLib {
         Info memory _info,
         bool _isLong,
         int256 _price,
-        uint256 _timestamp
+        uint256 _blocknumber
     ) internal pure returns (int256 adjustedPrice) {
         adjustedPrice = _price;
         if (_isLong) {
             // if long
-            if (_info.timeLastShortTransaction >= _timestamp - SAFETY_PERIOD) {
+            if (_info.blockLastShortTransaction >= _blocknumber - SAFETY_BLOCK_PERIOD) {
                 // Within safety period
                 if (adjustedPrice < _info.maxShortTradePrice) {
-                    uint256 tt = (_timestamp - _info.timeLastShortTransaction) / 1 minutes;
+                    uint256 tt = (_blocknumber - _info.blockLastShortTransaction) / NUM_BLOCKS_PER_SPREAD_DECREASING;
                     int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
                     if (spreadClosing > MAX_SPREAD_DECREASE) {
                         spreadClosing = MAX_SPREAD_DECREASE;
@@ -87,21 +93,24 @@ library SpreadLib {
             }
 
             // Update min ask
-            if (_info.minLongTradePrice > adjustedPrice || _info.timeLastLongTransaction + SAFETY_PERIOD < _timestamp) {
+            if (
+                _info.minLongTradePrice > adjustedPrice ||
+                _info.blockLastLongTransaction + SAFETY_BLOCK_PERIOD < _blocknumber
+            ) {
                 _info.minLongTradePrice = adjustedPrice.toInt128();
             }
-            _info.timeLastLongTransaction = uint128(_timestamp);
+            _info.blockLastLongTransaction = uint128(_blocknumber);
         } else {
             // if short
-            if (_info.timeLastLongTransaction >= _timestamp - SAFETY_PERIOD) {
+            if (_info.blockLastLongTransaction >= _blocknumber - SAFETY_BLOCK_PERIOD) {
                 // Within safety period
                 if (adjustedPrice > _info.minLongTradePrice) {
-                    uint256 tt = (_timestamp - _info.timeLastLongTransaction) / 1 minutes;
+                    uint256 tt = (_blocknumber - _info.blockLastLongTransaction) / NUM_BLOCKS_PER_SPREAD_DECREASING;
                     int256 spreadClosing = int256(SPREAD_DECREASE_PER_PERIOD.mul(tt));
                     if (spreadClosing > MAX_SPREAD_DECREASE) {
                         spreadClosing = MAX_SPREAD_DECREASE;
                     }
-                    if (adjustedPrice <= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
+                    if (adjustedPrice >= (_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4) {
                         _info.minLongTradePrice = ((_info.minLongTradePrice.mul(1e4 + spreadClosing)) / 1e4).toInt128();
                     }
                     adjustedPrice = _info.minLongTradePrice;
@@ -110,11 +119,12 @@ library SpreadLib {
 
             // Update max bit
             if (
-                _info.maxShortTradePrice < adjustedPrice || _info.timeLastShortTransaction + SAFETY_PERIOD < _timestamp
+                _info.maxShortTradePrice < adjustedPrice ||
+                _info.blockLastShortTransaction + SAFETY_BLOCK_PERIOD < _blocknumber
             ) {
                 _info.maxShortTradePrice = adjustedPrice.toInt128();
             }
-            _info.timeLastShortTransaction = uint128(_timestamp);
+            _info.blockLastShortTransaction = uint128(_blocknumber);
         }
     }
 }

@@ -11,7 +11,9 @@ import "../PerpetualMarketCore.sol";
 contract PerpetualMarketCoreTester is PerpetualMarketCore {
     uint256 public result;
 
-    constructor(address _priceFeedAddress) PerpetualMarketCore(_priceFeedAddress, "TestLPToken", "TestLPToken") {}
+    constructor(address _priceFeedAddress, address _arbSysAddress)
+        PerpetualMarketCore(_priceFeedAddress, "TestLPToken", "TestLPToken", _arbSysAddress)
+    {}
 
     function setPoolStatus(
         uint256 _productId,

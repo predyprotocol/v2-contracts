@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { MockERC20, PerpetualMarket } from '../typechain'
+import { MockERC20, MockArbSys, PerpetualMarket } from '../typechain'
 import { BigNumber, BigNumberish, Wallet } from 'ethers'
 import {
   deployTestContractSet,
@@ -11,11 +11,13 @@ import {
 } from './utils/deploy'
 import { assertCloseToPercentage, increaseTime, scaledBN } from './utils/helpers'
 import {
+  BLOCKS_PER_DAY,
   FUTURE_PRODUCT_ID,
   MAX_WITHDRAW_AMOUNT,
   MIN_MARGIN,
-  SAFETY_PERIOD,
+  SAFETY_BLOCK_PERIOD,
   SQUEETH_PRODUCT_ID,
+  VARIANCE_UPDATE_BLOCK_INTERVAL,
   VARIANCE_UPDATE_INTERVAL,
 } from './utils/constants'
 import { randomBytes } from 'crypto'
@@ -29,6 +31,7 @@ describe('PerpetualMarket', function () {
   let wallet: Wallet, other: Wallet
   let weth: MockERC20
   let usdc: MockERC20
+  let arbSys: MockArbSys
 
   let testContractSet: TestContractSet
   let testContractHelper: TestContractHelper
@@ -37,6 +40,11 @@ describe('PerpetualMarket', function () {
   let perpetualMarket: PerpetualMarket
 
   const MaxUint256 = ethers.constants.MaxUint256
+
+  async function increaseBlockNumber(blocknumber: number) {
+    const currentBlockNumber = await ethers.provider.getBlockNumber()
+    await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+  }
 
   before(async () => {
     ;[wallet, other] = await (ethers as any).getSigners()
@@ -47,6 +55,7 @@ describe('PerpetualMarket', function () {
     weth = testContractSet.weth
     usdc = testContractSet.usdc
     perpetualMarket = testContractSet.perpetualMarket
+    arbSys = testContractSet.arbSys
   })
 
   beforeEach(async () => {
@@ -62,6 +71,7 @@ describe('PerpetualMarket', function () {
 
     // spot price is $1,000
     await testContractHelper.updateSpot(scaledBN(1000, 8))
+    await increaseBlockNumber(0)
   })
 
   afterEach(async () => {
@@ -180,7 +190,7 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.trade(wallet, 1, [0, scaledBN(-5, 7)])
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       })
 
       it('deposit', async () => {
@@ -259,7 +269,7 @@ describe('PerpetualMarket', function () {
       it('some trades', async function () {
         await testContractHelper.trade(wallet, 0, [0, '500000000'], scaledBN(5000, 6))
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       })
 
       it('liquidation happened', async function () {
@@ -274,7 +284,7 @@ describe('PerpetualMarket', function () {
         )
 
         await testContractHelper.updateSpot(scaledBN(2800, 8))
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         const positionValueAndMinCollateral2 = await perpetualMarket.getPositionValueAndMinCollateral(1)
         expect(positionValueAndMinCollateral2[0].lt(positionValueAndMinCollateral2[1])).to.be.true
@@ -284,20 +294,20 @@ describe('PerpetualMarket', function () {
       it('hedge', async function () {
         await testContractHelper.trade(wallet, 0, [scaledBN(-5, 7), scaledBN(2, 8)], scaledBN(5000, 6))
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.updateSpot('307666035339')
 
         await perpetualMarket.execHedge(true)
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(5, 7), scaledBN(-2, 8)])
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.updateSpot('307236035339')
         await perpetualMarket.execHedge(true)
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
         await testContractHelper.trade(wallet, 1, [scaledBN(5, 7), scaledBN(5, 7)])
       })
@@ -309,7 +319,7 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 8)], MIN_MARGIN)
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.updateSpot(scaledBN(94, 8))
 
         await testContractHelper.trade(wallet, 1, [0, scaledBN(-1, 8)])
@@ -344,7 +354,7 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 8)], MIN_MARGIN)
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.updateSpot(scaledBN(106, 8))
 
         await testContractHelper.trade(wallet, 1, [0, scaledBN(-1, 8)])
@@ -654,7 +664,7 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 6)], MIN_MARGIN)
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
         await testContractHelper.trade(wallet, 1, [0, scaledBN(-1, 6)], MAX_WITHDRAW_AMOUNT)
@@ -719,7 +729,7 @@ describe('PerpetualMarket', function () {
 
         await testContractHelper.trade(wallet, 0, [scaledBN(1, 6), 0], MIN_MARGIN)
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
         await testContractHelper.trade(wallet, 1, [scaledBN(-1, 6), 0], MAX_WITHDRAW_AMOUNT)
@@ -787,7 +797,7 @@ describe('PerpetualMarket', function () {
         const utilizationRatio = await testContractSet.perpetualMarketCore.getUtilizationRatio()
         expect(utilizationRatio).to.be.gt('75000000')
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       })
 
       it('open and close large crab position', async () => {
@@ -824,7 +834,7 @@ describe('PerpetualMarket', function () {
         const utilizationRatio = await testContractSet.perpetualMarketCore.getUtilizationRatio()
         expect(utilizationRatio).to.be.gt('75000000')
 
-        await increaseTime(SAFETY_PERIOD)
+        await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
       })
 
       it('open and close large gamma long position', async () => {
@@ -865,7 +875,7 @@ describe('PerpetualMarket', function () {
     it('pool receives funding fee from squeeth positions', async () => {
       await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 8)], scaledBN(2000, 6))
 
-      await increaseTime(24 * 60 * 60)
+      await increaseBlockNumber(BLOCKS_PER_DAY)
 
       const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
@@ -886,7 +896,7 @@ describe('PerpetualMarket', function () {
     it('pool receives from positive funding fee of future positions', async () => {
       await testContractHelper.trade(wallet, 0, [scaledBN(1, 8), 0], scaledBN(2000, 6))
 
-      await increaseTime(24 * 60 * 60)
+      await increaseBlockNumber(BLOCKS_PER_DAY)
 
       const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
@@ -900,7 +910,7 @@ describe('PerpetualMarket', function () {
     it('pool receives from negative funding fee of future positions', async () => {
       await testContractHelper.trade(wallet, 0, [scaledBN(-1, 8), 0], scaledBN(2000, 6))
 
-      await increaseTime(24 * 60 * 60)
+      await increaseBlockNumber(BLOCKS_PER_DAY)
 
       const beforeLPTokenPrice = await perpetualMarket.getLPTokenPrice(0)
 
