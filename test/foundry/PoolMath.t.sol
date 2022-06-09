@@ -12,12 +12,12 @@ import "../../src/lib/PoolMath.sol";
 contract PoolMathTest is Test {
     using SignedSafeMath for int256;
 
-    function testCalculateMarginDivLiquidity(
+    function testCalculateFundingRateFormula(
         int256 _m,
         int256 _deltaMargin,
         int256 _l,
         int256 _deltaL
     ) external pure returns (int256) {
-        return PoolMath.calculateMarginDivLiquidity(_m, _deltaMargin, _l, _deltaL);
+        return PoolMath.calculateFundingRateFormula(_m, _deltaMargin, _l, _deltaL);
     }
 }

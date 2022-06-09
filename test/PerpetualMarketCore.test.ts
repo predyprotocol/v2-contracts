@@ -3,7 +3,7 @@ import { ethers } from 'hardhat'
 import { MockChainlinkAggregator, MockArbSys, PerpetualMarketCore, PerpetualMarketCoreTester } from '../typechain'
 import { BigNumber, BigNumberish, constants, Wallet } from 'ethers'
 import { restoreSnapshot, takeSnapshot } from './utils/deploy'
-import { getBlocktime, increaseTime, numToBn, scaledBN } from './utils/helpers'
+import { assertCloseToPercentage, getBlocktime, increaseTime, numToBn, scaledBN } from './utils/helpers'
 import {
   MarginChange,
   FUNDING_PERIOD,
@@ -110,7 +110,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1999831)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1999788)
     })
 
     it('deposits after pool gets profit', async () => {
@@ -121,7 +121,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1998831)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1998786)
     })
 
     it('deposits after pool gets loss', async () => {
@@ -133,7 +133,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1999960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(2000837)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(2000794)
     })
   })
 
@@ -174,7 +174,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(500565)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(500543)
     })
 
     it('withdraws after the pool gets loss', async () => {
@@ -186,7 +186,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(499562)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(499537)
     })
 
     it('spread becomes high', async () => {
@@ -214,7 +214,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.withdraw(wallet.address, 500000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500290)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1500288)
     })
 
     it('spread becomes high when withdraw', async () => {
@@ -244,7 +244,7 @@ describe('PerpetualMarketCore', function () {
       await perpetualMarketCore.deposit(wallet.address, 1000000)
 
       expect(await perpetualMarketCore.amountLiquidity()).to.be.eq(1499960)
-      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1501506)
+      expect(await perpetualMarketCore.totalSupply()).to.be.eq(1501307)
     })
   })
 
@@ -812,8 +812,8 @@ describe('PerpetualMarketCore', function () {
       )
 
       expect(result1[0]).to.be.eq(result2[0])
-      expect(result1[1].mul(days)).to.be.eq(result2[1])
-      expect(result1[2].mul(days)).to.be.eq(result2[2])
+      assertCloseToPercentage(result1[1].mul(days), result2[1])
+      assertCloseToPercentage(result1[2].mul(days), result2[2])
       expect(result1[2]).to.be.gt(0)
     })
 
@@ -841,8 +841,8 @@ describe('PerpetualMarketCore', function () {
       )
 
       expect(result1[0]).to.be.eq(result2[0])
-      expect(result1[1].mul(days)).to.be.eq(result2[1])
-      expect(result1[2].mul(days)).to.be.eq(result2[2])
+      assertCloseToPercentage(result1[1].mul(days), result2[1])
+      assertCloseToPercentage(result1[2].mul(days), result2[2])
       expect(result1[2]).to.be.gt(0)
     })
 

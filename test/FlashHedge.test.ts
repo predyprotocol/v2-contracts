@@ -141,7 +141,7 @@ describe('FlashHedge', function () {
     it('reverts if caller is not bot', async () => {
       await flashHedeg.setBot(other.address)
 
-      await expect(flashHedeg.hedgeOnUniswap(0)).to.be.revertedWith('FH4')
+      await expect(flashHedeg.hedgeOnUniswap(0, true)).to.be.revertedWith('FH4')
     })
   })
 })

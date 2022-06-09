@@ -698,7 +698,7 @@ describe('TraderVaultLib', function () {
     })
   })
 
-  describe('checkVaultIsLiquidatable', () => {
+  describe('checkVaultIsDanger', () => {
     describe('single sub-vault', () => {
       beforeEach(async () => {
         await tester.verifyUpdateVault(0, SQUEETH_PRODUCT_ID, '7000000000', '10000000000', '0')
@@ -712,7 +712,7 @@ describe('TraderVaultLib', function () {
 
       it('returns true if position value is less than min collateral', async function () {
         expect(
-          await tester.verifyCheckVaultIsLiquidatable({
+          await tester.verifyCheckVaultIsDanger({
             spotPrice: '95000000000',
             tradePrices: ['95000000000', '9025000000'],
             fundingRates: [0, 0],
@@ -723,7 +723,7 @@ describe('TraderVaultLib', function () {
 
       it('returns true if position value is less than min collateral', async function () {
         expect(
-          await tester.verifyCheckVaultIsLiquidatable({
+          await tester.verifyCheckVaultIsDanger({
             spotPrice: '100000000000',
             tradePrices: ['100000000000', '10000000000'],
             fundingRates: [0, 0],
@@ -734,7 +734,7 @@ describe('TraderVaultLib', function () {
 
       it('returns false if position value is greater than min collateral', async function () {
         expect(
-          await tester.verifyCheckVaultIsLiquidatable({
+          await tester.verifyCheckVaultIsDanger({
             spotPrice: '100000000000',
             tradePrices: ['100000000000', '10000000000'],
             fundingRates: [0, 0],
@@ -759,7 +759,7 @@ describe('TraderVaultLib', function () {
 
       it('returns true if position value is less than min collateral', async function () {
         expect(
-          await tester.verifyCheckVaultIsLiquidatable({
+          await tester.verifyCheckVaultIsDanger({
             spotPrice: '100000000000',
             tradePrices: ['100000000000', '10000000000'],
             fundingRates: [0, 0],
@@ -770,7 +770,7 @@ describe('TraderVaultLib', function () {
 
       it('returns false if position value is greater than min collateral', async function () {
         expect(
-          await tester.verifyCheckVaultIsLiquidatable({
+          await tester.verifyCheckVaultIsDanger({
             spotPrice: '100000000000',
             tradePrices: ['100000000000', '10000000000'],
             fundingRates: [0, 0],

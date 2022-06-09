@@ -82,7 +82,7 @@ describe('update-hedge', function () {
 
       const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
       if (tokenAmounts[1].gt(0)) {
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
       }
 
       console.log('LPToken price', (await perpetualMarket.getLPTokenPrice(0)).toString())
@@ -116,7 +116,7 @@ describe('update-hedge', function () {
     async function execHedge() {
       const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
       if (tokenAmounts[1].gt(0)) {
-        await perpetualMarket.execHedge()
+        await perpetualMarket.execHedge(true)
       }
     }
 
@@ -177,7 +177,7 @@ describe('update-hedge', function () {
 
     it('no available liquidity', async () => {
       await testContractHelper.trade(wallet, 0, [scaledBN(4, 8), 0], MIN_MARGIN)
-      await perpetualMarket.execHedge()
+      await perpetualMarket.execHedge(true)
       await testContractHelper.trade(wallet, 1, [scaledBN(-38, 7), 0], 0)
       await testContractHelper.trade(wallet, 1, [scaledBN(38, 7), 0], 0)
     })
