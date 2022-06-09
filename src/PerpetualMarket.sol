@@ -46,7 +46,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     // Fee recepient address
     IFeePool public feeRecepient;
 
-    uint256[2] public maxAmounts;
+    /// @dev maximum positions in a vault
+    uint256[2] public maxPositionsInVault;
 
     address private vaultNFT;
 
@@ -99,8 +100,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         feeRecepient = IFeePool(_feeRecepient);
         vaultNFT = _vaultNFT;
 
-        maxAmounts[0] = 1000000 * 1e8;
-        maxAmounts[1] = 1000000 * 1e8;
+        maxPositionsInVault[0] = 1000000 * 1e8;
+        maxPositionsInVault[1] = 1000000 * 1e8;
     }
 
     /**
@@ -270,7 +271,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
             if (Math.abs(positionAfter) > Math.abs(positionPerpetuals[productId])) {
                 // if the trader opens new position, check positionAfter is less than max.
-                require(Math.abs(positionAfter) <= maxAmounts[productId], "PM5");
+                require(Math.abs(positionAfter) <= maxPositionsInVault[productId], "PM5");
             }
         }
     }
@@ -672,7 +673,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      * @param _maxSquaredAmount max squared amount
      */
     function setMaxAmount(uint256 _maxFutureAmount, uint256 _maxSquaredAmount) external onlyOwner {
-        maxAmounts[0] = _maxFutureAmount;
-        maxAmounts[1] = _maxSquaredAmount;
+        maxPositionsInVault[0] = _maxFutureAmount;
+        maxPositionsInVault[1] = _maxSquaredAmount;
     }
 }
