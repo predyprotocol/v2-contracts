@@ -648,6 +648,22 @@ describe('PerpetualMarketCore', function () {
     })
   })
 
+  describe('setSpreadParams', () => {
+    it('set params', async () => {
+      await expect(perpetualMarketCore.setSpreadParams(6, 6))
+        .to.be.emit(perpetualMarketCore, 'SetSpreadParams')
+        .withArgs(6, 6)
+    })
+
+    it('reverts if caller is not owner', async () => {
+      await expect(perpetualMarketCore.connect(other).setSpreadParams(6, 6)).to.be.reverted
+    })
+
+    it('reverts if value is negative', async () => {
+      await expect(perpetualMarketCore.setSpreadParams(-1, -1)).to.be.reverted
+    })
+  })
+
   describe('setPerpetualMarket', () => {
     it('reverts if caller is not owner', async () => {
       await expect(perpetualMarketCore.connect(other).setPerpetualMarket(wallet.address)).to.be.revertedWith(

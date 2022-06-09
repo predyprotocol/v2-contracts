@@ -11,6 +11,10 @@ import "../lib/SpreadLib.sol";
 contract SpreadLibTester {
     SpreadLib.Info public info;
 
+    function init() external {
+        SpreadLib.init(info);
+    }
+
     function getUpdatedPrice(
         SpreadLib.Info memory _info,
         bool _isLong,
@@ -18,5 +22,27 @@ contract SpreadLibTester {
         uint128 _timestamp
     ) external pure returns (int256 updatedPrice) {
         return SpreadLib.getUpdatedPrice(_info, _isLong, _price, _timestamp);
+    }
+
+    function updatePrice(
+        bool _isLong,
+        int256 _price,
+        uint128 _timestamp
+    ) external returns (int256 updatedPrice) {
+        SpreadLib.Info memory cache = SpreadLib.Info(
+            info.blockLastLongTransaction,
+            info.minLongTradePrice,
+            info.blockLastShortTransaction,
+            info.maxShortTradePrice,
+            info.safetyBlockPeriod,
+            info.numBlocksPerSpreadDecreasing
+        );
+
+        updatedPrice = SpreadLib.getUpdatedPrice(cache, _isLong, _price, _timestamp);
+
+        info.blockLastLongTransaction = cache.blockLastLongTransaction;
+        info.minLongTradePrice = cache.minLongTradePrice;
+        info.blockLastShortTransaction = cache.blockLastShortTransaction;
+        info.maxShortTradePrice = cache.maxShortTradePrice;
     }
 }

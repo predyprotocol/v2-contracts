@@ -21,6 +21,7 @@ import {
 import { MockArbSys } from '../typechain/MockArbSys'
 
 describe('trade', function () {
+  this.timeout(60000)
   let wallet: Wallet
   let weth: MockERC20
   let usdc: MockERC20
