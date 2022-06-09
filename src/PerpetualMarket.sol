@@ -23,6 +23,7 @@ import "./interfaces/IVaultNFT.sol";
  * PM2: caller is not vault owner
  * PM3: vault not found
  * PM4: caller is not hedger
+ * PM5: vault limit
  */
 contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     using SafeERC20 for IERC20;
@@ -44,6 +45,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
     // Fee recepient address
     IFeePool public feeRecepient;
+
+    uint256[2] public maxAmounts;
 
     address private vaultNFT;
 
@@ -95,6 +98,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         perpetualMarketCore = IPerpetualMarketCore(_perpetualMarketCoreAddress);
         feeRecepient = IFeePool(_feeRecepient);
         vaultNFT = _vaultNFT;
+
+        maxAmounts[0] = 1000000 * 1e8;
+        maxAmounts[1] = 1000000 * 1e8;
     }
 
     /**
@@ -172,6 +178,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             int256[2] memory fundingPaidPerPositions;
 
             (tradePrices, fundingPaidPerPositions, totalProtocolFee) = updatePoolPosition(
+                traderVaults[_tradeParams.vaultId],
                 getTradeAmounts(_tradeParams.trades),
                 getLimitPrices(_tradeParams.trades)
             );
@@ -250,6 +257,25 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     }
 
     /**
+     * @notice Checks vault position limit and reverts if position exceeds limit
+     */
+    function checkVaultPositionLimit(TraderVaultLib.TraderVault memory _traderVault, int256[2] memory _tradeAmounts)
+        internal
+        view
+    {
+        int128[2] memory positionPerpetuals = _traderVault.getPositionPerpetuals();
+
+        for (uint256 productId = 0; productId < MAX_PRODUCT_ID; productId++) {
+            int256 positionAfter = positionPerpetuals[productId].add(_tradeAmounts[productId]);
+
+            if (Math.abs(positionAfter) > Math.abs(positionPerpetuals[productId])) {
+                // if the trader opens new position, check positionAfter is less than max.
+                require(Math.abs(positionAfter) <= maxAmounts[productId], "PM5");
+            }
+        }
+    }
+
+    /**
      * @notice Add margin to the vault
      * @param _vaultId id of the vault
      * @param _marginToAdd amount of margin to add
@@ -299,6 +325,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             int256[2] memory fundingPaidPerPositions;
 
             (tradePrices, fundingPaidPerPositions, totalProtocolFee) = updatePoolPosition(
+                traderVault,
                 getTradeAmountsToCloseVault(traderVault),
                 [uint256(0), uint256(0)]
             );
@@ -345,7 +372,11 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      * @notice Updates pool position.
      * It returns trade price and fundingPaidPerPosition for each product, and protocol fee.
      */
-    function updatePoolPosition(int256[2] memory _tradeAmounts, uint256[2] memory _limitPrices)
+    function updatePoolPosition(
+        TraderVaultLib.TraderVault memory _traderVault,
+        int256[2] memory _tradeAmounts,
+        uint256[2] memory _limitPrices
+    )
         internal
         returns (
             uint256[2] memory tradePrices,
@@ -353,6 +384,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             uint256 protocolFee
         )
     {
+        checkVaultPositionLimit(_traderVault, _tradeAmounts);
+
         (tradePrices, fundingPaidPerPositions, protocolFee) = perpetualMarketCore.updatePoolPositions(_tradeAmounts);
 
         require(checkPrice(_tradeAmounts[0] > 0, tradePrices[0], _limitPrices[0]), "PM1");
@@ -631,5 +664,15 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      */
     function setHedger(address _hedger) external onlyOwner {
         hedger = _hedger;
+    }
+
+    /**
+     * @notice Sets max amounts that a vault can hold
+     * @param _maxFutureAmount max future amount
+     * @param _maxSquaredAmount max squared amount
+     */
+    function setMaxAmount(uint256 _maxFutureAmount, uint256 _maxSquaredAmount) external onlyOwner {
+        maxAmounts[0] = _maxFutureAmount;
+        maxAmounts[1] = _maxSquaredAmount;
     }
 }
