@@ -2,6 +2,7 @@ import { expect } from 'chai'
 import { constants } from 'ethers'
 import { ethers } from 'hardhat'
 import { MathTester } from '../typechain'
+import { assertCloseToPercentage, numToBn } from './utils/helpers'
 
 describe('Math', function () {
   let tester: MathTester
@@ -49,6 +50,44 @@ describe('Math', function () {
 
     it('reverts on overflow', async () => {
       await expect(tester.testScale('12345', 6, 80)).to.be.revertedWith('M2')
+    })
+  })
+
+  describe('log', async () => {
+    const logTests = [0.9, 1, 1.01, 1.1, 2, 5, 10, 100]
+
+    it('returns a correct value for a number of cases', async () => {
+      const decimals = 8
+
+      for (const value of logTests) {
+        const result = await tester.testLog(numToBn(value, decimals))
+        const expected = Math.log(value)
+
+        assertCloseToPercentage(result, numToBn(expected, decimals))
+      }
+    })
+
+    it('reverts on overflow', async () => {
+      await expect(tester.testLog(constants.MaxInt256)).to.be.revertedWith('SignedSafeMath: addition overflow')
+    })
+  })
+
+  describe('exp', async () => {
+    const logTests = [-70, -10, -1, 0, 1, 1.1, 2, 10]
+
+    it('returns a correct value for a number of cases', async () => {
+      const decimals = 8
+
+      for (const value of logTests) {
+        const result = await tester.testExp(numToBn(value, decimals))
+        const expected = Math.exp(value)
+
+        assertCloseToPercentage(result, numToBn(expected, decimals))
+      }
+    })
+
+    it('reverts on overflow', async () => {
+      await expect(tester.testExp(constants.MaxInt256)).to.be.revertedWith('M4')
     })
   })
 })

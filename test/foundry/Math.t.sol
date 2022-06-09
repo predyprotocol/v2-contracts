@@ -22,4 +22,12 @@ contract MathTest is Test {
     ) external pure returns (uint256) {
         return Math.scale(_a, _from, _to);
     }
+
+    function testLog(uint256 _x) external pure returns (int256) {
+        return Math.log(_x);
+    }
+
+    function testExp(int256 _x) external pure returns (uint256) {
+        return Math.exp(_x);
+    }
 }

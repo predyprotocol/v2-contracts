@@ -288,7 +288,7 @@ describe('trade', function () {
           { tradeAmounts: [2, 0], spotPrice: 1000, isPoolReceived: true, isTraderReceived: false },
           { tradeAmounts: [0, 2], spotPrice: 1000, isPoolReceived: true, isTraderReceived: false },
           { tradeAmounts: [-2, 0], spotPrice: 1000, isPoolReceived: true, isTraderReceived: true },
-          { tradeAmounts: [0, -2], spotPrice: 1000, isPoolReceived: false, isTraderReceived: true },
+          { tradeAmounts: [0, -10], spotPrice: 1000, isPoolReceived: false, isTraderReceived: true },
         ]
 
         for (let testData of testDataSet) {
@@ -324,11 +324,10 @@ describe('trade', function () {
         expect(withdrawnAmount).to.gt(scaledBN(50000000, 6))
 
         expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(1)
-        expect(await testContractSet.perpetualMarketCore.balanceOf(wallet.address)).to.eq(80)
+        expect(await testContractSet.perpetualMarketCore.balanceOf(wallet.address)).to.eq(58)
       })
     })
   })
-
   describe('getTradePrice', () => {
     beforeEach(async () => {
       await testContractHelper.updateSpot(scaledBN(1000, 8))
@@ -343,7 +342,7 @@ describe('trade', function () {
       expect(tradePrice.fundingFee).to.be.eq(30000000)
       expect(tradePrice.tradeFee).to.be.eq(10000000)
       expect(tradePrice.protocolFee).to.be.eq(4000000)
-      expect(tradePrice.fundingRate).to.be.eq(30000000000000)
+      expect(tradePrice.fundingRate).to.be.eq(30000000792000)
       expect(tradePrice.totalValue).to.be.eq(10040)
       expect(tradePrice.totalFee).to.be.eq(10)
     })
@@ -351,12 +350,12 @@ describe('trade', function () {
     it('get trade price of perpetual future', async () => {
       const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [100, 0])
 
-      expect(tradePrice.tradePrice).to.be.eq(100050000000)
+      expect(tradePrice.tradePrice).to.be.eq(100050000002)
       expect(tradePrice.indexPrice).to.be.eq(100000000000)
-      expect(tradePrice.fundingFee).to.be.eq(0)
+      expect(tradePrice.fundingFee).to.be.eq(5)
       expect(tradePrice.tradeFee).to.be.eq(50000000)
       expect(tradePrice.protocolFee).to.be.eq(20000000)
-      expect(tradePrice.fundingRate).to.be.eq(0)
+      expect(tradePrice.fundingRate).to.be.eq(528000)
       expect(tradePrice.totalValue).to.be.eq(100050)
       expect(tradePrice.totalFee).to.be.eq(50)
     })
@@ -434,26 +433,26 @@ describe('trade', function () {
         it("get squared perpetual's trade price of large position", async () => {
           const tradePrice = await perpetualMarket.getTradePrice(SQUEETH_PRODUCT_ID, [0, scaledBN(3, 12)])
 
-          expect(tradePrice.tradePrice).to.be.eq(10040212869)
+          expect(tradePrice.tradePrice).to.be.eq(10045830501)
           expect(tradePrice.indexPrice).to.be.eq(10000000000)
-          expect(tradePrice.fundingFee).to.be.eq(30851448)
+          expect(tradePrice.fundingFee).to.be.eq(41916049)
           expect(tradePrice.tradeFee).to.be.eq(10000000)
           expect(tradePrice.protocolFee).to.be.eq(4000000)
-          expect(tradePrice.fundingRate).to.be.eq(30851448919768)
-          expect(tradePrice.totalValue).to.be.eq(301206386070000)
+          expect(tradePrice.fundingRate).to.be.eq(41916049612210)
+          expect(tradePrice.totalValue).to.be.eq(301374915030000)
           expect(tradePrice.totalFee).to.be.eq(300000000000)
         })
 
         it("get perpetual future's trade price of large position", async () => {
           const tradePrice = await perpetualMarket.getTradePrice(FUTURE_PRODUCT_ID, [scaledBN(2, 12), 0])
 
-          expect(tradePrice.tradePrice).to.be.eq(100056084993)
+          expect(tradePrice.tradePrice).to.be.eq(100074775220)
           expect(tradePrice.indexPrice).to.be.eq(100000000000)
-          expect(tradePrice.fundingFee).to.be.eq(24337540)
+          expect(tradePrice.fundingFee).to.be.eq(56846748)
           expect(tradePrice.tradeFee).to.be.eq(50000000)
           expect(tradePrice.protocolFee).to.be.eq(20000000)
-          expect(tradePrice.fundingRate).to.be.eq(2433754044440)
-          expect(tradePrice.totalValue).to.be.eq(2001121699860000)
+          expect(tradePrice.fundingRate).to.be.eq(5684674863837)
+          expect(tradePrice.totalValue).to.be.eq(2001495504400000)
           expect(tradePrice.totalFee).to.be.eq(1000000000000)
         })
       })
