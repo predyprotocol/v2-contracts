@@ -26,9 +26,12 @@ import "./interfaces/IVaultNFT.sol";
  * PM5: vault limit
  * PM6: Paused
  * PM7: Not paused
+ * PM8: USDC amount is too large
+ * PM9: USDC amount is too small
  */
 contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     using SafeERC20 for IERC20;
+    using SafeCast for uint256;
     using SafeCast for int256;
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -477,11 +480,11 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     /**
      * @notice Executes hedging
      */
-    function execHedge(bool _withRebalance)
+    function execHedge(bool _withRebalance, uint256 _amountUsdc)
         external
         override
         onlyHedger
-        returns (uint256 amountUsdc, uint256 amountUnderlying)
+        returns (uint256 amountUnderlying)
     {
         // execute funding payment
         perpetualMarketCore.executeFundingPayment();
@@ -496,6 +499,14 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
         NettingLib.CompleteParams memory completeParams = perpetualMarketCore.getTokenAmountForHedging();
 
+        if (completeParams.isLong) {
+            require(completeParams.amountUsdc / 1e2 >= _amountUsdc, "PM8");
+        } else {
+            require(completeParams.amountUsdc / 1e2 <= _amountUsdc, "PM9");
+        }
+
+        completeParams.amountUsdc = _amountUsdc.mul(1e2);
+
         perpetualMarketCore.completeHedgingProcedure(completeParams);
 
         if (_withRebalance) {
@@ -503,18 +514,17 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
             perpetualMarketCore.rebalance();
         }
 
-        amountUsdc = completeParams.amountUsdc / 1e2;
         amountUnderlying = Math.scale(completeParams.amountUnderlying, 8, ERC20(underlyingAsset).decimals());
 
         if (completeParams.isLong) {
             IERC20(underlyingAsset).safeTransferFrom(msg.sender, address(this), amountUnderlying);
-            sendLiquidity(msg.sender, amountUsdc);
+            sendLiquidity(msg.sender, _amountUsdc);
         } else {
-            IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), amountUsdc);
+            IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), _amountUsdc);
             sendUndrlying(msg.sender, amountUnderlying);
         }
 
-        emit Hedged(msg.sender, completeParams.isLong, amountUsdc, amountUnderlying);
+        emit Hedged(msg.sender, completeParams.isLong, _amountUsdc, amountUnderlying);
     }
 
     /**

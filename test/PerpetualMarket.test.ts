@@ -17,7 +17,6 @@ import {
   MIN_MARGIN,
   SAFETY_BLOCK_PERIOD,
   SQUEETH_PRODUCT_ID,
-  VARIANCE_UPDATE_BLOCK_INTERVAL,
   VARIANCE_UPDATE_INTERVAL,
 } from './utils/constants'
 import { randomBytes } from 'crypto'
@@ -44,6 +43,11 @@ describe('PerpetualMarket', function () {
   async function increaseBlockNumber(blocknumber: number) {
     const currentBlockNumber = await ethers.provider.getBlockNumber()
     await arbSys.setBlockNumber(currentBlockNumber + blocknumber)
+  }
+
+  async function execHedge(withRebalance: boolean) {
+    const amounts = await perpetualMarket.getTokenAmountForHedging()
+    await perpetualMarket.execHedge(withRebalance, amounts[1])
   }
 
   before(async () => {
@@ -297,7 +301,7 @@ describe('PerpetualMarket', function () {
         await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.updateSpot('307666035339')
 
-        await perpetualMarket.execHedge(true)
+        await execHedge(true)
 
         await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
@@ -305,7 +309,7 @@ describe('PerpetualMarket', function () {
 
         await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.updateSpot('307236035339')
-        await perpetualMarket.execHedge(true)
+        await execHedge(true)
 
         await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
 
@@ -995,7 +999,7 @@ describe('PerpetualMarket', function () {
 
     it('reverts if caller is not hedger', async () => {
       await perpetualMarket.setHedger(hedgerAddress)
-      await expect(perpetualMarket.execHedge(true)).to.be.revertedWith('PM4')
+      await expect(perpetualMarket.execHedge(true, 0)).to.be.revertedWith('PM4')
     })
   })
 
