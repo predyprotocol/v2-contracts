@@ -43,6 +43,27 @@ library Math {
         return a > b ? b : a;
     }
 
+    function mulDiv(
+        int256 _x,
+        int256 _y,
+        int256 _d,
+        bool _roundUp
+    ) internal pure returns (int256) {
+        int256 tailing;
+        if (_roundUp) {
+            int256 remainer = (_x * _y) % _d;
+            if (remainer > 0) {
+                tailing = 1;
+            } else if (remainer < 0) {
+                tailing = -1;
+            }
+        }
+
+        int256 result = (_x * _y) / _d + tailing;
+
+        return result;
+    }
+
     /**
      * @notice Returns scaled number.
      * Reverts if the scaler is greater than 50.

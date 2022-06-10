@@ -15,6 +15,16 @@ contract MathTest is Test {
         return Math.addDelta(_x, _y);
     }
 
+    function testMulDiv(
+        int256 _x,
+        uint256 _y,
+        uint256 _d,
+        bool _roundUp
+    ) external returns (int256) {
+        vm.assume(_d > 0);
+        return Math.mulDiv(_x, int256(_y), int256(_d), _roundUp);
+    }
+
     function testScale(
         uint256 _a,
         uint256 _from,

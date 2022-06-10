@@ -100,13 +100,13 @@ describe('trade', function () {
         const lpProfit = afterLPTokenPrice.sub(beforeLPTokenPrice).mul(depositAmount).div(scaledBN(1, 16))
 
         // Assert trader's profit and loss
-        assertCloseToPercentage(vaultProfit, numToBn(expectedPayoff.profit, 6), BigNumber.from(500000))
+        assertCloseToPercentage(vaultProfit, numToBn(expectedPayoff.profit, 6), BigNumber.from(1000000))
 
         // Assert LP's profit and loss
         assertCloseToPercentage(
           lpProfit,
           numToBn(-expectedPayoff.profit - expectedPayoff.protocolFee, 6),
-          BigNumber.from(500000),
+          BigNumber.from(1000000),
         )
 
         // Check the vault has no positions
@@ -174,8 +174,10 @@ describe('trade', function () {
         const tradeFeeFuture = 2 * tradeFeeRate * Math.abs(tradeAmounts[0]) * initialSpotPrice
         const tradeFeeSquared = (4 * tradeFeeRate * Math.abs(tradeAmounts[1]) * initialSpotPrice ** 2) / 10000
         const tradeFee = tradeFeeFuture + tradeFeeSquared
-        const expectedProfit = expectedPayoffOfFuture + expectedPayoffOfSquared - tradeFee
+        let expectedProfit = expectedPayoffOfFuture + expectedPayoffOfSquared - tradeFee
         const expectedProtocolFee = protocolFeeRate * tradeFee
+
+        expectedProfit = Math.floor(expectedProfit * 100) / 100
 
         return {
           profit: expectedProfit,
@@ -220,20 +222,20 @@ describe('trade', function () {
 
       it('trader and LP gets correct payoff', async () => {
         const testDataSet = [
-          { tradeAmounts: [1, 0], spotPrice: 1000 },
-          { tradeAmounts: [0, 1], spotPrice: 1000 },
-          { tradeAmounts: [1, 0], spotPrice: 1100 },
-          { tradeAmounts: [0, 1], spotPrice: 1100 },
-          { tradeAmounts: [1, 0], spotPrice: 900 },
-          { tradeAmounts: [0, 1], spotPrice: 900 },
-          { tradeAmounts: [-1, 0], spotPrice: 900 },
-          { tradeAmounts: [-1, 0], spotPrice: 1100 },
-          { tradeAmounts: [0, -2], spotPrice: 900 },
-          { tradeAmounts: [0, -2], spotPrice: 1100 },
-          { tradeAmounts: [1, -2], spotPrice: 1100 },
-          { tradeAmounts: [1, -2], spotPrice: 900 },
-          { tradeAmounts: [-1, 2], spotPrice: 1100 },
-          { tradeAmounts: [-1, 2], spotPrice: 900 },
+          { tradeAmounts: [10, 0], spotPrice: 1000 },
+          { tradeAmounts: [0, 10], spotPrice: 1000 },
+          { tradeAmounts: [10, 0], spotPrice: 1100 },
+          { tradeAmounts: [0, 10], spotPrice: 1100 },
+          { tradeAmounts: [10, 0], spotPrice: 900 },
+          { tradeAmounts: [0, 10], spotPrice: 900 },
+          { tradeAmounts: [-10, 0], spotPrice: 900 },
+          { tradeAmounts: [-10, 0], spotPrice: 1100 },
+          { tradeAmounts: [0, -20], spotPrice: 900 },
+          { tradeAmounts: [0, -20], spotPrice: 1100 },
+          { tradeAmounts: [10, -20], spotPrice: 1100 },
+          { tradeAmounts: [10, -20], spotPrice: 900 },
+          { tradeAmounts: [-10, 20], spotPrice: 1100 },
+          { tradeAmounts: [-10, 20], spotPrice: 900 },
         ]
 
         for (let testData of testDataSet) {
@@ -243,20 +245,20 @@ describe('trade', function () {
 
       it('trader and LP gets correct payoff(multiple subVaults)', async () => {
         const testDataSet = [
-          { tradeAmounts: [1, 0], spotPrice: 1000 },
-          { tradeAmounts: [0, 1], spotPrice: 1000 },
-          { tradeAmounts: [1, 0], spotPrice: 1100 },
-          { tradeAmounts: [0, 1], spotPrice: 1100 },
-          { tradeAmounts: [1, 0], spotPrice: 900 },
-          { tradeAmounts: [0, 1], spotPrice: 900 },
-          { tradeAmounts: [-1, 0], spotPrice: 900 },
-          { tradeAmounts: [-1, 0], spotPrice: 1100 },
-          { tradeAmounts: [0, -2], spotPrice: 900 },
-          { tradeAmounts: [0, -2], spotPrice: 1100 },
-          { tradeAmounts: [1, -2], spotPrice: 1100 },
-          { tradeAmounts: [1, -2], spotPrice: 900 },
-          { tradeAmounts: [-1, 2], spotPrice: 1100 },
-          { tradeAmounts: [-1, 2], spotPrice: 900 },
+          { tradeAmounts: [10, 0], spotPrice: 1000 },
+          { tradeAmounts: [0, 10], spotPrice: 1000 },
+          { tradeAmounts: [10, 0], spotPrice: 1100 },
+          { tradeAmounts: [0, 10], spotPrice: 1100 },
+          { tradeAmounts: [10, 0], spotPrice: 900 },
+          { tradeAmounts: [0, 10], spotPrice: 900 },
+          { tradeAmounts: [-10, 0], spotPrice: 900 },
+          { tradeAmounts: [-10, 0], spotPrice: 1100 },
+          { tradeAmounts: [0, -20], spotPrice: 900 },
+          { tradeAmounts: [0, -20], spotPrice: 1100 },
+          { tradeAmounts: [10, -20], spotPrice: 1100 },
+          { tradeAmounts: [10, -20], spotPrice: 900 },
+          { tradeAmounts: [-10, 20], spotPrice: 1100 },
+          { tradeAmounts: [-10, 20], spotPrice: 900 },
         ]
 
         let subVaultIndex = 0
@@ -332,8 +334,8 @@ describe('trade', function () {
 
         expect(withdrawnAmount).to.gt(scaledBN(50000000, 6))
 
-        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(1)
-        expect(await testContractSet.perpetualMarketCore.balanceOf(wallet.address)).to.eq(58)
+        expect(await usdc.balanceOf(perpetualMarket.address)).to.eq(0)
+        expect(await testContractSet.perpetualMarketCore.balanceOf(wallet.address)).to.eq(0)
       })
     })
   })
