@@ -37,6 +37,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await perpetualMarketCore.setPerpetualMarket(perpetualMarket.address)
     await vaultNFT.init(perpetualMarket.address)
 
+    // Set Max Amount as 150
+    await perpetualMarket.setMaxAmount('15000000000', '15000000000')
+
     await perpetualMarketCore.transferOwnership(operatorAddress)
   }
 }

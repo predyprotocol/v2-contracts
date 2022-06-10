@@ -59,7 +59,7 @@ export const networkNameToWETH = (name: string) => {
     case 'kovan':
       return '0xd0a1e359811322d97991e03f863a0c30c2cf029c'
     case 'rinkebyArbitrum':
-      return '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681'
+      return '0x7d43FeaE50F702d1586D5EF14A7b946dbA658869'
     case 'arbitrum':
       return '0x82af49447d8a07e3bd95bd0d56f35241523fbab1'
     default:
@@ -72,7 +72,7 @@ export const networkNameToPerpetualMarket = (name: string) => {
     case 'kovan':
       return '0x3A53C9e69950E8e2CDaC889E387fB182A009463D'
     case 'rinkebyArbitrum':
-      return '0x7f5ca0AECca0044A538255C84322Ff3FA5129dCA'
+      return '0x361E2E17A7a32Da869206f2A372968c142C702bC'
     case 'arbitrum':
       return '0xc7ec02AEeCdC9087bf848c4C4f790Ed74A93F2AF'
     default:
@@ -85,7 +85,7 @@ export const networkNameToPerpetualMarketCore = (name: string) => {
     case 'kovan':
       return '0xe0cdA1F5433409B08D6f28FBe4c5daad88D897f6'
     case 'rinkebyArbitrum':
-      return '0x7c46bABaD7d4dE3279363B602CDf35D3514d1DD2'
+      return '0x22ee82a781fA1F0b9EFFF558Bd9811692129F5E9'
     case 'arbitrum':
       return '0x17F63ee2551C517260E956B0913daa2cDAC301E4'
     default:
@@ -96,7 +96,7 @@ export const networkNameToPerpetualMarketCore = (name: string) => {
 export const networkNameToFlashHedge = (name: string) => {
   switch (name) {
     case 'rinkebyArbitrum':
-      return '0x9A4CB3d4e2dC95bd944A806F014c3B14b4cf94ab'
+      return '0xB835377A269476eecDC1b3f002bf51a3E5555448'
     case 'arbitrum':
       return '0xD3A3486B5cfe8B8b143FA06dfdEFbfbf7d5d06bC'
     default:
@@ -107,7 +107,7 @@ export const networkNameToFlashHedge = (name: string) => {
 export const networkNameToVaultNFT = (name: string) => {
   switch (name) {
     case 'rinkebyArbitrum':
-      return '0xA4bFf5301b07671Db218244334AB226feEF21e92'
+      return '0x20e6395a8345F3699571aa866578f935D49DAf0b'
     case 'arbitrum':
       return '0x8F80FA7860b3C96bcD91db63526A510d93B36E7C'
     default:
@@ -118,7 +118,7 @@ export const networkNameToVaultNFT = (name: string) => {
 export const networkNameToEthUsdcPool = (name: string) => {
   switch (name) {
     case 'rinkebyArbitrum':
-      return '0xA3180E86A1B2273e654e885323cCCd30A5cB4c95'
+      return '0xFBd5F21300dA187DeF59C69929Ba5d59D343Bf18'
     case 'arbitrum':
       return '0xc31e54c7a869b9fcbecc14363cf510d1c41fa443'
     default:
