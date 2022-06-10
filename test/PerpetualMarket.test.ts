@@ -662,16 +662,16 @@ describe('PerpetualMarket', function () {
       it('close position with profit', async () => {
         const before = await usdc.balanceOf(wallet.address)
 
-        await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 6)], MIN_MARGIN)
+        await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 8)], MIN_MARGIN)
 
         await increaseBlockNumber(SAFETY_BLOCK_PERIOD)
         await testContractHelper.updateSpot(scaledBN(110, 8))
 
-        await testContractHelper.trade(wallet, 1, [0, scaledBN(-1, 6)], MAX_WITHDRAW_AMOUNT)
+        await testContractHelper.trade(wallet, 1, [0, scaledBN(-1, 8)], MAX_WITHDRAW_AMOUNT)
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('2082')
+        expect(after.sub(before)).to.be.eq('200000')
       })
 
       it('close position with loss', async () => {
@@ -685,7 +685,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-1922')
+        expect(after.sub(before)).to.be.eq('-10000')
       })
     })
 
@@ -720,7 +720,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-1000')
+        expect(after.sub(before)).to.be.eq('-10000')
         expect((await testContractSet.perpetualMarketCore.pools(FUTURE_PRODUCT_ID)).positionPerpetuals).to.be.eq(0)
       })
 
@@ -736,7 +736,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('98950')
+        expect(after.sub(before)).to.be.eq('90000')
       })
 
       it('close with loss', async () => {
@@ -750,7 +750,7 @@ describe('PerpetualMarket', function () {
 
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.eq('-100951')
+        expect(after.sub(before)).to.be.eq('-110000')
       })
     })
 

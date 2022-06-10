@@ -428,13 +428,15 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
         if (_tradeAmount == 0) {
             return;
         }
-        int256 deltaUsdcPosition = _traderVault.updateVault(
+        (int256 deltaUsdcPosition, uint256 lpProfit) = _traderVault.updateVault(
             _subVaultIndex,
             _productId,
             _tradeAmount,
             _tradePrice,
             _fundingFeePerPosition
         );
+
+        perpetualMarketCore.addLiquidity(lpProfit);
 
         emit PositionUpdated(
             msg.sender,

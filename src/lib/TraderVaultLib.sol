@@ -170,7 +170,7 @@ library TraderVaultLib {
         int128 _positionPerpetual,
         uint256 _tradePrice,
         int256 _fundingFeePerPosition
-    ) external returns (int256 deltaUsdcPosition) {
+    ) external returns (int256 roundedDeltaUsdcPosition, uint256 lpProfit) {
         require(_positionPerpetual != 0, "T4");
 
         if (_traderVault.subVaults.length == _subVaultIndex) {
@@ -184,6 +184,7 @@ library TraderVaultLib {
         }
 
         SubVault storage subVault = _traderVault.subVaults[_subVaultIndex];
+        int256 deltaUsdcPosition;
 
         {
             (int256 newEntryPrice, int256 profitValue) = EntryPriceMath.updateEntryPrice(
@@ -209,12 +210,21 @@ library TraderVaultLib {
             deltaUsdcPosition = deltaUsdcPosition.sub(profitValue.div(1e8));
         }
 
-        _traderVault.positionUsdc = _traderVault.positionUsdc.add(deltaUsdcPosition).toInt128();
+        // if positive, round down to the second decimal place, if negative round up.
+        roundedDeltaUsdcPosition = Math.mulDiv(deltaUsdcPosition, 1, 1e6, deltaUsdcPosition < 0).mul(1e6);
+
+        if(deltaUsdcPosition > roundedDeltaUsdcPosition) {
+            lpProfit = deltaUsdcPosition.sub(roundedDeltaUsdcPosition).toUint256();
+        }
+
+        _traderVault.positionUsdc = _traderVault.positionUsdc.add(roundedDeltaUsdcPosition).toInt128();
 
         subVault.positionPerpetuals[_productId] = subVault
             .positionPerpetuals[_productId]
             .add(_positionPerpetual)
             .toInt128();
+        
+
     }
 
     /**

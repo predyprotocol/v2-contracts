@@ -378,7 +378,7 @@ describe('hedge', function () {
         await testContractHelper.updateSpot(scaledBN(105, 8))
 
         // but pool value is 0.6% down at least
-        await checkPoolPnL(scaledBN(200, 6).mul(9994).div(10000), scaledBN(200, 6).mul(10006).div(10000))
+        await checkPoolPnL(scaledBN(200, 6).mul(9994).div(10000), scaledBN(200, 6).mul(10007).div(10000))
       })
 
       it('net delta increased to positive by future', async () => {

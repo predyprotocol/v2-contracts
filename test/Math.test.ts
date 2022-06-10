@@ -23,6 +23,18 @@ describe('Math', function () {
     })
   })
 
+  describe('testMulDiv', () => {
+    it('round down', async () => {
+      expect(await tester.testMulDiv(12345, 1, 100, false)).to.be.eq(123)
+      expect(await tester.testMulDiv(-12345, 1, 100, false)).to.be.eq(-123)
+    })
+
+    it('round up', async () => {
+      expect(await tester.testMulDiv(12345, 1, 100, true)).to.be.eq(124)
+      expect(await tester.testMulDiv(-12345, 1, 100, true)).to.be.eq(-124)
+    })
+  })
+
   describe('scale', () => {
     it('scale small number from decimal 6 to 2', async () => {
       const result = await tester.testScale('12345', 6, 3)
