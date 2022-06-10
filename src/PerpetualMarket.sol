@@ -24,6 +24,8 @@ import "./interfaces/IVaultNFT.sol";
  * PM3: vault not found
  * PM4: caller is not hedger
  * PM5: vault limit
+ * PM6: Paused
+ * PM7: Not paused
  */
 contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     using SafeERC20 for IERC20;
@@ -54,6 +56,9 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     // trader's vaults storage
     mapping(uint256 => TraderVaultLib.TraderVault) private traderVaults;
 
+    /// @dev is system paused
+    bool public isSystemPaused;
+
     event Deposited(address indexed account, uint256 issued, uint256 amount);
 
     event Withdrawn(address indexed account, uint256 burned, uint256 amount);
@@ -76,9 +81,21 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     event Hedged(address hedger, bool isBuyingUnderlying, uint256 usdcAmount, uint256 underlyingAmount);
 
     event SetFeeRecepient(address feeRecepient);
+    event Paused();
+    event UnPaused();
 
     modifier onlyHedger() {
         require(msg.sender == hedger, "PM4");
+        _;
+    }
+
+    modifier notPaused() {
+        require(!isSystemPaused, "PM6");
+        _;
+    }
+
+    modifier isPaused() {
+        require(isSystemPaused, "PM7");
         _;
     }
 
@@ -109,7 +126,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      * @param _depositAmount deposit amount
      * @param _initialFundingRate initial funding rate
      */
-    function initialize(uint256 _depositAmount, int256 _initialFundingRate) external override {
+    function initialize(uint256 _depositAmount, int256 _initialFundingRate) external override notPaused {
         require(_depositAmount > 0 && _initialFundingRate > 0);
 
         uint256 lpTokenAmount = perpetualMarketCore.initialize(msg.sender, _depositAmount * 1e2, _initialFundingRate);
@@ -122,7 +139,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     /**
      * @notice Provides liquidity to the pool and mints LP tokens
      */
-    function deposit(uint256 _depositAmount) external override {
+    function deposit(uint256 _depositAmount) external override notPaused {
         require(_depositAmount > 0);
 
         // Funding payment should be proceeded before deposit
@@ -138,7 +155,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     /**
      * @notice Withdraws liquidity from the pool and burn LP tokens
      */
-    function withdraw(uint128 _withdrawnAmount) external override {
+    function withdraw(uint128 _withdrawnAmount) external override notPaused {
         require(_withdrawnAmount > 0);
 
         // Funding payment should be proceeded before withdrawal
@@ -157,7 +174,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      * and manage margin in the vault at the same time.
      * @param _tradeParams trade parameters
      */
-    function trade(MultiTradeParams memory _tradeParams) external override {
+    function trade(MultiTradeParams memory _tradeParams) external override notPaused {
         // check the transaction not exceed deadline
         require(_tradeParams.deadline == 0 || _tradeParams.deadline >= block.number, "PM0");
 
@@ -301,7 +318,7 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
      * The caller gets a portion of the margin as reward.
      * @param _vaultId The id of target vault
      */
-    function liquidateByPool(uint256 _vaultId) external override {
+    function liquidateByPool(uint256 _vaultId) external override notPaused {
         // funding payment should bee proceeded before liquidation
         perpetualMarketCore.executeFundingPayment();
 
@@ -675,5 +692,23 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
     function setMaxAmount(uint256 _maxFutureAmount, uint256 _maxSquaredAmount) external onlyOwner {
         maxPositionsInVault[0] = _maxFutureAmount;
         maxPositionsInVault[1] = _maxSquaredAmount;
+    }
+
+    /**
+     * @notice pause the contract
+     */
+    function pause() external onlyOwner notPaused {
+        isSystemPaused = true;
+
+        emit Paused();
+    }
+
+    /**
+     * @notice unpause the contract
+     */
+    function unPause() external onlyOwner isPaused {
+        isSystemPaused = false;
+
+        emit UnPaused();
     }
 }
