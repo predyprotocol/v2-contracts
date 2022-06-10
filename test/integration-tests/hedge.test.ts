@@ -37,7 +37,8 @@ describe('integration.FlashHedge', function () {
 
   async function execRawHedge() {
     await perpetualMarket.setHedger(wallet.address)
-    await perpetualMarket.execHedge(true)
+    const amounts = await perpetualMarket.getTokenAmountForHedging()
+    await perpetualMarket.execHedge(true, amounts[1])
     await perpetualMarket.setHedger(flashHedge.address)
   }
 
@@ -96,10 +97,10 @@ describe('integration.FlashHedge', function () {
       await testContractHelper.trade(wallet, 0, [0, scaledBN(1, 6)], MIN_MARGIN)
 
       const before = await usdc.balanceOf(wallet.address)
-      await flashHedge.hedgeOnUniswap(0, true)
+      await flashHedge.hedgeOnUniswap(1, true)
       const after = await usdc.balanceOf(wallet.address)
 
-      expect(after.sub(before)).to.be.gt(0)
+      expect(after.sub(before)).to.be.eq(1)
 
       // net delta must be neutral
       const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
@@ -149,10 +150,10 @@ describe('integration.FlashHedge', function () {
         await testContractHelper.trade(wallet, 1, [0, scaledBN(-2, 6)], scaledBN(1, 8))
 
         const before = await usdc.balanceOf(wallet.address)
-        await flashHedge.hedgeOnUniswap(0, true)
+        await flashHedge.hedgeOnUniswap(1, true)
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.gt(0)
+        expect(after.sub(before)).to.be.eq(1)
       })
 
       it('reverts if ETH price in Uniswap is too low', async () => {
@@ -177,10 +178,10 @@ describe('integration.FlashHedge', function () {
         await testContractHelper.trade(wallet, 1, [scaledBN(-2, 6), 0], MIN_MARGIN)
 
         const before = await usdc.balanceOf(wallet.address)
-        await flashHedge.hedgeOnUniswap(0, true)
+        await flashHedge.hedgeOnUniswap(1, true)
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.gt(0)
+        expect(after.sub(before)).to.be.eq(1)
 
         // net delta must be neutral
         const tokenAmounts = await perpetualMarket.getTokenAmountForHedging()
@@ -209,20 +210,20 @@ describe('integration.FlashHedge', function () {
         await testContractHelper.trade(wallet, 1, [scaledBN(-3, 6), 0], MIN_MARGIN)
 
         const before = await usdc.balanceOf(wallet.address)
-        await flashHedge.hedgeOnUniswap(0, true)
+        await flashHedge.hedgeOnUniswap(1, true)
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.gt(0)
+        expect(after.sub(before)).to.be.eq(1)
       })
 
       it('net delta becomes positive by short squared and sell all ETH to hedge', async () => {
         await testContractHelper.trade(wallet, 1, [0, scaledBN(-20, 6)], MIN_MARGIN)
 
         const before = await usdc.balanceOf(wallet.address)
-        await flashHedge.hedgeOnUniswap(0, true)
+        await flashHedge.hedgeOnUniswap(1, true)
         const after = await usdc.balanceOf(wallet.address)
 
-        expect(after.sub(before)).to.be.gt(0)
+        expect(after.sub(before)).to.be.eq(1)
       })
     })
   })

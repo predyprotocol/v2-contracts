@@ -92,32 +92,26 @@ contract FlashHedge is BaseFlashSwap, Ownable {
         FlashHedgeData memory data = abi.decode(_callData, (FlashHedgeData));
 
         if (FLASH_SOURCE(_callSource) == FLASH_SOURCE.FLASH_HEDGE_SELL) {
-            require(IERC20(collateral).balanceOf(address(this)) >= data.amountUsdc, "FH0");
+            uint256 amountUsdcToBuyETH = IERC20(collateral).balanceOf(address(this)).sub(data.minUsdc);
+            require(amountUsdcToBuyETH >= data.amountUsdc, "FH0");
 
-            IERC20(collateral).approve(address(perpetualMarket), data.amountUsdc);
-            perpetualMarket.execHedge(data.withRebalance);
+            IERC20(collateral).approve(address(perpetualMarket), amountUsdcToBuyETH);
+            perpetualMarket.execHedge(data.withRebalance, amountUsdcToBuyETH);
 
             // Repay and safeTransfer profit
-            uint256 usdcProfit = IERC20(collateral).balanceOf(address(this));
-
             IERC20(underlying).safeTransfer(ethUsdcPool, _amountToPay);
-            IERC20(collateral).safeTransfer(_caller, usdcProfit);
-
-            require(usdcProfit >= data.minUsdc, "FH2");
+            IERC20(collateral).safeTransfer(_caller, data.minUsdc);
         } else if (FLASH_SOURCE(_callSource) == FLASH_SOURCE.FLASH_HEDGE_BUY) {
+            uint256 amountUsdcReceiveFromPredy = _amountToPay.add(data.minUsdc);
+
+            require(data.amountUsdc >= amountUsdcReceiveFromPredy, "FH1");
+
             IERC20(underlying).approve(address(perpetualMarket), data.amountUnderlying);
-
-            (uint256 receivedUsdcAmount, ) = perpetualMarket.execHedge(data.withRebalance);
-
-            require(receivedUsdcAmount >= _amountToPay, "FH1");
+            perpetualMarket.execHedge(data.withRebalance, amountUsdcReceiveFromPredy);
 
             // Repay and safeTransfer profit
-            uint256 usdcProfit = data.amountUsdc.sub(_amountToPay);
-
             IERC20(collateral).safeTransfer(ethUsdcPool, _amountToPay);
-            IERC20(collateral).safeTransfer(_caller, usdcProfit);
-
-            require(usdcProfit >= data.minUsdc, "FH2");
+            IERC20(collateral).safeTransfer(_caller, data.minUsdc);
         }
     }
 
