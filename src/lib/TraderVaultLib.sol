@@ -210,10 +210,10 @@ library TraderVaultLib {
             deltaUsdcPosition = deltaUsdcPosition.sub(profitValue.div(1e8));
         }
 
-        // if positive, round down to the second decimal place, if negative round up.
+        // if deltaUsdcPosition is positive, round down to the second decimal place, if negative round up.
         roundedDeltaUsdcPosition = Math.mulDiv(deltaUsdcPosition, 1, 1e6, deltaUsdcPosition < 0).mul(1e6);
 
-        if(deltaUsdcPosition > roundedDeltaUsdcPosition) {
+        if (deltaUsdcPosition > roundedDeltaUsdcPosition) {
             lpProfit = deltaUsdcPosition.sub(roundedDeltaUsdcPosition).toUint256();
         }
 
@@ -223,8 +223,6 @@ library TraderVaultLib {
             .positionPerpetuals[_productId]
             .add(_positionPerpetual)
             .toInt128();
-        
-
     }
 
     /**
