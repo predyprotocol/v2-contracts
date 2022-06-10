@@ -999,6 +999,43 @@ describe('PerpetualMarket', function () {
     })
   })
 
+  describe('pause', () => {
+    beforeEach(async () => {
+      await perpetualMarket.initialize(scaledBN(10000, 6), scaledBN(2, 5))
+      await testContractHelper.updateSpot(scaledBN(1000, 8))
+    })
+
+    it('pause the contract', async () => {
+      await perpetualMarket.pause()
+
+      await expect(
+        perpetualMarket.trade({
+          vaultId: 0,
+          trades: [],
+          marginAmount: MIN_MARGIN,
+          deadline: 0,
+        }),
+      ).to.be.revertedWith('PM6')
+
+      await perpetualMarket.unPause()
+
+      await perpetualMarket.trade({
+        vaultId: 0,
+        trades: [],
+        marginAmount: MIN_MARGIN,
+        deadline: 0,
+      })
+    })
+
+    it('reverts if caller is not owner', async () => {
+      await expect(perpetualMarket.connect(other).pause()).to.be.reverted
+    })
+
+    it('unPause reverts if contract is not paused', async () => {
+      await expect(perpetualMarket.unPause()).to.be.revertedWith('PM7')
+    })
+  })
+
   describe('addMargin', () => {
     beforeEach(async () => {
       await perpetualMarket.initialize(scaledBN(600, 6), scaledBN(2, 5))
