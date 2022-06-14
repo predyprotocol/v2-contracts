@@ -175,7 +175,7 @@ describe('trade', function () {
         const expectedPayoffOfFuture = tradeAmounts[0] * (spotPrice - initialSpotPrice)
         const expectedPayoffOfSquared = (tradeAmounts[1] * (spotPrice ** 2 - initialSpotPrice ** 2)) / 10000
         const tradeFeeRate = 0.0005
-        const protocolFeeRate = 0.4
+        const protocolFeeRate = 0.2
         const tradeFeeFuture = 2 * tradeFeeRate * Math.abs(tradeAmounts[0]) * initialSpotPrice
         const tradeFeeSquared = (4 * tradeFeeRate * Math.abs(tradeAmounts[1]) * initialSpotPrice ** 2) / 10000
         const tradeFee = tradeFeeFuture + tradeFeeSquared
@@ -357,7 +357,7 @@ describe('trade', function () {
       expect(tradePrice.indexPrice).to.be.eq(10000000000)
       expect(tradePrice.fundingFee).to.be.eq(30000000)
       expect(tradePrice.tradeFee).to.be.eq(10000000)
-      expect(tradePrice.protocolFee).to.be.eq(4000000)
+      expect(tradePrice.protocolFee).to.be.eq(2000000)
       expect(tradePrice.fundingRate).to.be.eq(30000000594000)
       expect(tradePrice.totalValue).to.be.eq(10040)
       expect(tradePrice.totalFee).to.be.eq(10)
@@ -370,7 +370,7 @@ describe('trade', function () {
       expect(tradePrice.indexPrice).to.be.eq(100000000000)
       expect(tradePrice.fundingFee).to.be.eq(3)
       expect(tradePrice.tradeFee).to.be.eq(50000000)
-      expect(tradePrice.protocolFee).to.be.eq(20000000)
+      expect(tradePrice.protocolFee).to.be.eq(10000000)
       expect(tradePrice.fundingRate).to.be.eq(396000)
       expect(tradePrice.totalValue).to.be.eq(100050)
       expect(tradePrice.totalFee).to.be.eq(50)
@@ -453,8 +453,8 @@ describe('trade', function () {
           expect(tradePrice.indexPrice).to.be.eq(10000000000)
           expect(tradePrice.fundingFee).to.be.eq(39149899)
           expect(tradePrice.tradeFee).to.be.eq(10000000)
-          expect(tradePrice.protocolFee).to.be.eq(4000000)
-          expect(tradePrice.fundingRate).to.be.eq(39149899439100)
+          expect(tradePrice.protocolFee).to.be.eq(2000000)
+          expect(tradePrice.fundingRate).to.be.eq(39149899393595)
           expect(tradePrice.totalValue).to.be.eq(301332782790000)
           expect(tradePrice.totalFee).to.be.eq(300000000000)
         })
@@ -466,8 +466,8 @@ describe('trade', function () {
           expect(tradePrice.indexPrice).to.be.eq(100000000000)
           expect(tradePrice.fundingFee).to.be.eq(48719446)
           expect(tradePrice.tradeFee).to.be.eq(50000000)
-          expect(tradePrice.protocolFee).to.be.eq(20000000)
-          expect(tradePrice.fundingRate).to.be.eq(4871944658988)
+          expect(tradePrice.protocolFee).to.be.eq(10000000)
+          expect(tradePrice.fundingRate).to.be.eq(4871944622559)
           expect(tradePrice.totalValue).to.be.eq(2001402053260000)
           expect(tradePrice.totalFee).to.be.eq(1000000000000)
         })

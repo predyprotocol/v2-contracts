@@ -180,8 +180,8 @@ contract PerpetualMarketCore is IPerpetualMarketCore, Ownable, ERC20 {
         poolMarginRiskParam = 4000;
         // Trade fee is 0.05%
         tradeFeeRate = 5 * 1e4;
-        // Protocol fee is 0.02%
-        protocolFeeRate = 2 * 1e4;
+        // Protocol fee is 0.01%
+        protocolFeeRate = 1 * 1e4;
     }
 
     function setPerpetualMarket(address _perpetualMarket) external onlyOwner {
