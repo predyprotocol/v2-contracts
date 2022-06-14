@@ -84,6 +84,11 @@ library SpreadLib {
         uint256 _blocknumber
     ) internal pure returns (int256 adjustedPrice) {
         adjustedPrice = _price;
+
+        if (_info.safetyBlockPeriod == 0) {
+            return _price;
+        }
+
         if (_isLong) {
             // if long
             if (_info.blockLastShortTransaction >= _blocknumber - _info.safetyBlockPeriod) {
