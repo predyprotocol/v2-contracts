@@ -248,14 +248,7 @@ describe('SpreadLib', function () {
       it('check price', async function () {
         await tester.updatePrice(true, 8000, 600)
 
-        expect(
-          await tester.getUpdatedPrice(
-            await tester.info(),
-            false,
-            10000,
-            600,
-          ),
-        ).to.be.eq('10000')
+        expect(await tester.getUpdatedPrice(await tester.info(), false, 10000, 600)).to.be.eq('10000')
       })
     })
   })
