@@ -74,7 +74,7 @@ export const networkNameToPerpetualMarket = (name: string) => {
     case 'rinkebyArbitrum':
       return '0xdF8d64A556a60f7177A3FFc41AEde15524a218F3'
     case 'arbitrum':
-      return '0xc7ec02AEeCdC9087bf848c4C4f790Ed74A93F2AF'
+      return '0xAdBAeE9665C101413EbFF07e20520bdB67C71AB6'
     default:
       return undefined
   }
@@ -87,7 +87,7 @@ export const networkNameToPerpetualMarketCore = (name: string) => {
     case 'rinkebyArbitrum':
       return '0x4f59992D6f16870705054DDa3A6d597C3897b525'
     case 'arbitrum':
-      return '0x17F63ee2551C517260E956B0913daa2cDAC301E4'
+      return '0x8B98991EEd7C25280BE5532C3b23a095654868c0'
     default:
       return undefined
   }
@@ -98,7 +98,7 @@ export const networkNameToFlashHedge = (name: string) => {
     case 'rinkebyArbitrum':
       return '0xf87C60130442fed54Fb442F37924f5a7eD08cF4c'
     case 'arbitrum':
-      return '0xD3A3486B5cfe8B8b143FA06dfdEFbfbf7d5d06bC'
+      return '0xe8CaF94CaC4cdBF23E6504BBea45b9DDd203F010'
     default:
       return undefined
   }
@@ -109,7 +109,7 @@ export const networkNameToVaultNFT = (name: string) => {
     case 'rinkebyArbitrum':
       return '0x3ba2482e99Da498e6EeA5f218123d48FcF3786B9'
     case 'arbitrum':
-      return '0x8F80FA7860b3C96bcD91db63526A510d93B36E7C'
+      return '0x175FB4B866070Ab10F20057050Eb84491ff7Fd0c'
     default:
       return undefined
   }
