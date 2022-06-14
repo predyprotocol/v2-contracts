@@ -239,5 +239,24 @@ describe('SpreadLib', function () {
         })
       })
     })
+
+    describe('function disabled', () => {
+      beforeEach(async () => {
+        await tester.setParams(0, 1)
+      })
+
+      it('check price', async function () {
+        await tester.updatePrice(true, 8000, 600)
+
+        expect(
+          await tester.getUpdatedPrice(
+            await tester.info(),
+            false,
+            10000,
+            600,
+          ),
+        ).to.be.eq('10000')
+      })
+    })
   })
 })

@@ -15,6 +15,10 @@ contract SpreadLibTester {
         SpreadLib.init(info);
     }
 
+    function setParams(uint256 _safetyBlockPeriod, uint256 _numBlocksPerSpreadDecreasing) external {
+        SpreadLib.setParams(info, _safetyBlockPeriod, _numBlocksPerSpreadDecreasing);
+    }
+
     function getUpdatedPrice(
         SpreadLib.Info memory _info,
         bool _isLong,
