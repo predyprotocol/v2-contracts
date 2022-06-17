@@ -40,8 +40,8 @@ contract PerpetualMarket is IPerpetualMarket, BaseLiquidityPool, Ownable {
 
     uint256 private constant MAX_PRODUCT_ID = 2;
 
-    /// @dev liquidation fee is 20%
-    int256 private constant LIQUIDATION_FEE = 2000;
+    /// @dev liquidation fee is 10%
+    int256 private constant LIQUIDATION_FEE = 1000;
 
     IPerpetualMarketCore private immutable perpetualMarketCore;
 

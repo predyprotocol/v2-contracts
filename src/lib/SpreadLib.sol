@@ -17,7 +17,7 @@ library SpreadLib {
     using SignedSafeMath for int128;
 
     /// @dev block period for ETH - USD
-    uint256 private constant SAFETY_BLOCK_PERIOD = 17;
+    uint256 private constant SAFETY_BLOCK_PERIOD = 5;
 
     /// @dev number of blocks per spread decreasing
     uint256 private constant NUM_BLOCKS_PER_SPREAD_DECREASING = 3;
@@ -84,6 +84,11 @@ library SpreadLib {
         uint256 _blocknumber
     ) internal pure returns (int256 adjustedPrice) {
         adjustedPrice = _price;
+
+        if (_info.safetyBlockPeriod == 0) {
+            return _price;
+        }
+
         if (_isLong) {
             // if long
             if (_info.blockLastShortTransaction >= _blocknumber - _info.safetyBlockPeriod) {

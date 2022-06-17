@@ -257,6 +257,9 @@ library TraderVaultLib {
 
         int256 reward = _minCollateral.mul(_liquidationFee).div(1e4);
 
+        // round down to the second decimal place.
+        reward = reward.div(1e6).mul(1e6);
+
         reward = Math.min(reward, _traderVault.positionUsdc);
 
         // reduce margin

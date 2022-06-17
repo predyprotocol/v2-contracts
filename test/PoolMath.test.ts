@@ -15,7 +15,7 @@ describe('PoolMath', function () {
 
   describe('calculateMarginDivLiquidity', () => {
     const decimals = 16
-    const K = 4
+    const K = 3
 
     function fundingRateFormula(m: number, dm: number, l: number, dl: number) {
       return (K * marginDivLiquidity(m, dm, l, dl) + (10 - K) * marginDivLiquidity3(m, dm, l, dl)) / 10

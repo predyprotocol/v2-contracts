@@ -12,7 +12,7 @@ library PoolMath {
     using SignedSafeMath for int256;
     using SafeCast for int256;
 
-    int256 private constant K = 4;
+    int256 private constant K = 3;
 
     /**
      * @notice Calculate multiple integral of k*(m/L)+(1-k)(m/L)^3.

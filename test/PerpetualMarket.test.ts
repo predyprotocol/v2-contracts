@@ -626,7 +626,7 @@ describe('PerpetualMarket', function () {
           }),
         )
           .to.emit(perpetualMarket, 'PositionUpdated')
-          .withArgs(wallet.address, 1, subVaultIndex, SQUEETH_PRODUCT_ID, scaledBN(1, 8), 100303168, 0, 0, '0x12345678')
+          .withArgs(wallet.address, 1, subVaultIndex, SQUEETH_PRODUCT_ID, scaledBN(1, 8), 100302376, 0, 0, '0x12345678')
 
         expect(await usdc.balanceOf(testContractSet.feePool.address)).to.be.gt(0)
         expect((await testContractSet.perpetualMarketCore.pools(SQUEETH_PRODUCT_ID)).positionPerpetuals).to.be.eq(

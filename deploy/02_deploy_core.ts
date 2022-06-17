@@ -2,10 +2,11 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { networkNameToPriceFeed } from '../tasks/utils'
 
-const lpTokenName = 'Predy V2 ETH USDC LP Token'
+const lpTokenName = 'Predy V202 ETH USDC LP Token'
 const lpTokenSymbol = 'PREDY2-ETH-USDC-LP'
-const vaultTokenName = 'pVault'
+const vaultTokenName = 'pVault v202'
 const vaultTokenSymbol = 'PVAULT'
+const arbSys = '0x0000000000000000000000000000000000000064'
 
 function getVaultTokenBaseURI(network: string) {
   switch (network) {
@@ -35,7 +36,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const result = await deploy('PerpetualMarketCore', {
     from: deployer,
-    args: [priceFeedAddress, lpTokenName, lpTokenSymbol],
+    args: [priceFeedAddress, lpTokenName, lpTokenSymbol, arbSys],
     log: true,
   })
   await deploy('TraderVaultLib', { from: deployer, log: true })
@@ -46,16 +47,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (result.newlyDeployed) {
     const perpetualMarketCore = await ethers.getContract('PerpetualMarketCore', deployer)
 
-    // set SquaredPerpFundingMultiplier as 690%
-    await perpetualMarketCore.setSquaredPerpFundingMultiplier(690000000)
-    // set PerpFutureMaxFundingRate as 0.69%
-    await perpetualMarketCore.setPerpFutureMaxFundingRate(690000)
-    // set risk parameter as 20%
-    await perpetualMarketCore.setPoolMarginRiskParam(2000)
+    // set SquaredPerpFundingMultiplier as 300%
+    await perpetualMarketCore.setSquaredPerpFundingMultiplier(300000000)
+    // set PerpFutureMaxFundingRate as 0.4%
+    await perpetualMarketCore.setPerpFutureMaxFundingRate(400000)
+    // set risk parameter as 40%
+    await perpetualMarketCore.setPoolMarginRiskParam(4000)
     // trade fee is 0.05% and protocol fee is 0.01%
     await perpetualMarketCore.setTradeFeeRate(50000, 10000)
-    // hedge slippage 0.36%-0.52%
-    await perpetualMarketCore.setHedgeParams(36, 52, 4000000)
+    // hedge slippage 0.34%-0.48%
+    await perpetualMarketCore.setHedgeParams(34, 52, 5000000)
   }
 }
 
