@@ -1,3 +1,6 @@
-hardhat.config.ts
-scripts
-test
+# ignore everything
+*
+
+# include these
+!deployments/*/*.json
+!typechain/**
