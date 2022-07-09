@@ -19,7 +19,6 @@ import "arbos-precompiles/arbos/builtin/ArbSys.sol";
 // not used. but we need typechain object
 import "./arbitrum/packages/arb-bridge-peripherals/rpc-utils/MulticallV2.sol";
 
-
 /**
  * @title PerpetualMarketCore
  * @notice Perpetual Market Core Contract manages perpetual pool positions and calculates amount of collaterals.
