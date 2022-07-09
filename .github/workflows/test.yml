@@ -10,14 +10,15 @@ jobs:
         node-version: [16.x]
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-          submodules: recursive
       - name: Update submodules
         id: update
-        run: git submodule update --remote --recursive 
+        run: git submodule update --init
       - name: lint
         run: |
           npm install -g npm@latest
@@ -31,14 +32,15 @@ jobs:
         node-version: [16.x]
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-          submodules: recursive
       - name: Update submodules
         id: update
-        run: git submodule update --remote --recursive           
+        run: git submodule update --init
       - name: test
         run: |
           npm install -g npm@latest
