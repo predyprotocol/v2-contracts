@@ -17,6 +17,7 @@ import "./lib/PoolMath.sol";
 
 import "arbos-precompiles/arbos/builtin/ArbSys.sol";
 import "arb-bridge-peripherals/contracts/rpc-utils/MulticallV2.sol";
+
 /**
  * @title PerpetualMarketCore
  * @notice Perpetual Market Core Contract manages perpetual pool positions and calculates amount of collaterals.
