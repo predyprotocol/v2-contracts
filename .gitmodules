@@ -16,3 +16,6 @@
 [submodule "lib/arb-os"]
 	path = lib/arb-os
 	url = https://github.com/OffchainLabs/arb-os
+[submodule "lib/arbitrum"]
+	path = lib/arbitrum
+	url = https://github.com/OffchainLabs/arbitrum

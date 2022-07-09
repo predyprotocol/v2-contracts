@@ -4,3 +4,5 @@ ds-test/=lib/forge-std/lib/ds-test/src/
 uniswap/v3-core/=lib/v3-core/
 uniswap/v3-periphery/=lib/v3-periphery/
 chainlink/=lib/chainlink/
+arbos-precompiles/=lib/arbitrum/packages/arb-os/contracts/
+arb-bridge-peripherals/=lib/arbitrum/packages/arb-bridge-peripherals/contracts/
