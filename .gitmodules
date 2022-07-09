@@ -13,6 +13,3 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "lib/arb-os"]
-	path = lib/arb-os
-	url = https://github.com/OffchainLabs/arb-os
