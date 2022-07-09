@@ -17,7 +17,8 @@ import "./lib/PoolMath.sol";
 
 import "arbos-precompiles/arbos/builtin/ArbSys.sol";
 // not used. but we need typechain object
-import "arb-bridge-peripherals/rpc-utils/MulticallV2.sol";
+import "./arbitrum/packages/arb-bridge-peripherals/rpc-utils/MulticallV2.sol";
+
 
 /**
  * @title PerpetualMarketCore
